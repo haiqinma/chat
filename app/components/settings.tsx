@@ -75,7 +75,10 @@ import { ProviderType } from "../utils/cloud";
 import { TTSConfigList } from "./tts-config";
 import { RealtimeConfigList } from "./realtime-chat/realtime-config";
 
-const ROUTER_BASE_URL = "https://llm.yeying.pub/";
+const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
+const ROUTER_BASE_URL =
+  getClientConfig()?.routerBaseUrl || "https://llm.yeying.pub/";
+const ROUTER_BASE_URL_NORMALIZED = normalizeUrl(ROUTER_BASE_URL);
 const ROUTER_PROVIDERS = [ServiceProvider.OpenAI];
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
@@ -599,7 +602,9 @@ export function Settings() {
   const accessStore = useAccessStore();
   const shouldHideBalanceQuery = useMemo(() => {
     const isOpenAiUrl = accessStore.openaiUrl.includes(OPENAI_BASE_URL);
-    const isRouterUrl = accessStore.openaiUrl.includes(ROUTER_BASE_URL);
+    const isRouterUrl = normalizeUrl(accessStore.openaiUrl).includes(
+      ROUTER_BASE_URL_NORMALIZED,
+    );
 
     return (
       accessStore.hideBalanceQuery ||
@@ -659,13 +664,14 @@ export function Settings() {
       state.useCustomConfig = true;
       state.provider = ServiceProvider.OpenAI;
 
+      const normalizedOpenAIUrl = normalizeUrl(state.openaiUrl || "");
       const shouldReplaceEndpoint =
-        !state.openaiUrl ||
-        state.openaiUrl === ApiPath.OpenAI ||
-        state.openaiUrl === OPENAI_BASE_URL;
+        normalizedOpenAIUrl.length === 0 ||
+        normalizedOpenAIUrl === normalizeUrl(ApiPath.OpenAI) ||
+        normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL);
 
       if (shouldReplaceEndpoint || clientConfig?.isApp) {
-        state.openaiUrl = ROUTER_BASE_URL;
+        state.openaiUrl = ROUTER_BASE_URL_NORMALIZED;
       }
     });
     document.addEventListener("keydown", keydownEvent);
@@ -732,7 +738,7 @@ export function Settings() {
             aria-label={Locale.Settings.Access.OpenAI.Endpoint.Title}
             type="text"
             value={accessStore.openaiUrl}
-            placeholder={ROUTER_BASE_URL}
+            placeholder={ROUTER_BASE_URL_NORMALIZED}
             onChange={(e) =>
               accessStore.update(
                 (access) => (access.openaiUrl = e.currentTarget.value),

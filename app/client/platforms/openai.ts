@@ -80,6 +80,55 @@ export interface DalleRequestPayload {
   style: DalleStyle;
 }
 
+const ROUTER_HOST = "llm.yeying.pub";
+
+function isJwtValid(token: string | undefined | null): boolean {
+  try {
+    if (token === undefined || token === null) return false;
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return false;
+    const payloadJson = atob(
+      payloadBase64.replace(/-/g, "+").replace(/_/g, "/"),
+    );
+    const payload = JSON.parse(payloadJson);
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp > currentTime;
+  } catch {
+    return false;
+  }
+}
+
+function isRouterUrl(url: string): boolean {
+  try {
+    const base =
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin;
+    const parsed = new URL(url, base);
+    return parsed.host.includes(ROUTER_HOST);
+  } catch {
+    return false;
+  }
+}
+
+function getHeadersWithRouterJwt(url: string) {
+  const headers = getHeaders();
+  if (!isRouterUrl(url)) return headers;
+
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem("authToken");
+  } catch {
+    return headers;
+  }
+
+  if (isJwtValid(token)) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
 export class ChatGPTApi implements LLMApi {
   private disableListModels = false;
 
@@ -180,7 +229,7 @@ export class ChatGPTApi implements LLMApi {
         method: "POST",
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: getHeadersWithRouterJwt(speechPath),
       };
 
       // make a fetch request
@@ -268,7 +317,6 @@ export class ChatGPTApi implements LLMApi {
         requestPayload["max_completion_tokens"] = modelConfig.max_tokens;
       }
 
-
       // add max_tokens to vision model
       if (visionModel && !isO1OrO3 && !isGpt5) {
         requestPayload["max_tokens"] = Math.max(modelConfig.max_tokens, 4000);
@@ -316,9 +364,7 @@ export class ChatGPTApi implements LLMApi {
         );
       } else {
         chatPath = this.path(
-          isDalle3
-            ? OpenaiPath.ImagePath
-            : OpenaiPath.ChatPath,
+          isDalle3 ? OpenaiPath.ImagePath : OpenaiPath.ChatPath,
         );
       }
       if (shouldStream) {
@@ -332,7 +378,7 @@ export class ChatGPTApi implements LLMApi {
         streamWithThink(
           chatPath,
           requestPayload,
-          getHeaders(),
+          getHeadersWithRouterJwt(chatPath),
           tools as any,
           funcs,
           controller,
@@ -425,7 +471,7 @@ export class ChatGPTApi implements LLMApi {
           method: "POST",
           body: JSON.stringify(requestPayload),
           signal: controller.signal,
-          headers: getHeaders(),
+          headers: getHeadersWithRouterJwt(chatPath),
         };
 
         // make a fetch request
@@ -458,19 +504,18 @@ export class ChatGPTApi implements LLMApi {
     const startDate = formatDate(startOfMonth);
     const endDate = formatDate(new Date(Date.now() + ONE_DAY));
 
+    const usagePath = this.path(
+      `${OpenaiPath.UsagePath}?start_date=${startDate}&end_date=${endDate}`,
+    );
+    const subsPath = this.path(OpenaiPath.SubsPath);
     const [used, subs] = await Promise.all([
-      fetch(
-        this.path(
-          `${OpenaiPath.UsagePath}?start_date=${startDate}&end_date=${endDate}`,
-        ),
-        {
-          method: "GET",
-          headers: getHeaders(),
-        },
-      ),
-      fetch(this.path(OpenaiPath.SubsPath), {
+      fetch(usagePath, {
         method: "GET",
-        headers: getHeaders(),
+        headers: getHeadersWithRouterJwt(usagePath),
+      }),
+      fetch(subsPath, {
+        method: "GET",
+        headers: getHeadersWithRouterJwt(subsPath),
       }),
     ]);
 
@@ -514,10 +559,11 @@ export class ChatGPTApi implements LLMApi {
 
   async models(): Promise<LLMModel[]> {
     const fetchFromApi = async () => {
-      const res = await fetch(this.path(OpenaiPath.ListModelPath), {
+      const listPath = this.path(OpenaiPath.ListModelPath);
+      const res = await fetch(listPath, {
         method: "GET",
         headers: {
-          ...getHeaders(),
+          ...getHeadersWithRouterJwt(listPath),
         },
       });
 

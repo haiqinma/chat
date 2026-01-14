@@ -11,6 +11,12 @@ export const getBuildConfig = () => {
   const buildMode = process.env.BUILD_MODE ?? "standalone";
   const isApp = !!process.env.BUILD_APP;
   const version = "v" + tauriConfig.package.version;
+  const routerBaseUrl =
+    (
+      process.env.ROUTER_BACKEND_URL ||
+      process.env.YEYING_BACKEND_URL ||
+      "https://llm.yeying.pub"
+    ).trim() || "https://llm.yeying.pub";
 
   const commitInfo = (() => {
     try {
@@ -41,6 +47,7 @@ export const getBuildConfig = () => {
     isApp,
     template: process.env.DEFAULT_INPUT_TEMPLATE ?? DEFAULT_INPUT_TEMPLATE,
     adminWalletAccount,
+    routerBaseUrl,
   };
 };
 

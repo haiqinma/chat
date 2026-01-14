@@ -31,7 +31,42 @@ let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 const isApp = getClientConfig()?.buildMode === "export";
 
 // Default router endpoint for OpenAI-compatible requests
-const DEFAULT_OPENAI_URL = "https://shengnw.win";
+const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
+const ROUTER_BASE_URL =
+  getClientConfig()?.routerBaseUrl?.trim() || "https://llm.yeying.pub";
+const DEFAULT_OPENAI_URL = normalizeUrl(ROUTER_BASE_URL);
+const LEGACY_OPENAI_URL = "https://shengnw.win";
+const ROUTER_HOST = "llm.yeying.pub";
+
+const isValidJwt = (token: string | null | undefined): boolean => {
+  try {
+    if (!token) return false;
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return false;
+    const payloadJson = atob(
+      payloadBase64.replace(/-/g, "+").replace(/_/g, "/"),
+    );
+    const payload = JSON.parse(payloadJson);
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp > currentTime;
+  } catch {
+    return false;
+  }
+};
+
+const isRouterEndpoint = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    const base =
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin;
+    const parsed = new URL(url, base);
+    return parsed.host.includes(ROUTER_HOST);
+  } catch {
+    return false;
+  }
+};
 
 const DEFAULT_GOOGLE_URL = isApp ? GEMINI_BASE_URL : ApiPath.Google;
 
@@ -231,6 +266,11 @@ export const useAccessStore = createPersistStore(
       this.fetch();
 
       // has token or has code or disabled access control
+      const routerJwtOk =
+        typeof window !== "undefined" &&
+        isRouterEndpoint(get().openaiUrl) &&
+        isValidJwt(localStorage.getItem("authToken"));
+
       return (
         this.isValidOpenAI() ||
         this.isValidAzure() ||
@@ -246,6 +286,7 @@ export const useAccessStore = createPersistStore(
         this.isValidXAI() ||
         this.isValidChatGLM() ||
         this.isValidSiliconFlow() ||
+        routerJwtOk ||
         !this.enabledAccessControl() ||
         (this.enabledAccessControl() && ensure(get(), ["accessCode"]))
       );
@@ -292,7 +333,7 @@ export const useAccessStore = createPersistStore(
   }),
   {
     name: StoreKey.Access,
-    version: 4,
+    version: 5,
     migrate(persistedState, version) {
       if (version < 2) {
         const state = persistedState as {
@@ -311,7 +352,8 @@ export const useAccessStore = createPersistStore(
         state.provider = ServiceProvider.OpenAI;
 
         const shouldReplaceOpenAIUrl =
-          state.openaiUrl === ApiPath.OpenAI || state.openaiUrl === OPENAI_BASE_URL;
+          state.openaiUrl === ApiPath.OpenAI ||
+          state.openaiUrl === OPENAI_BASE_URL;
 
         if (!state.openaiUrl || shouldReplaceOpenAIUrl) {
           state.openaiUrl = DEFAULT_OPENAI_URL;
@@ -323,6 +365,20 @@ export const useAccessStore = createPersistStore(
         state.useCustomConfig = true;
         state.provider = ServiceProvider.OpenAI;
         state.openaiUrl = DEFAULT_OPENAI_URL;
+      }
+
+      if (version < 5) {
+        const state = persistedState as typeof DEFAULT_ACCESS_STATE;
+        const normalizedOpenAIUrl = normalizeUrl(state.openaiUrl || "");
+        const shouldReplaceOpenAIUrl =
+          normalizedOpenAIUrl.length === 0 ||
+          normalizedOpenAIUrl === ApiPath.OpenAI ||
+          normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL) ||
+          normalizedOpenAIUrl === normalizeUrl(LEGACY_OPENAI_URL);
+
+        if (shouldReplaceOpenAIUrl) {
+          state.openaiUrl = DEFAULT_OPENAI_URL;
+        }
       }
 
       return persistedState as any;
