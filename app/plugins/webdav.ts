@@ -1,4 +1,9 @@
-import { authFetch } from "@yeying-community/web3";
+import { authUcanFetch } from "@yeying-community/web3-bs";
+import {
+  UCAN_SESSION_ID,
+  getWebdavAudience,
+  getWebdavCapabilities,
+} from "./ucan";
 
 export interface WebDAVQuota {
   quota: number; // 总配额
@@ -10,7 +15,11 @@ export interface WebDAVQuota {
 
 export async function fetchQuota(): Promise<WebDAVQuota | undefined> {
   try {
-    const response = await authFetch(
+    const audience = getWebdavAudience();
+    if (!audience) {
+      throw new Error("WebDAV UCAN audience is not configured");
+    }
+    const response = await authUcanFetch(
       "/api/v1/public/webdav/quota",
       {
         method: "GET",
@@ -19,9 +28,9 @@ export async function fetchQuota(): Promise<WebDAVQuota | undefined> {
         },
       },
       {
-        baseUrl: "/api/v1/public/auth",
-        refreshPath: "refresh",
-        tokenStorageKey: "authToken",
+        sessionId: UCAN_SESSION_ID,
+        audience,
+        capabilities: getWebdavCapabilities(),
       },
     );
 

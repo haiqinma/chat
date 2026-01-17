@@ -4,21 +4,21 @@
   "license": "mit",
   "scripts": {
     "mask": "npx tsx app/masks/build.ts",
-    "mask:watch": "npx watch \"yarn mask\" app/masks",
-    "dev": "concurrently -r \"yarn run mask:watch\" \"next dev\"",
-    "build": "yarn mask && cross-env BUILD_MODE=standalone next build",
-    "start": "next start",
+    "mask:watch": "npx watch \"npm run mask\" app/masks",
+    "dev": "concurrently -r \"npm run mask:watch\" \"next dev -p 3020\"",
+    "build": "npm run mask && cross-env BUILD_MODE=standalone next build",
+    "start": "next start -p 3020",
     "lint": "next lint",
-    "export": "yarn mask && cross-env BUILD_MODE=export BUILD_APP=1 next build",
-    "export:dev": "concurrently -r \"yarn mask:watch\"  \"cross-env BUILD_MODE=export BUILD_APP=1 next dev\"",
-    "app:dev": "concurrently -r \"yarn mask:watch\" \"yarn tauri dev\"",
-    "app:build": "yarn mask && yarn tauri build",
-    "app:clear": "yarn tauri dev",
+    "export": "npm run mask && cross-env BUILD_MODE=export BUILD_APP=1 next build",
+    "export:dev": "concurrently -r \"npm run mask:watch\"  \"cross-env BUILD_MODE=export BUILD_APP=1 next dev -p 3020\"",
+    "app:dev": "concurrently -r \"npm run mask:watch\" \"npx tauri dev\"",
+    "app:build": "npm run mask && npx tauri build",
+    "app:clear": "npx tauri dev",
     "prompts": "node ./scripts/fetch-prompts.mjs",
     "prepare": "husky install",
-    "proxy-dev": "sh ./scripts/init-proxy.sh && proxychains -f ./scripts/proxychains.conf yarn dev",
-    "test": "node --no-warnings --experimental-vm-modules $(yarn bin jest) --watch",
-    "test:ci": "node --no-warnings --experimental-vm-modules $(yarn bin jest) --ci"
+    "proxy-dev": "sh ./scripts/init-proxy.sh && proxychains -f ./scripts/proxychains.conf npm run dev",
+    "test": "node --no-warnings --experimental-vm-modules ./node_modules/.bin/jest --watch",
+    "test:ci": "node --no-warnings --experimental-vm-modules ./node_modules/.bin/jest --ci"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -29,7 +29,7 @@
     "@svgr/webpack": "^6.5.1",
     "@vercel/analytics": "^0.1.11",
     "@vercel/speed-insights": "^1.0.2",
-    "@yeying-community/web3": "^1.0.1",
+    "@yeying-community/web3-bs": "file:../web3-bs",
     "axios": "^1.7.5",
     "clsx": "^2.1.1",
     "element-plus": "^2.12.0",
@@ -104,5 +104,5 @@
   "resolutions": {
     "lint-staged/yaml": "^2.2.2"
   },
-  "packageManager": "yarn@1.22.19"
+  "packageManager": "npm@11.6.2"
 }

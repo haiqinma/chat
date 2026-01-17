@@ -16,7 +16,7 @@ import Locale from "../locales";
 import {
   connectWallet,
   getCurrentAccount,
-  isValidToken,
+  isValidUcanAuthorization,
 } from "../plugins/wallet";
 import { useAppConfig, useChatStore } from "../store";
 import { Avatar } from "./emoji";
@@ -66,8 +66,7 @@ export function useHotKey() {
 }
 
 export function useWalletAccount() {
-  const token = localStorage.getItem("authToken");
-  return isValidToken(token).then((result) => {
+  return isValidUcanAuthorization().then((result) => {
     return result;
   });
 }

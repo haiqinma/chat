@@ -7,16 +7,16 @@ export const getBuildConfig = () => {
       "[Server Config] you are importing a nodejs-only module outside of nodejs",
     );
   }
+  const defaultRouterBackendUrl = "http://127.0.0.1:3011";
   const adminWalletAccount = process.env.ADMIN_WALLET_ACCOUNT;
   const buildMode = process.env.BUILD_MODE ?? "standalone";
   const isApp = !!process.env.BUILD_APP;
   const version = "v" + tauriConfig.package.version;
-  const routerBaseUrl =
-    (
-      process.env.ROUTER_BACKEND_URL ||
-      process.env.YEYING_BACKEND_URL ||
-      "https://llm.yeying.pub"
-    ).trim() || "https://llm.yeying.pub";
+  const webdavBackendUrl = process.env.WEBDAV_BACKEND_URL;
+  const routerBackendUrl =
+    process.env.ROUTER_BACKEND_URL ??
+    process.env.YEYING_BACKEND_URL ??
+    defaultRouterBackendUrl;
 
   const commitInfo = (() => {
     try {
@@ -47,7 +47,8 @@ export const getBuildConfig = () => {
     isApp,
     template: process.env.DEFAULT_INPUT_TEMPLATE ?? DEFAULT_INPUT_TEMPLATE,
     adminWalletAccount,
-    routerBaseUrl,
+    webdavBackendUrl,
+    routerBackendUrl,
   };
 };
 

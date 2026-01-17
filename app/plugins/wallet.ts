@@ -1,19 +1,18 @@
 import { notifyError, notifyInfo, notifySuccess } from "./show_window";
-import { getServerSideConfig } from "@/app/config/server";
 import {
   getProvider,
   requestAccounts,
   getChainId as getChainIdFromSdk,
   getBalance as getBalanceFromSdk,
-  loginWithChallenge as loginWithChallengeFromSdk,
   onAccountsChanged,
   onChainChanged,
-  clearAccessToken,
+  createRootUcan,
+  getStoredUcanRoot,
+  clearUcanSession,
   type Eip1193Provider,
-} from "@yeying-community/web3";
-
-const config = getServerSideConfig();
-console.log(`config=${JSON.stringify(config)}`);
+  type UcanRootProof,
+} from "@yeying-community/web3-bs";
+import { UCAN_SESSION_ID, getUcanRootCapabilities } from "./ucan";
 
 const providerOptions = {
   preferYeYing: true,
@@ -24,6 +23,14 @@ let providerPromise: Promise<Eip1193Provider | null> | null = null;
 let listenersCleanup: (() => void) | null = null;
 let listenersReady = false;
 let loginInFlight = false;
+
+function getUcanIssuer(address: string) {
+  return `did:pkh:eth:${address.toLowerCase()}`;
+}
+
+async function getStoredRoot(): Promise<UcanRootProof | null> {
+  return await getStoredUcanRoot(UCAN_SESSION_ID);
+}
 
 async function resolveProvider(): Promise<Eip1193Provider | null> {
   if (!providerPromise) {
@@ -55,8 +62,23 @@ export async function initWalletListeners() {
 
   const handleAccountsChanged = async (accounts: string[]) => {
     if (!Array.isArray(accounts) || accounts.length === 0) {
+      const root = await getStoredRoot();
+      const current = getCurrentAccount();
+      const expectedIssuer = current ? getUcanIssuer(current) : "";
+      const rootValid =
+        root &&
+        typeof root.exp === "number" &&
+        root.exp > Date.now() &&
+        (!expectedIssuer || root.iss === expectedIssuer);
+
+      if (rootValid) {
+        // 钱包可能只是锁定，保留已授权的 UCAN
+        return;
+      }
+
       localStorage.removeItem("currentAccount");
-      clearAccessToken({ tokenStorageKey: "authToken" });
+      await clearUcanSession(UCAN_SESSION_ID);
+      localStorage.removeItem("authToken");
       notifyError("❌钱包已断开，请重新连接");
       return;
     }
@@ -65,8 +87,9 @@ export async function initWalletListeners() {
     const prevAccount = getCurrentAccount();
     if (nextAccount !== prevAccount) {
       localStorage.setItem("currentAccount", nextAccount);
-      clearAccessToken({ tokenStorageKey: "authToken" });
-      await loginWithChallenge(provider, nextAccount);
+      await clearUcanSession(UCAN_SESSION_ID);
+      localStorage.removeItem("authToken");
+      await loginWithUcan(provider, nextAccount);
     }
   };
 
@@ -110,7 +133,7 @@ export async function connectWallet() {
         const currentAccount = accounts[0];
         localStorage.setItem("currentAccount", currentAccount);
         notifySuccess(`✅钱包连接成功！\n账户: ${currentAccount}`);
-        await loginWithChallenge(provider, currentAccount);
+        await loginWithUcan(provider, currentAccount);
       } else {
         notifyError("❌未获取到账户");
       }
@@ -212,8 +235,8 @@ export async function getBalance() {
   }
 }
 
-// Challenge 登录
-export async function loginWithChallenge(
+// UCAN 授权
+export async function loginWithUcan(
   provider?: Eip1193Provider,
   address?: string,
 ) {
@@ -233,18 +256,38 @@ export async function loginWithChallenge(
       return;
     }
 
-    await loginWithChallengeFromSdk({
+    const existing = await getStoredRoot();
+    const expectedIssuer = getUcanIssuer(currentAccount);
+    if (
+      existing &&
+      typeof existing.exp === "number" &&
+      existing.exp > Date.now() &&
+      existing.iss === expectedIssuer
+    ) {
+      notifySuccess(`✅已完成授权`);
+      window.location.reload();
+      return;
+    }
+    if (
+      existing &&
+      typeof existing.exp === "number" &&
+      existing.exp <= Date.now()
+    ) {
+      await clearUcanSession(UCAN_SESSION_ID);
+    }
+
+    await createRootUcan({
       provider: providerInstance,
       address: currentAccount,
-      baseUrl: "/api/v1/public/auth",
-      storeToken: true,
-      tokenStorageKey: "authToken",
+      sessionId: UCAN_SESSION_ID,
+      capabilities: getUcanRootCapabilities(),
     });
-    notifySuccess(`✅登录成功`);
+    localStorage.removeItem("authToken");
+    notifySuccess(`✅授权成功`);
     window.location.reload();
   } catch (error) {
-    console.error("❌登录失败:", error);
-    notifyError(`❌登录失败: ${error}`);
+    console.error("❌授权失败:", error);
+    notifyError(`❌授权失败: ${error}`);
   } finally {
     loginInFlight = false;
   }
@@ -255,22 +298,21 @@ export async function loginWithChallenge(
  * @param token
  * @returns
  */
-export async function isValidToken(
-  token: string | undefined | null,
-): Promise<boolean> {
+export async function isValidUcanAuthorization(): Promise<boolean> {
   try {
-    if (token === undefined || token === null) {
+    const root = await getStoredRoot();
+    if (!root || typeof root.exp !== "number") {
       return false;
     }
-    const payloadBase6 = token.split(".")[1];
-    const payloadJson = atob(
-      payloadBase6.replace(/-/g, "+").replace(/_/g, "/"),
-    );
-    const payload = JSON.parse(payloadJson);
-    const currentTime = Math.floor(Date.now() / 1000); // 当前时间（秒）
-    return payload.exp > currentTime;
+    if (root.exp <= Date.now()) {
+      return false;
+    }
+    const account = getCurrentAccount();
+    if (!account) {
+      return false;
+    }
+    return root.iss === getUcanIssuer(account);
   } catch (e) {
-    // token 格式错误或无法解析
     return false;
   }
 }

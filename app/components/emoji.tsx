@@ -22,6 +22,7 @@ import BotIconHunyuan from "../icons/llm-icons/hunyuan.svg";
 import BotIconDoubao from "../icons/llm-icons/doubao.svg";
 import BotIconChatglm from "../icons/llm-icons/chatglm.svg";
 import React, { useState } from "react";
+import styles from "./emoji.module.scss";
 
 export function getEmojiUrl(unified: string, style: EmojiStyle) {
   // Whoever owns this Content Delivery Network (CDN), I am using your CDN to serve emojis
@@ -143,25 +144,16 @@ export function WalletAccount(props: { address?: string; title?: string }) {
 
   return (
     <div
-      style={{
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        fontFamily: "monospace",
-      }}
+      className={styles["wallet-account"]}
       title={props.title || props.address}
     >
-      {formatAddress(props.address || "")}
+      <span className={styles["wallet-address"]}>
+        {formatAddress(props.address || "")}
+      </span>
       <button
         onClick={copyToClipboard}
-        style={{
-          padding: "8px 12px",
-          background: "#1a1b1c",
-          border: "1px solid #333",
-          borderRadius: "8px",
-          color: "#666",
-          cursor: "pointer",
-        }}
+        className={styles["wallet-copy"]}
+        type="button"
       >
         {isCopied ? "已复制" : "复制"}
       </button>

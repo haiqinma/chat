@@ -22,7 +22,7 @@
     - `NODE_VERSION=20.1`
     - `NEXT_TELEMETRY_DISABLE=1`
     - `OPENAI_API_KEY=你自己的API Key`
-    - `YARN_VERSION=1.22.19`
+    - `NPM_VERSION=11.6.2`
     - `PHP_VERSION=7.4`
 
     根据实际需要，可以选择填写以下选项：
