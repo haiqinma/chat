@@ -1,0 +1,49 @@
+.wallet-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background-color: var(--white);
+  border: var(--border-in-light);
+  color: var(--black);
+  overflow: hidden;
+}
+
+.wallet-address {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wallet-copy {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: var(--second);
+  color: var(--black);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wallet-copy:hover,
+.wallet-copy:focus {
+  background-color: var(--hover-color);
+}

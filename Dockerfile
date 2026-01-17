@@ -6,10 +6,9 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY package.json package-lock.json ./
 
-RUN yarn config set registry 'https://registry.npmmirror.com/'
-RUN yarn install
+RUN npm ci
 
 FROM base AS builder
 
@@ -23,7 +22,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN yarn build
+RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
