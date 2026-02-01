@@ -1,20 +1,30 @@
 import { STORAGE_KEY } from "@/app/constant";
+import { getClientConfig } from "@/app/config/client";
+import {
+  getWebdavAudience,
+  getWebdavCapabilities,
+  UCAN_SESSION_ID,
+} from "@/app/plugins/ucan";
 import { SyncStore } from "@/app/store/sync";
+import { initWebDavStorage } from "@yeying-community/web3-bs";
 
 export type WebDAVConfig = SyncStore["webdav"];
 export type WebDavClient = ReturnType<typeof createWebDavClient>;
 
-export function createWebDavClient(store: SyncStore) {
-  const folder = STORAGE_KEY;
-  const fileName = `${folder}/backup.json`;
+const DEFAULT_FOLDER = STORAGE_KEY;
+const BACKUP_FILENAME = "backup.json";
+const DEFAULT_FILE = `${DEFAULT_FOLDER}/${BACKUP_FILENAME}`;
+const WEBDAV_PROXY_PREFIX = "/api/webdav";
+
+function createBasicWebDavClient(store: SyncStore) {
   const config = store.webdav;
   const proxyUrl =
-    store.useProxy && store.proxyUrl.length > 0 ? store.proxyUrl : undefined;
-  console.log(`proxyUrl=${proxyUrl}`);
+    store.useProxy && store.proxyUrl.length > 0 ? store.proxyUrl : "";
+
   return {
     async check() {
       try {
-        const res = await fetch(this.path(folder, proxyUrl, "MKCOL"), {
+        const res = await fetch(this.path(DEFAULT_FOLDER, proxyUrl, "MKCOL"), {
           method: "GET",
           headers: this.headers(),
         });
@@ -35,7 +45,7 @@ export function createWebDavClient(store: SyncStore) {
     },
 
     async get(key: string) {
-      const res = await fetch(this.path(fileName, proxyUrl), {
+      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl), {
         method: "GET",
         headers: this.headers(),
       });
@@ -50,7 +60,7 @@ export function createWebDavClient(store: SyncStore) {
     },
 
     async set(key: string, value: string) {
-      const res = await fetch(this.path(fileName, proxyUrl), {
+      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl), {
         method: "PUT",
         headers: this.headers(),
         body: value,
@@ -76,7 +86,7 @@ export function createWebDavClient(store: SyncStore) {
       }
 
       let url;
-      const pathPrefix = "/api/webdav/";
+      const pathPrefix = `${WEBDAV_PROXY_PREFIX}/`;
 
       try {
         let u = new URL(proxyUrl + pathPrefix + path);
@@ -94,4 +104,88 @@ export function createWebDavClient(store: SyncStore) {
       return url;
     },
   };
+}
+
+function createWebdavProxyFetcher(endpoint: string) {
+  return (input: RequestInfo | URL, init?: RequestInit) => {
+    const origin =
+      typeof window === "undefined"
+        ? "http://localhost"
+        : window.location.origin && window.location.origin !== "null"
+          ? window.location.origin
+          : window.location.href;
+    const raw = typeof input === "string" ? input : input.toString();
+    const url = new URL(raw, origin);
+    if (url.pathname.startsWith(WEBDAV_PROXY_PREFIX)) {
+      url.searchParams.set("endpoint", endpoint);
+    }
+    return fetch(url.toString(), init);
+  };
+}
+
+async function getUcanWebDavClient() {
+  const backendUrl = getClientConfig()?.webdavBackendUrl?.trim();
+  if (!backendUrl) {
+    throw new Error("WEBDAV_BACKEND_URL is not configured");
+  }
+  const audience = getWebdavAudience();
+  if (!audience) {
+    throw new Error("WebDAV UCAN audience is not configured");
+  }
+
+  const baseUrl = "";
+
+  const webdav = await initWebDavStorage({
+    baseUrl,
+    prefix: WEBDAV_PROXY_PREFIX,
+    audience,
+    appDir: DEFAULT_FOLDER,
+    capabilities: getWebdavCapabilities(),
+    sessionId: UCAN_SESSION_ID,
+    fetcher: createWebdavProxyFetcher(backendUrl),
+  });
+
+  const appDir = webdav.appDir?.replace(/\/+$/, "") || "";
+  const filePath = `${appDir || ""}/${BACKUP_FILENAME}`;
+
+  return { client: webdav.client, filePath };
+}
+
+function createUcanWebDavClient() {
+  return {
+    async check() {
+      try {
+        const { client } = await getUcanWebDavClient();
+        await client.getQuota();
+        return true;
+      } catch (e) {
+        console.error("[WebDav UCAN] failed to check", e);
+      }
+      return false;
+    },
+
+    async get(_: string) {
+      const { client, filePath } = await getUcanWebDavClient();
+      try {
+        return await client.downloadText(filePath);
+      } catch (e) {
+        if (String(e).includes("404")) {
+          return "";
+        }
+        throw e;
+      }
+    },
+
+    async set(_: string, value: string) {
+      const { client, filePath } = await getUcanWebDavClient();
+      await client.upload(filePath, value, "application/json");
+    },
+  };
+}
+
+export function createWebDavClient(store: SyncStore) {
+  if (store.webdav.authType === "ucan") {
+    return createUcanWebDavClient();
+  }
+  return createBasicWebDavClient(store);
 }

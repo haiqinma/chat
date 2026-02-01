@@ -34,6 +34,7 @@ import { initWalletListeners, waitForWallet } from "../plugins/wallet";
 import { toast } from "sonner";
 
 import { useToastStore } from "../store/toast";
+import { useAutoSync } from "../hooks/useAutoSync";
 
 const loadFunc = async () => {
   try {
@@ -276,6 +277,7 @@ export function Home() {
   useSwitchTheme();
   useLoadData();
   useHtmlLang();
+  useAutoSync();
 
   useEffect(() => {
     if (pendingError) {

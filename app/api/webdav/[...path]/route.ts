@@ -7,6 +7,7 @@ const config = getServerSideConfig();
 const mergedAllowedWebDavEndpoints = [
   ...internalAllowedWebDavEndpoints,
   ...config.allowedWebDavEndpoints,
+  ...(config.web_dav_backend_url ? [config.web_dav_backend_url] : []),
 ].filter((domain) => Boolean(domain.trim()));
 
 const normalizeUrl = (url: string) => {

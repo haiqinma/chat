@@ -12,9 +12,13 @@ import { downloadAs, readFromFile } from "../utils";
 import { showToast } from "../components/ui-lib";
 import Locale from "../locales";
 import { createSyncClient, ProviderType } from "../utils/cloud";
+import { getWebdavAudience } from "../plugins/ucan";
+
+export type WebDavAuthType = "basic" | "ucan";
 
 export interface WebDavConfig {
-  server: string;
+  authType: WebDavAuthType;
+  endpoint: string;
   username: string;
   password: string;
 }
@@ -27,7 +31,12 @@ const DEFAULT_SYNC_STATE = {
   useProxy: true,
   proxyUrl: ApiPath.Cors as string,
 
+  autoSync: true,
+  autoSyncIntervalMs: 5 * 60 * 1000,
+  autoSyncDebounceMs: 2000,
+
   webdav: {
+    authType: "basic" as WebDavAuthType,
     endpoint: "",
     username: "",
     password: "",
@@ -47,7 +56,19 @@ export const useSyncStore = createPersistStore(
   DEFAULT_SYNC_STATE,
   (set, get) => ({
     cloudSync() {
-      const config = get()[get().provider];
+      const provider = get().provider;
+      if (provider === ProviderType.WebDAV) {
+        if (get().webdav.authType === "ucan") {
+          const backendUrl = getClientConfig()?.webdavBackendUrl?.trim();
+          const audience = getWebdavAudience();
+          return Boolean(backendUrl && audience);
+        }
+        const { endpoint, username, password } = get().webdav;
+        return [endpoint, username, password].every(
+          (value) => value.toString().length > 0,
+        );
+      }
+      const config = get()[provider];
       return Object.values(config).every((c) => c.toString().length > 0);
     },
 
@@ -126,7 +147,7 @@ export const useSyncStore = createPersistStore(
   }),
   {
     name: StoreKey.Sync,
-    version: 1.2,
+    version: 1.3,
 
     migrate(persistedState, version) {
       const newState = persistedState as typeof DEFAULT_SYNC_STATE;
@@ -141,6 +162,21 @@ export const useSyncStore = createPersistStore(
           "/api/cors/"
         ) {
           newState.proxyUrl = "";
+        }
+      }
+
+      if (version < 1.3) {
+        if (!newState.webdav.authType) {
+          newState.webdav.authType = "basic";
+        }
+        if (typeof newState.autoSync !== "boolean") {
+          newState.autoSync = true;
+        }
+        if (!newState.autoSyncIntervalMs) {
+          newState.autoSyncIntervalMs = 5 * 60 * 1000;
+        }
+        if (!newState.autoSyncDebounceMs) {
+          newState.autoSyncDebounceMs = 2000;
         }
       }
 

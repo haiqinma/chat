@@ -357,6 +357,40 @@ function SyncConfigModal(props: { onClose?: () => void }) {
             </select>
           </ListItem>
 
+          <ListItem title="Auto Sync">
+            <input
+              type="checkbox"
+              checked={syncStore.autoSync}
+              onChange={(e) => {
+                syncStore.update(
+                  (config) => (config.autoSync = e.currentTarget.checked),
+                );
+              }}
+            ></input>
+          </ListItem>
+
+          {syncStore.autoSync ? (
+            <ListItem title="Auto Sync Interval (min)">
+              <input
+                type="number"
+                min={1}
+                max={120}
+                value={Math.max(
+                  1,
+                  Math.round(syncStore.autoSyncIntervalMs / 60000),
+                )}
+                onChange={(e) => {
+                  const minutes = Number(e.currentTarget.value);
+                  if (!Number.isFinite(minutes)) return;
+                  syncStore.update(
+                    (config) =>
+                      (config.autoSyncIntervalMs = Math.max(1, minutes) * 60000),
+                  );
+                }}
+              ></input>
+            </ListItem>
+          ) : null}
+
           <ListItem
             title={Locale.Settings.Sync.Config.Proxy.Title}
             subTitle={Locale.Settings.Sync.Config.Proxy.SubTitle}
@@ -392,43 +426,72 @@ function SyncConfigModal(props: { onClose?: () => void }) {
         {syncStore.provider === ProviderType.WebDAV && (
           <>
             <List>
-              <ListItem title={Locale.Settings.Sync.Config.WebDav.Endpoint}>
-                <input
-                  type="text"
-                  value={syncStore.webdav.endpoint}
+              <ListItem title="WebDAV Auth">
+                <select
+                  value={syncStore.webdav.authType}
                   onChange={(e) => {
                     syncStore.update(
                       (config) =>
-                        (config.webdav.endpoint = e.currentTarget.value),
+                        (config.webdav.authType =
+                          e.target.value as typeof config.webdav.authType),
                     );
                   }}
-                ></input>
-              </ListItem>
-
-              <ListItem title={Locale.Settings.Sync.Config.WebDav.UserName}>
-                <input
-                  type="text"
-                  value={syncStore.webdav.username}
-                  onChange={(e) => {
-                    syncStore.update(
-                      (config) =>
-                        (config.webdav.username = e.currentTarget.value),
-                    );
-                  }}
-                ></input>
-              </ListItem>
-              <ListItem title={Locale.Settings.Sync.Config.WebDav.Password}>
-                <PasswordInput
-                  value={syncStore.webdav.password}
-                  onChange={(e) => {
-                    syncStore.update(
-                      (config) =>
-                        (config.webdav.password = e.currentTarget.value),
-                    );
-                  }}
-                ></PasswordInput>
+                >
+                  <option value="basic">Basic</option>
+                  <option value="ucan">UCAN</option>
+                </select>
               </ListItem>
             </List>
+
+            {syncStore.webdav.authType === "ucan" ? (
+              <List>
+                <ListItem
+                  title="UCAN WebDAV"
+                  subTitle="Use WEBDAV_BACKEND_URL and wallet UCAN authorization."
+                />
+              </List>
+            ) : null}
+
+            {syncStore.webdav.authType === "basic" ? (
+              <List>
+                <ListItem title={Locale.Settings.Sync.Config.WebDav.Endpoint}>
+                  <input
+                    type="text"
+                    value={syncStore.webdav.endpoint}
+                    onChange={(e) => {
+                      syncStore.update(
+                        (config) =>
+                          (config.webdav.endpoint = e.currentTarget.value),
+                      );
+                    }}
+                  ></input>
+                </ListItem>
+
+                <ListItem title={Locale.Settings.Sync.Config.WebDav.UserName}>
+                  <input
+                    type="text"
+                    value={syncStore.webdav.username}
+                    onChange={(e) => {
+                      syncStore.update(
+                        (config) =>
+                          (config.webdav.username = e.currentTarget.value),
+                      );
+                    }}
+                  ></input>
+                </ListItem>
+                <ListItem title={Locale.Settings.Sync.Config.WebDav.Password}>
+                  <PasswordInput
+                    value={syncStore.webdav.password}
+                    onChange={(e) => {
+                      syncStore.update(
+                        (config) =>
+                          (config.webdav.password = e.currentTarget.value),
+                      );
+                    }}
+                  ></PasswordInput>
+                </ListItem>
+              </List>
+            ) : null}
           </>
         )}
 
