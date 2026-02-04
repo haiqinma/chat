@@ -4,6 +4,7 @@ import { createPersistStore } from "../utils/store";
 import {
   AppState,
   getLocalAppState,
+  getLocalAppStateForSync,
   GetStoreState,
   mergeAppState,
   setLocalAppState,
@@ -12,7 +13,7 @@ import { downloadAs, readFromFile } from "../utils";
 import { showToast } from "../components/ui-lib";
 import Locale from "../locales";
 import { createSyncClient, ProviderType } from "../utils/cloud";
-import { getWebdavAudience } from "../plugins/ucan";
+import { getUcanRootCapsKey, getWebdavAudience } from "../plugins/ucan";
 
 export type WebDavAuthType = "basic" | "ucan";
 
@@ -26,9 +27,26 @@ export interface WebDavConfig {
 const isApp = !!getClientConfig()?.isApp;
 export type SyncStore = GetStoreState<typeof useSyncStore>;
 
+const isUcanRootMetaReady = (): boolean => {
+  try {
+    if (typeof localStorage === "undefined") return false;
+    const expRaw = localStorage.getItem("ucanRootExp");
+    const iss = localStorage.getItem("ucanRootIss");
+    const caps = localStorage.getItem("ucanRootCaps");
+    const account = localStorage.getItem("currentAccount") || "";
+    if (!expRaw || !iss || !account || !caps) return false;
+    const exp = Number(expRaw);
+    if (!Number.isFinite(exp) || exp <= Date.now()) return false;
+    if (caps !== getUcanRootCapsKey()) return false;
+    return iss === `did:pkh:eth:${account.toLowerCase()}`;
+  } catch {
+    return false;
+  }
+};
+
 const DEFAULT_SYNC_STATE = {
   provider: ProviderType.WebDAV,
-  useProxy: true,
+  useProxy: false,
   proxyUrl: ApiPath.Cors as string,
 
   autoSync: true,
@@ -36,7 +54,7 @@ const DEFAULT_SYNC_STATE = {
   autoSyncDebounceMs: 2000,
 
   webdav: {
-    authType: "basic" as WebDavAuthType,
+    authType: "ucan" as WebDavAuthType,
     endpoint: "",
     username: "",
     password: "",
@@ -61,7 +79,7 @@ export const useSyncStore = createPersistStore(
         if (get().webdav.authType === "ucan") {
           const backendUrl = getClientConfig()?.webdavBackendUrl?.trim();
           const audience = getWebdavAudience();
-          return Boolean(backendUrl && audience);
+          return Boolean(backendUrl && audience && isUcanRootMetaReady());
         }
         const { endpoint, username, password } = get().webdav;
         return [endpoint, username, password].every(
@@ -110,7 +128,6 @@ export const useSyncStore = createPersistStore(
     },
 
     async sync() {
-      const localState = getLocalAppState();
       const provider = get().provider;
       const config = get()[provider];
       const client = this.getClient();
@@ -118,24 +135,25 @@ export const useSyncStore = createPersistStore(
       try {
         const remoteState = await client.get(config.username);
         if (!remoteState || remoteState === "") {
-          await client.set(config.username, JSON.stringify(localState));
+          const latestLocalState = getLocalAppStateForSync();
+          await client.set(config.username, JSON.stringify(latestLocalState));
           console.log(
             "[Sync] Remote state is empty, using local state instead.",
           );
           return;
-        } else {
-          const parsedRemoteState = JSON.parse(
-            await client.get(config.username),
-          ) as AppState;
-          mergeAppState(localState, parsedRemoteState);
-          setLocalAppState(localState);
         }
+
+        const parsedRemoteState = JSON.parse(remoteState) as AppState;
+        const latestLocalState = getLocalAppState();
+        mergeAppState(latestLocalState, parsedRemoteState);
+        setLocalAppState(latestLocalState);
       } catch (e) {
         console.log("[Sync] failed to get remote state", e);
         throw e;
       }
 
-      await client.set(config.username, JSON.stringify(localState));
+      const latestLocalState = getLocalAppStateForSync();
+      await client.set(config.username, JSON.stringify(latestLocalState));
 
       this.markSyncTime();
     },
@@ -147,7 +165,7 @@ export const useSyncStore = createPersistStore(
   }),
   {
     name: StoreKey.Sync,
-    version: 1.3,
+    version: 1.4,
 
     migrate(persistedState, version) {
       const newState = persistedState as typeof DEFAULT_SYNC_STATE;
@@ -177,6 +195,26 @@ export const useSyncStore = createPersistStore(
         }
         if (!newState.autoSyncDebounceMs) {
           newState.autoSyncDebounceMs = 2000;
+        }
+      }
+
+      if (version < 1.4) {
+        const isDefaultWebdavConfig =
+          newState.webdav.authType === "basic" &&
+          !newState.webdav.endpoint &&
+          !newState.webdav.username &&
+          !newState.webdav.password;
+        if (isDefaultWebdavConfig) {
+          newState.webdav.authType = "ucan";
+        }
+        if (
+          typeof newState.useProxy !== "boolean" ||
+          (newState.useProxy && newState.proxyUrl === ApiPath.Cors)
+        ) {
+          newState.useProxy = false;
+        }
+        if (typeof newState.autoSync !== "boolean") {
+          newState.autoSync = true;
         }
       }
 

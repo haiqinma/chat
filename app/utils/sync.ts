@@ -8,6 +8,67 @@ import { useMaskStore } from "../store/mask";
 import { usePromptStore } from "../store/prompt";
 import { StoreKey } from "../constant";
 import { merge } from "./merge";
+import { deepClone } from "./clone";
+
+const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isStreamingMessage(message: { status?: string; streaming?: boolean }) {
+  return message?.status === "streaming" || Boolean(message?.streaming);
+}
+
+function isEmptyResponseMessage(message: {
+  isError?: boolean;
+  content?: unknown;
+}) {
+  return (
+    Boolean(message?.isError) &&
+    typeof message.content === "string" &&
+    message.content.includes("empty response")
+  );
+}
+
+function hasMessageContent(message: { content?: unknown }) {
+  if (typeof message.content === "string") {
+    return message.content.trim().length > 0;
+  }
+  if (Array.isArray(message.content)) {
+    return message.content.length > 0;
+  }
+  return Boolean(message.content);
+}
+
+function getMessageUpdatedAt(message: { updatedAt?: number; date?: string }) {
+  if (typeof message.updatedAt === "number") return message.updatedAt;
+  if (message.date) {
+    const parsed = new Date(message.date).getTime();
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function mergeDeletedSessions(
+  localDeleted: Record<string, number> | undefined,
+  remoteDeleted: Record<string, number> | undefined,
+) {
+  const merged: Record<string, number> = {
+    ...(remoteDeleted || {}),
+  };
+  if (localDeleted) {
+    Object.entries(localDeleted).forEach(([id, ts]) => {
+      const current = merged[id] ?? 0;
+      if (ts > current) {
+        merged[id] = ts;
+      }
+    });
+  }
+  const now = Date.now();
+  Object.entries(merged).forEach(([id, ts]) => {
+    if (now - ts > TOMBSTONE_TTL_MS) {
+      delete merged[id];
+    }
+  });
+  return merged;
+}
 
 type NonFunctionKeys<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any ? never : K;
@@ -64,11 +125,24 @@ type StateMerger = {
 // we merge remote state to local state
 const MergeStates: StateMerger = {
   [StoreKey.Chat]: (localState, remoteState) => {
+    const mergedDeleted = mergeDeletedSessions(
+      localState.deletedSessions,
+      remoteState.deletedSessions,
+    );
+    localState.deletedSessions = mergedDeleted;
+
+    const shouldKeepSession = (session: ChatSession) => {
+      const deletedAt = mergedDeleted[session.id];
+      if (!deletedAt) return true;
+      return deletedAt < session.lastUpdate;
+    };
+
     // merge sessions
     const localSessions: Record<string, ChatSession> = {};
     localState.sessions.forEach((s) => (localSessions[s.id] = s));
 
     remoteState.sessions.forEach((remoteSession) => {
+      if (!shouldKeepSession(remoteSession)) return;
       // skip empty chats
       if (remoteSession.messages.length === 0) return;
 
@@ -77,11 +151,27 @@ const MergeStates: StateMerger = {
         // if remote session is new, just merge it
         localState.sessions.push(remoteSession);
       } else {
-        // if both have the same session id, merge the messages
-        const localMessageIds = new Set(localSession.messages.map((v) => v.id));
-        remoteSession.messages.forEach((m) => {
-          if (!localMessageIds.has(m.id)) {
-            localSession.messages.push(m);
+        const localMessageMap = new Map(
+          localSession.messages.map((message) => [message.id, message]),
+        );
+        remoteSession.messages.forEach((remoteMessage) => {
+          if (isStreamingMessage(remoteMessage)) return;
+          const localMessage = localMessageMap.get(remoteMessage.id);
+          if (!localMessage) {
+            localSession.messages.push(remoteMessage);
+            return;
+          }
+          if (
+            isEmptyResponseMessage(localMessage) &&
+            hasMessageContent(remoteMessage)
+          ) {
+            Object.assign(localMessage, remoteMessage);
+            return;
+          }
+          const localUpdatedAt = getMessageUpdatedAt(localMessage);
+          const remoteUpdatedAt = getMessageUpdatedAt(remoteMessage);
+          if (remoteUpdatedAt > localUpdatedAt) {
+            Object.assign(localMessage, remoteMessage);
           }
         });
 
@@ -91,6 +181,8 @@ const MergeStates: StateMerger = {
         );
       }
     });
+
+    localState.sessions = localState.sessions.filter(shouldKeepSession);
 
     // sort local sessions with date field in desc order
     localState.sessions.sort(
@@ -126,6 +218,28 @@ export function getLocalAppState() {
   ) as AppState;
 
   return appState;
+}
+
+export function getLocalAppStateForSync() {
+  const appState = getLocalAppState();
+  const chatState = deepClone(appState[StoreKey.Chat]);
+
+  chatState.sessions = chatState.sessions
+    .filter(
+      (session: ChatSession) => !session.messages.some(isStreamingMessage),
+    )
+    .map((session: ChatSession) => ({
+      ...session,
+      messages: session.messages.filter(
+        (message) =>
+          !isStreamingMessage(message) && !isEmptyResponseMessage(message),
+      ),
+    }));
+
+  return {
+    ...appState,
+    [StoreKey.Chat]: chatState,
+  } as AppState;
 }
 
 export function setLocalAppState(appState: AppState) {

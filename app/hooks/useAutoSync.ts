@@ -1,14 +1,20 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccessStore, useAppConfig, useChatStore } from "../store";
 import { useMaskStore } from "../store/mask";
 import { usePromptStore } from "../store/prompt";
 import { useSyncStore } from "../store/sync";
+import { UCAN_AUTH_EVENT } from "../plugins/wallet";
+import {
+  isUcanSignPending,
+  isUcanSignPendingError,
+} from "../plugins/ucan-sign-lock";
 
 export function useAutoSync() {
   const syncStore = useSyncStore();
   const hasHydrated = syncStore._hasHydrated;
   const autoSyncEnabled = syncStore.autoSync;
-  const canSync = syncStore.cloudSync();
+  const [authTick, setAuthTick] = useState(0);
+  const canSync = syncStore.cloudSync() && authTick >= 0;
   const debounceMs = syncStore.autoSyncDebounceMs ?? 2000;
   const intervalMs = syncStore.autoSyncIntervalMs ?? 5 * 60 * 1000;
 
@@ -22,19 +28,44 @@ export function useAutoSync() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
 
+  useEffect(() => {
+    const onAuthChange = () => setAuthTick((value) => value + 1);
+    window.addEventListener(UCAN_AUTH_EVENT, onAuthChange);
+    window.addEventListener("storage", onAuthChange);
+    return () => {
+      window.removeEventListener(UCAN_AUTH_EVENT, onAuthChange);
+      window.removeEventListener("storage", onAuthChange);
+    };
+  }, []);
+
   const triggerSync = useCallback(
     async (reason: string) => {
       if (!enabled || inFlightRef.current) return;
+      if (isUcanSignPending()) {
+        return;
+      }
+      if (useChatStore.getState().hasStreaming?.()) {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        debounceRef.current = setTimeout(() => {
+          triggerSync("streaming");
+        }, debounceMs);
+        return;
+      }
       inFlightRef.current = true;
       try {
         await syncStore.sync();
       } catch (e) {
+        if (isUcanSignPendingError(e)) {
+          return;
+        }
         console.error(`[AutoSync] ${reason} failed`, e);
       } finally {
         inFlightRef.current = false;
       }
     },
-    [enabled, syncStore],
+    [debounceMs, enabled, syncStore],
   );
 
   const scheduleSync = useCallback(

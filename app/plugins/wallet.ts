@@ -1,5 +1,11 @@
 import { notifyError, notifyInfo, notifySuccess } from "./show_window";
 import {
+  acquireUcanSignLock,
+  isUcanSignPendingError,
+  refreshUcanSignLock,
+  releaseUcanSignLock,
+} from "./ucan-sign-lock";
+import {
   getProvider,
   requestAccounts,
   getChainId as getChainIdFromSdk,
@@ -12,12 +18,25 @@ import {
   type Eip1193Provider,
   type UcanRootProof,
 } from "@yeying-community/web3-bs";
-import { UCAN_SESSION_ID, getUcanRootCapabilities } from "./ucan";
+import {
+  UCAN_SESSION_ID,
+  getUcanCapsKey,
+  getUcanRootCapabilities,
+  getUcanRootCapsKey,
+} from "./ucan";
+import { clearCachedUcanSession } from "./ucan-session";
 
 const providerOptions = {
   preferYeYing: true,
   timeoutMs: 5000,
 };
+
+export const UCAN_AUTH_EVENT = "ucan-auth-change";
+
+function emitAuthChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(UCAN_AUTH_EVENT));
+}
 
 let providerPromise: Promise<Eip1193Provider | null> | null = null;
 let listenersCleanup: (() => void) | null = null;
@@ -28,16 +47,23 @@ function getUcanIssuer(address: string) {
   return `did:pkh:eth:${address.toLowerCase()}`;
 }
 
+function isRootCapMatched(root: UcanRootProof | null) {
+  if (!root) return false;
+  return getUcanCapsKey(root.cap) === getUcanRootCapsKey();
+}
+
 function storeUcanMeta(root: UcanRootProof) {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem("ucanRootExp", String(root.exp));
   localStorage.setItem("ucanRootIss", root.iss);
+  localStorage.setItem("ucanRootCaps", getUcanCapsKey(root.cap));
 }
 
 function clearUcanMeta() {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem("ucanRootExp");
   localStorage.removeItem("ucanRootIss");
+  localStorage.removeItem("ucanRootCaps");
 }
 
 async function getStoredRoot(): Promise<UcanRootProof | null> {
@@ -81,7 +107,8 @@ export async function initWalletListeners() {
         root &&
         typeof root.exp === "number" &&
         root.exp > Date.now() &&
-        (!expectedIssuer || root.iss === expectedIssuer);
+        (!expectedIssuer || root.iss === expectedIssuer) &&
+        isRootCapMatched(root);
 
       if (rootValid) {
         // 钱包可能只是锁定，保留已授权的 UCAN
@@ -92,7 +119,8 @@ export async function initWalletListeners() {
       await clearUcanSession(UCAN_SESSION_ID);
       localStorage.removeItem("authToken");
       clearUcanMeta();
-      notifyError("❌钱包已断开，请重新连接");
+      clearCachedUcanSession();
+      emitAuthChange();
       return;
     }
 
@@ -103,12 +131,17 @@ export async function initWalletListeners() {
       await clearUcanSession(UCAN_SESSION_ID);
       localStorage.removeItem("authToken");
       clearUcanMeta();
-      await loginWithUcan(provider, nextAccount);
+      clearCachedUcanSession();
+      emitAuthChange();
+      await loginWithUcan(provider, nextAccount, {
+        silent: true,
+        reload: false,
+      });
     }
   };
 
   const handleChainChanged = (chainId: string) => {
-    notifyInfo(`已切换网络: ${chainId}`);
+    console.info(`[Wallet] 已切换网络: ${chainId}`);
   };
 
   const offAccounts = onAccountsChanged(provider, handleAccountsChanged);
@@ -146,8 +179,10 @@ export async function connectWallet() {
       if (Array.isArray(accounts) && accounts.length > 0) {
         const currentAccount = accounts[0];
         localStorage.setItem("currentAccount", currentAccount);
-        notifySuccess(`✅钱包连接成功！\n账户: ${currentAccount}`);
-        await loginWithUcan(provider, currentAccount);
+        await loginWithUcan(provider, currentAccount, {
+          silent: false,
+          reload: false,
+        });
       } else {
         notifyError("❌未获取到账户");
       }
@@ -253,6 +288,7 @@ export async function getBalance() {
 export async function loginWithUcan(
   provider?: Eip1193Provider,
   address?: string,
+  options?: { silent?: boolean; reload?: boolean },
 ) {
   if (localStorage.getItem("hasConnectedWallet") === "false") {
     notifyError("❌未检测到钱包，请先安装并连接钱包");
@@ -276,20 +312,33 @@ export async function loginWithUcan(
       existing &&
       typeof existing.exp === "number" &&
       existing.exp > Date.now() &&
-      existing.iss === expectedIssuer
+      existing.iss === expectedIssuer &&
+      isRootCapMatched(existing)
     ) {
       storeUcanMeta(existing);
-      notifySuccess(`✅已完成授权`);
-      window.location.reload();
+      emitAuthChange();
+      if (options?.reload) {
+        window.location.reload();
+      }
       return;
     }
-    if (
-      existing &&
-      typeof existing.exp === "number" &&
-      existing.exp <= Date.now()
-    ) {
-      await clearUcanSession(UCAN_SESSION_ID);
-      clearUcanMeta();
+    if (existing) {
+      const expired =
+        typeof existing.exp === "number" && existing.exp <= Date.now();
+      const issuerMismatch = existing.iss !== expectedIssuer;
+      const capsMismatch = !isRootCapMatched(existing);
+      if (expired || issuerMismatch || capsMismatch) {
+        await clearUcanSession(UCAN_SESSION_ID);
+        clearUcanMeta();
+        clearCachedUcanSession();
+      }
+    }
+
+    if (!acquireUcanSignLock()) {
+      if (!options?.silent) {
+        notifyInfo("钱包签名处理中，请在钱包完成确认");
+      }
+      return;
     }
 
     const root = await createRootUcan({
@@ -300,11 +349,27 @@ export async function loginWithUcan(
     });
     storeUcanMeta(root);
     localStorage.removeItem("authToken");
-    notifySuccess(`✅授权成功`);
-    window.location.reload();
+    emitAuthChange();
+    if (!options?.silent) {
+      notifySuccess(`✅授权成功`);
+    }
+    if (options?.reload) {
+      window.location.reload();
+    }
+    releaseUcanSignLock();
   } catch (error) {
+    if (isUcanSignPendingError(error)) {
+      refreshUcanSignLock();
+      if (!options?.silent) {
+        notifyInfo("钱包签名处理中，请在钱包完成确认");
+      }
+      return;
+    }
     console.error("❌授权失败:", error);
-    notifyError(`❌授权失败: ${error}`);
+    if (!options?.silent) {
+      notifyError(`❌授权失败: ${error}`);
+    }
+    releaseUcanSignLock();
   } finally {
     loginInFlight = false;
   }
@@ -315,8 +380,9 @@ export async function logoutWallet() {
   localStorage.removeItem("authToken");
   await clearUcanSession(UCAN_SESSION_ID);
   clearUcanMeta();
+  clearCachedUcanSession();
+  emitAuthChange();
   notifySuccess("✅已退出");
-  window.location.reload();
 }
 
 /**
@@ -337,7 +403,10 @@ export async function isValidUcanAuthorization(): Promise<boolean> {
     if (!account) {
       return false;
     }
-    return root.iss === getUcanIssuer(account);
+    if (root.iss !== getUcanIssuer(account)) {
+      return false;
+    }
+    return isRootCapMatched(root);
   } catch (e) {
     return false;
   }

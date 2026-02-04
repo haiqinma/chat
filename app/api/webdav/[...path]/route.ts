@@ -4,10 +4,17 @@ import { getServerSideConfig } from "@/app/config/server";
 
 const config = getServerSideConfig();
 
+const allowLocalWebDav =
+  process.env.ALLOW_LOCAL_WEBDAV === "1" ||
+  process.env.NODE_ENV !== "production";
+const localAllowedWebDavEndpoints = allowLocalWebDav
+  ? ["http://127.0.0.1/", "http://localhost/", "http://[::1]/"]
+  : [];
 const mergedAllowedWebDavEndpoints = [
   ...internalAllowedWebDavEndpoints,
   ...config.allowedWebDavEndpoints,
   ...(config.web_dav_backend_url ? [config.web_dav_backend_url] : []),
+  ...localAllowedWebDavEndpoints,
 ].filter((domain) => Boolean(domain.trim()));
 
 const normalizeUrl = (url: string) => {

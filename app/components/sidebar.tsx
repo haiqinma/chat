@@ -18,6 +18,7 @@ import {
   getCurrentAccount,
   isValidUcanAuthorization,
   logoutWallet,
+  UCAN_AUTH_EVENT,
 } from "../plugins/wallet";
 import { useAppConfig, useChatStore } from "../store";
 import { Avatar } from "./emoji";
@@ -67,9 +68,30 @@ export function useHotKey() {
 }
 
 export function useWalletAccount() {
-  return isValidUcanAuthorization().then((result) => {
-    return result;
-  });
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const valid = await isValidUcanAuthorization();
+      if (!cancelled) {
+        setAuthorized(valid);
+      }
+    };
+    check();
+    const onAuthChange = () => {
+      check();
+    };
+    window.addEventListener(UCAN_AUTH_EVENT, onAuthChange);
+    window.addEventListener("storage", onAuthChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(UCAN_AUTH_EVENT, onAuthChange);
+      window.removeEventListener("storage", onAuthChange);
+    };
+  }, []);
+
+  return authorized;
 }
 export function useDragSideBar() {
   const limit = (x: number) => Math.min(MAX_SIDEBAR_WIDTH, x);
@@ -77,7 +99,7 @@ export function useDragSideBar() {
   const config = useAppConfig();
   const startX = useRef(0);
   const startDragWidth = useRef(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
-  const lastUpdateTime = useRef(Date.now());
+  const lastUpdateTime = useRef(0);
 
   const toggleSideBar = () => {
     config.update((config) => {
@@ -239,10 +261,7 @@ export function SideBar(props: { className?: string }) {
   useHotKey();
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
-
-  const [show, setShow] = useState(false);
-
-  useWalletAccount().then((result) => setShow(result));
+  const show = useWalletAccount();
 
   const navigate = useNavigate();
   const config = useAppConfig();

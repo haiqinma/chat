@@ -25,6 +25,7 @@ import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
 import { DEFAULT_CONFIG } from "./config";
 import { getModelProvider } from "../utils/model";
+import { getUcanRootCapsKey } from "../plugins/ucan";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
@@ -57,10 +58,12 @@ const isValidUcanMeta = (): boolean => {
     if (typeof localStorage === "undefined") return false;
     const expRaw = localStorage.getItem("ucanRootExp");
     const iss = localStorage.getItem("ucanRootIss");
+    const caps = localStorage.getItem("ucanRootCaps");
     const account = localStorage.getItem("currentAccount") || "";
     if (!expRaw || !iss || !account) return false;
     const exp = Number(expRaw);
     if (!Number.isFinite(exp) || exp <= Date.now()) return false;
+    if (!caps || caps !== getUcanRootCapsKey()) return false;
     return iss === `did:pkh:eth:${account.toLowerCase()}`;
   } catch {
     return false;

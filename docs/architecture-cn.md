@@ -29,8 +29,7 @@ flowchart TB
 
 - `ROUTER_BACKEND_URL`：Router 后端地址（必填）
 - `WEBDAV_BACKEND_URL`：WebDAV 后端地址（必填）
-- `NEXT_PUBLIC_UCAN_RESOURCE`：默认能力 resource（如 `profile`）
-- `NEXT_PUBLIC_UCAN_ACTION`：默认能力 action（如 `read`）
+- 通用 UCAN 能力：固定为 `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`：Router audience（可选）
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`：WebDAV audience（可选）
 

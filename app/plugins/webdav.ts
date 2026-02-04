@@ -4,6 +4,7 @@ import {
   getWebdavAudience,
   getWebdavCapabilities,
 } from "./ucan";
+import { getCachedUcanSession } from "./ucan-session";
 
 export interface WebDAVQuota {
   quota: number; // 总配额
@@ -19,6 +20,7 @@ export async function fetchQuota(): Promise<WebDAVQuota | undefined> {
     if (!audience) {
       throw new Error("WebDAV UCAN audience is not configured");
     }
+    const issuer = await getCachedUcanSession();
     const response = await authUcanFetch(
       "/api/v1/public/webdav/quota",
       {
@@ -31,6 +33,7 @@ export async function fetchQuota(): Promise<WebDAVQuota | undefined> {
         sessionId: UCAN_SESSION_ID,
         audience,
         capabilities: getWebdavCapabilities(),
+        issuer: issuer ?? undefined,
       },
     );
 

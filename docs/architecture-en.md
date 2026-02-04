@@ -29,8 +29,7 @@ flowchart TB
 
 - `ROUTER_BACKEND_URL`: Router backend URL (required)
 - `WEBDAV_BACKEND_URL`: WebDAV backend URL (required)
-- `NEXT_PUBLIC_UCAN_RESOURCE`: default capability resource (e.g. `profile`)
-- `NEXT_PUBLIC_UCAN_ACTION`: default capability action (e.g. `read`)
+- Shared UCAN caps: fixed to `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience override (optional)
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`: WebDAV audience override (optional)
 

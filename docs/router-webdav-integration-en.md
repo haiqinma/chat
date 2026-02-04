@@ -46,6 +46,28 @@ flowchart TB
 - **Sync**: `/api/webdav/*` handles WebDAV file sync with method and path restrictions to prevent SSRF.
 - **Headers**: quota proxy uses an allowlist to avoid forwarding sensitive headers.
 - **Audience**: `NEXT_PUBLIC_WEBDAV_UCAN_AUD` if set; otherwise derived as `did:web:<webdav-host>`.
+- **App capability**: defaults to `app:<appId>` (`appId` defaults to current host).
+
+## Direct WebDAV (No Proxy)
+
+When proxy is disabled, the browser will call the WebDAV server directly (no `/api/webdav/*`).
+
+### How to enable
+
+1) Set `WEBDAV_BACKEND_URL` to a publicly reachable WebDAV origin (with scheme).
+2) Turn off **Proxy** in Sync settings (`useProxy = false`).
+3) Ensure the WebDAV service supports UCAN and CORS.
+
+### Requirements
+
+- CORS allows `Authorization`, `Depth`, `Content-Type`, etc.
+- WebDAV allows `MKCOL/PUT/GET/PROPFIND` and related methods.
+- UCAN `aud` matches the backend configuration.
+
+### Notes
+
+- Direct mode exposes the WebDAV origin publicly.
+- `127.0.0.1` is only reachable from the local machine, not remote browsers.
 
 ## UCAN Session and Local Storage
 
@@ -60,8 +82,8 @@ flowchart TB
 
 - `ROUTER_BACKEND_URL`: Router backend URL (required)
 - `WEBDAV_BACKEND_URL`: WebDAV backend URL (required)
-- `NEXT_PUBLIC_UCAN_RESOURCE`: default capability resource (e.g. `profile`)
-- `NEXT_PUBLIC_UCAN_ACTION`: default capability action (e.g. `read`)
+- `WebDAV app action`: fixed to `write`
+- `Shared UCAN caps`: fixed to `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience (optional)
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`: WebDAV audience (optional)
 
@@ -71,4 +93,3 @@ flowchart TB
 - WebDAV sync proxy restricts methods and target paths to prevent SSRF.
 - Quota proxy uses header allowlist to avoid sensitive header forwarding.
 - Ensure UCAN `aud` matches backend configuration.
-

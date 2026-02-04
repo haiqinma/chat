@@ -2,7 +2,7 @@
 
 require("../polyfill");
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import styles from "./home.module.scss";
 
 import BotIcon from "../icons/bot.svg";
@@ -159,15 +159,12 @@ function useHtmlLang() {
   }, []);
 }
 
-const useHasHydrated = () => {
-  const [hasHydrated, setHasHydrated] = useState<boolean>(false);
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
-  return hasHydrated;
-};
+const useHasHydrated = () =>
+  useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
 const loadAsyncGoogleFont = () => {
   const linkEl = document.createElement("link");
@@ -272,7 +269,6 @@ export function useLoadData() {
 
 export function Home() {
   const pendingError = useToastStore((state) => state.pendingError);
-  console.log(`pendingError=${pendingError}`);
   const clearError = useToastStore((state) => state.setPendingError);
   useSwitchTheme();
   useLoadData();

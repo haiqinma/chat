@@ -36,8 +36,7 @@ Root UCAN 可同时用于多个后端服务，Invocation UCAN 会根据目标后
 
 - `WEBDAV_BACKEND_URL`：WebDAV 后端地址
 - `ROUTER_BACKEND_URL`：Router 后端地址
-- `NEXT_PUBLIC_UCAN_RESOURCE`：默认能力 resource（如 `profile`）
-- `NEXT_PUBLIC_UCAN_ACTION`：默认能力 action（如 `read`）
+- 通用 UCAN 能力：固定为 `profile/read`
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`：WebDAV audience（可选）
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`：Router audience（可选）
 

@@ -26,6 +26,8 @@ NextChat（chat_UCAN 定制版）
 - Architecture / Deployment / Security (EN)：`docs/architecture-en.md`
 - Router/WebDAV 集成（中文）：`docs/router-webdav-integration-cn.md`
 - Router/WebDAV Integration (EN)：`docs/router-webdav-integration-en.md`
+- WebDAV 同步方案（中文）：`docs/webdav-sync-plan-cn.md`
+- WebDAV Sync Plan (EN)：`docs/webdav-sync-plan-en.md`
 - 部署（中文，Vercel）：`docs/vercel-cn.md`
 - Translation Guide (EN)：`docs/translation.md`
 

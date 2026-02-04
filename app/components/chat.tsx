@@ -1208,6 +1208,8 @@ function ChatView() {
               error: true,
               message: "empty response",
             });
+            m.status = "error";
+            m.updatedAt = Date.now();
           }
         }
       });

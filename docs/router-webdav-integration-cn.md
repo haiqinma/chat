@@ -13,7 +13,7 @@
 ```mermaid
 flowchart TB
   subgraph Browser["浏览器"]
-    UI["Next.js 前端\n- 钱包连接\n- Root UCAN\n- Invocation UCAN"]
+    UI["Next.js 前端<br/>- 钱包连接<br/>- Root UCAN<br/>- Invocation UCAN"]
   end
   subgraph Proxy["Next.js API 代理"]
     AUTH["/api/v1/public/auth/*"]
@@ -21,8 +21,8 @@ flowchart TB
     WEBDAVSYNC["/api/webdav/*"]
   end
   subgraph Backends["后端服务"]
-    ROUTER["Router\nOpenAI-compatible"]
-    WEBDAV["WebDAV\nStorage/Quota"]
+    ROUTER["Router<br/>OpenAI-compatible"]
+    WEBDAV["WebDAV<br/>Storage/Quota"]
   end
 
   UI -->|"Authorization: Bearer UCAN"| AUTH
@@ -46,6 +46,28 @@ flowchart TB
 - **同步接口**：`/api/webdav/*` 负责 WebDAV 文件同步，限制可用方法与目标路径，避免 SSRF。
 - **请求头**：配额代理使用允许头白名单，仅透传必要头部。
 - **受众 (audience)**：优先使用 `NEXT_PUBLIC_WEBDAV_UCAN_AUD`，未设置时自动推导 `did:web:<webdav-host>`。
+- **应用能力**：默认携带 `app:<appId>`（`appId` 默认当前域名）。
+
+## WebDAV 直连（不走代理）
+
+当关闭同步代理时，浏览器会直接请求 WebDAV 服务，不再经过 `/api/webdav/*`：
+
+### 启用方式
+
+1) 设置 `WEBDAV_BACKEND_URL` 为可公网访问的 WebDAV 地址（含协议）。
+2) 设置「同步配置」中的 **Proxy** 为关闭（`useProxy = false`）。
+3) 确保 WebDAV 服务支持 UCAN 鉴权与 CORS。
+
+### 直连要求（必须满足）
+
+- WebDAV 端允许跨域，并放行 `Authorization`、`Depth`、`Content-Type` 等头。
+- WebDAV 端开放 `MKCOL/PUT/GET/PROPFIND` 等必要方法。
+- WebDAV 端的 UCAN `aud` 与前端配置一致。
+
+### 注意事项
+
+- 直连会暴露 WebDAV 地址，安全与风控要求更高。
+- 本地地址（如 `127.0.0.1`）只对本机有效，远端浏览器无法访问。
 
 ## UCAN 会话与本地存储
 
@@ -60,8 +82,8 @@ flowchart TB
 
 - `ROUTER_BACKEND_URL`: Router 后端地址（必填）
 - `WEBDAV_BACKEND_URL`: WebDAV 后端地址（必填）
-- `NEXT_PUBLIC_UCAN_RESOURCE`: 默认能力 resource（如 `profile`）
-- `NEXT_PUBLIC_UCAN_ACTION`: 默认能力 action（如 `read`）
+- `WebDAV app action`: 固定为 `write`
+- `通用 UCAN 能力`: 固定为 `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience（可选）
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`: WebDAV audience（可选）
 
@@ -71,4 +93,3 @@ flowchart TB
 - WebDAV 同步代理限制方法与目标路径，避免 SSRF。
 - 配额代理使用允许头白名单，避免透传敏感头。
 - UCAN `aud` 必须与后端配置保持一致。
-

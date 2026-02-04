@@ -38,7 +38,7 @@ import { collectModelsWithDefaultModel } from "../utils/model";
 import { createEmptyMask, Mask } from "./mask";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
-import { useAuth } from "../hooks/useAuth";
+import { isValidUcanAuthorization } from "../plugins/wallet";
 
 const localStorage = safeLocalStorage();
 
@@ -59,6 +59,8 @@ export type ChatMessage = RequestMessage & {
   date: string;
   streaming?: boolean;
   isError?: boolean;
+  status?: "streaming" | "done" | "error";
+  updatedAt?: number;
   id: string;
   model?: ModelType;
   tools?: ChatMessageTool[];
@@ -72,6 +74,8 @@ export function createMessage(override: Partial<ChatMessage>): ChatMessage {
     date: new Date().toLocaleString(),
     role: "user",
     content: "",
+    status: "done",
+    updatedAt: Date.now(),
     ...override,
   };
 }
@@ -229,6 +233,7 @@ const DEFAULT_CHAT_STATE = {
   sessions: [createEmptySession()],
   currentSessionIndex: 0,
   lastInput: "",
+  deletedSessions: {} as Record<string, number>,
 };
 
 export const useChatStore = createPersistStore(
@@ -242,6 +247,13 @@ export const useChatStore = createPersistStore(
     }
 
     const methods = {
+      hasStreaming() {
+        return get().sessions.some((session) =>
+          session.messages.some(
+            (message) => message.streaming || message.status === "streaming",
+          ),
+        );
+      },
       forkSession() {
         // 获取当前会话
         const currentSession = get().currentSession();
@@ -269,9 +281,15 @@ export const useChatStore = createPersistStore(
       },
 
       clearSessions() {
+        const deletedSessions = { ...get().deletedSessions };
+        const now = Date.now();
+        get().sessions.forEach((session) => {
+          deletedSessions[session.id] = now;
+        });
         set(() => ({
           sessions: [createEmptySession()],
           currentSessionIndex: 0,
+          deletedSessions,
         }));
       },
 
@@ -342,6 +360,11 @@ export const useChatStore = createPersistStore(
 
         if (!deletedSession) return;
 
+        const deletedSessions = {
+          ...get().deletedSessions,
+          [deletedSession.id]: Date.now(),
+        };
+
         const sessions = get().sessions.slice();
         sessions.splice(index, 1);
 
@@ -360,11 +383,13 @@ export const useChatStore = createPersistStore(
         const restoreState = {
           currentSessionIndex: get().currentSessionIndex,
           sessions: get().sessions.slice(),
+          deletedSessions: get().deletedSessions,
         };
 
         set(() => ({
           currentSessionIndex: nextIndex,
           sessions,
+          deletedSessions,
         }));
 
         showToast(
@@ -444,6 +469,8 @@ export const useChatStore = createPersistStore(
           role: "assistant",
           streaming: true,
           model: modelConfig.model,
+          status: "streaming",
+          updatedAt: Date.now(),
         });
 
         // get recent messages
@@ -470,20 +497,24 @@ export const useChatStore = createPersistStore(
           config: { ...modelConfig, stream: true },
           onUpdate(message) {
             botMessage.streaming = true;
+            botMessage.status = "streaming";
             if (message) {
               botMessage.content = message;
             }
+            botMessage.updatedAt = Date.now();
             get().updateTargetSession(session, (session) => {
               session.messages = session.messages.concat();
             });
           },
           async onFinish(message) {
             botMessage.streaming = false;
+            botMessage.status = "done";
             if (message) {
               botMessage.content = message;
               botMessage.date = new Date().toLocaleString();
               get().onNewMessage(botMessage, session);
             }
+            botMessage.updatedAt = Date.now();
             ChatControllerPool.remove(session.id, botMessage.id);
           },
           onBeforeTool(tool: ChatMessageTool) {
@@ -511,8 +542,10 @@ export const useChatStore = createPersistStore(
                 message: error.message,
               });
             botMessage.streaming = false;
+            botMessage.status = "error";
             userMessage.isError = !isAborted;
             botMessage.isError = !isAborted;
+            botMessage.updatedAt = Date.now();
             get().updateTargetSession(session, (session) => {
               session.messages = session.messages.concat();
             });
@@ -848,13 +881,23 @@ export const useChatStore = createPersistStore(
                     typeof result === "object"
                       ? JSON.stringify(result)
                       : String(result);
-                  const isAuthenticated = useAuth();
-                  get().onUserInput(
-                    `\`\`\`json:mcp-response:${mcpRequest.clientId}\n${mcpResponse}\n\`\`\``,
-                    [],
-                    true,
-                    isAuthenticated,
-                  );
+                  isValidUcanAuthorization()
+                    .then((isAuthenticated) => {
+                      get().onUserInput(
+                        `\`\`\`json:mcp-response:${mcpRequest.clientId}\n${mcpResponse}\n\`\`\``,
+                        [],
+                        true,
+                        isAuthenticated,
+                      );
+                    })
+                    .catch(() => {
+                      get().onUserInput(
+                        `\`\`\`json:mcp-response:${mcpRequest.clientId}\n${mcpResponse}\n\`\`\``,
+                        [],
+                        true,
+                        false,
+                      );
+                    });
                 })
                 .catch((error) => showToast("MCP execution failed", error));
             }
@@ -869,7 +912,7 @@ export const useChatStore = createPersistStore(
   },
   {
     name: StoreKey.Chat,
-    version: 3.3,
+    version: 3.4,
     migrate(persistedState, version) {
       const state = persistedState as any;
       const newState = JSON.parse(
@@ -932,6 +975,9 @@ export const useChatStore = createPersistStore(
           s.mask.modelConfig.compressModel = "";
           s.mask.modelConfig.compressProviderName = "";
         });
+      }
+      if (version < 3.4) {
+        newState.deletedSessions = {};
       }
 
       return newState as any;

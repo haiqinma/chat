@@ -41,9 +41,11 @@ import { getClientConfig } from "@/app/config/client";
 import {
   getRouterAudience,
   getRouterCapabilities,
+  getUcanRootCapsKey,
   UCAN_SESSION_ID,
 } from "@/app/plugins/ucan";
 import { createInvocationUcan } from "@yeying-community/web3-bs";
+import { getCachedUcanSession } from "@/app/plugins/ucan-session";
 import {
   getMessageTextContent,
   isVisionModel,
@@ -118,10 +120,12 @@ function isUcanMetaValid(): boolean {
     if (typeof localStorage === "undefined") return false;
     const expRaw = localStorage.getItem("ucanRootExp");
     const iss = localStorage.getItem("ucanRootIss");
+    const caps = localStorage.getItem("ucanRootCaps");
     const account = localStorage.getItem("currentAccount") || "";
     if (!expRaw || !iss || !account) return false;
     const exp = Number(expRaw);
     if (!Number.isFinite(exp) || exp <= Date.now()) return false;
+    if (!caps || caps !== getUcanRootCapsKey()) return false;
     return iss === `did:pkh:eth:${account.toLowerCase()}`;
   } catch {
     return false;
@@ -138,10 +142,13 @@ async function getHeadersWithRouterUcan(url: string) {
   if (!audience || !capabilities.length) return headers;
 
   try {
+    const issuer = await getCachedUcanSession();
+    if (!issuer) return headers;
     const ucan = await createInvocationUcan({
       audience,
       capabilities,
       sessionId: UCAN_SESSION_ID,
+      issuer,
     });
     headers["Authorization"] = `Bearer ${ucan}`;
   } catch (error) {
