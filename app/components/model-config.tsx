@@ -8,14 +8,6 @@ import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
 import { getModelProvider } from "../utils/model";
-import {
-  ReactElement,
-  JSXElementConstructor,
-  ReactNode,
-  ReactPortal,
-  AwaitedReactNode,
-  Key,
-} from "react";
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
@@ -269,40 +261,11 @@ export function ModelConfigList(props: {
         >
           {allModels
             .filter((v: { available: any }) => v.available)
-            .map(
-              (
-                v: {
-                  name: any;
-                  provider: {
-                    providerName:
-                      | string
-                      | number
-                      | boolean
-                      | ReactElement<any, string | JSXElementConstructor<any>>
-                      | Iterable<ReactNode>
-                      | ReactPortal
-                      | Promise<AwaitedReactNode>
-                      | null
-                      | undefined;
-                  };
-                  displayName:
-                    | string
-                    | number
-                    | boolean
-                    | ReactElement<any, string | JSXElementConstructor<any>>
-                    | Iterable<ReactNode>
-                    | ReactPortal
-                    | Promise<AwaitedReactNode>
-                    | null
-                    | undefined;
-                },
-                i: Key | null | undefined,
-              ) => (
-                <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
-                  {v.displayName}({v.provider?.providerName})
-                </option>
-              ),
-            )}
+            .map((v: any, i: number) => (
+              <option value={`${v.name}@${v.provider?.providerName}`} key={i}>
+                {v.displayName}({v.provider?.providerName})
+              </option>
+            ))}
         </Select>
       </ListItem>
     </>

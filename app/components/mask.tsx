@@ -37,7 +37,7 @@ import Locale, { AllLangs, ALL_LANG_OPTIONS, Lang } from "../locales";
 import { useNavigate } from "react-router-dom";
 
 import chatStyle from "./chat.module.scss";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   copyToClipboard,
   downloadAs,
@@ -76,7 +76,7 @@ export function MaskAvatar(props: { avatar: string; model?: ModelType }) {
 export function MaskConfig(props: {
   mask: Mask;
   updateMask: Updater<Mask>;
-  extraListItems?: JSX.Element;
+  extraListItems?: ReactNode;
   readonly?: boolean;
   shouldSyncFromGlobal?: boolean;
 }) {

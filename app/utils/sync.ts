@@ -283,7 +283,8 @@ export function getLocalAppStateForSync() {
   const now = Date.now();
   if (chatState.deletedMessages) {
     Object.entries(chatState.deletedMessages).forEach(([id, ts]) => {
-      if (now - ts > TOMBSTONE_TTL_MS) {
+      const tsValue = Number(ts);
+      if (!Number.isFinite(tsValue) || now - tsValue > TOMBSTONE_TTL_MS) {
         delete chatState.deletedMessages[id];
       }
     });
