@@ -42,6 +42,7 @@ let providerPromise: Promise<Eip1193Provider | null> | null = null;
 let listenersCleanup: (() => void) | null = null;
 let listenersReady = false;
 let loginInFlight = false;
+let logoutInFlight = false;
 
 function getUcanIssuer(address: string) {
   return `did:pkh:eth:${address.toLowerCase()}`;
@@ -100,6 +101,10 @@ export async function initWalletListeners() {
 
   const handleAccountsChanged = async (accounts: string[]) => {
     if (!Array.isArray(accounts) || accounts.length === 0) {
+      if (logoutInFlight) {
+        logoutInFlight = false;
+        return;
+      }
       const root = await getStoredRoot();
       const current = getCurrentAccount();
       const expectedIssuer = current ? getUcanIssuer(current) : "";
@@ -376,6 +381,10 @@ export async function loginWithUcan(
 }
 
 export async function logoutWallet() {
+  logoutInFlight = true;
+  setTimeout(() => {
+    logoutInFlight = false;
+  }, 2000);
   localStorage.removeItem("currentAccount");
   localStorage.removeItem("authToken");
   await clearUcanSession(UCAN_SESSION_ID);

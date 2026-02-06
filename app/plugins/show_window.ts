@@ -1,22 +1,30 @@
 import { toast } from "sonner";
+
+const RECENT_TOASTS = new Map<string, number>();
+const DEDUPE_WINDOW_MS = 1500;
+
+function shouldToast(key: string) {
+  const now = Date.now();
+  const last = RECENT_TOASTS.get(key);
+  if (last && now - last < DEDUPE_WINDOW_MS) return false;
+  RECENT_TOASTS.set(key, now);
+  return true;
+}
+
 export const notifyError = (msg: string) => {
-  console.log(`toast.error`);
-  toast.error("❌错误", {
-    description: `❌${msg}`,
-    duration: 3000,
-  });
+  const key = `error:${msg}`;
+  if (!shouldToast(key)) return;
+  toast.error(msg, { id: key, duration: 3000 });
 };
 
 export const notifyInfo = (msg: string) => {
-  console.log(`toast.info`);
-  toast.info("🎉消息", {
-    description: `🧶${msg}`,
-  });
+  const key = `info:${msg}`;
+  if (!shouldToast(key)) return;
+  toast.info(msg, { id: key });
 };
 
 export const notifySuccess = (msg: string) => {
-  console.log(`toast.success`);
-  toast.success("✅成功", {
-    description: `🌿${msg}`,
-  });
+  const key = `success:${msg}`;
+  if (!shouldToast(key)) return;
+  toast.success(msg, { id: key });
 };
