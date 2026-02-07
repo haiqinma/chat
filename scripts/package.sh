@@ -44,8 +44,8 @@ if [ -f "${ENV_TEMPLATE}" ]; then
 fi
 
 mkdir -p "${PACKAGE_DIR}/scripts"
-cp "${ROOT_DIR}/scripts/start.sh" "${PACKAGE_DIR}/scripts/start.sh"
-chmod +x "${PACKAGE_DIR}/scripts/start.sh"
+cp "${ROOT_DIR}/scripts/starter.sh" "${PACKAGE_DIR}/scripts/starter.sh"
+chmod +x "${PACKAGE_DIR}/scripts/starter.sh"
 
 mkdir -p "${OUTPUT_DIR}"
 tar -czf "${OUTPUT_DIR}/${PACKAGE_NAME}.tar.gz" -C "${OUTPUT_DIR}" "${PACKAGE_NAME}"
