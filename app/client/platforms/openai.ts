@@ -142,7 +142,7 @@ async function getHeadersWithRouterUcan(url: string) {
   if (!audience || !capabilities.length) return headers;
 
   try {
-    const issuer = await getCachedUcanSession();
+    const issuer = await getCachedUcanSession(undefined, { refresh: true });
     if (!issuer) return headers;
     const ucan = await createInvocationUcan({
       audience,
