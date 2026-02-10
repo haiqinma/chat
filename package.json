@@ -7,7 +7,7 @@
     "mask:watch": "npx watch \"npm run mask\" app/masks",
     "dev": "concurrently -r \"npm run mask:watch\" \"next dev --webpack -p 3020\"",
     "build": "npm run mask && cross-env BUILD_MODE=standalone next build --webpack",
-    "start": "next start -p 3020",
+    "start": "PORT=3020 node .next/standalone/server.js",
     "lint": "next lint",
     "export": "npm run mask && cross-env BUILD_MODE=export BUILD_APP=1 next build --webpack",
     "export:dev": "concurrently -r \"npm run mask:watch\"  \"cross-env BUILD_MODE=export BUILD_APP=1 next dev --webpack -p 3020\"",
