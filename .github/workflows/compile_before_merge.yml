@@ -19,6 +19,7 @@ jobs:
   #
   operation_before_merge:
     runs-on: ubuntu-24.04
+    environment: cicd
 
     steps:
       - name: Checkout branch
