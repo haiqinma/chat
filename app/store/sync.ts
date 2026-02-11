@@ -23,6 +23,8 @@ export type WebDavAuthType = "basic" | "ucan";
 
 export interface WebDavConfig {
   authType: WebDavAuthType;
+  baseUrl: string;
+  prefix: string;
   endpoint: string;
   username: string;
   password: string;
@@ -59,6 +61,8 @@ const DEFAULT_SYNC_STATE = {
 
   webdav: {
     authType: "ucan" as WebDavAuthType,
+    baseUrl: "",
+    prefix: "",
     endpoint: "",
     username: "",
     password: "",
@@ -80,13 +84,15 @@ export const useSyncStore = createPersistStore(
     cloudSync() {
       const provider = get().provider;
       if (provider === ProviderType.WebDAV) {
+        const { baseUrl, username, password } = get().webdav;
         if (get().webdav.authType === "ucan") {
-          const backendUrl = getClientConfig()?.webdavBackendUrl?.trim();
-          const audience = getWebdavAudience();
+          const envBaseUrl =
+            getClientConfig()?.webdavBackendBaseUrl?.trim() || "";
+          const backendUrl = baseUrl.trim() || envBaseUrl;
+          const audience = getWebdavAudience(backendUrl);
           return Boolean(backendUrl && audience && isUcanRootMetaReady());
         }
-        const { endpoint, username, password } = get().webdav;
-        return [endpoint, username, password].every(
+        return [baseUrl, username, password].every(
           (value) => value.toString().length > 0,
         );
       }
@@ -200,7 +206,7 @@ export const useSyncStore = createPersistStore(
   }),
   {
     name: StoreKey.Sync,
-    version: 1.4,
+    version: 1.5,
 
     migrate(persistedState, version) {
       const newState = persistedState as typeof DEFAULT_SYNC_STATE;
@@ -250,6 +256,25 @@ export const useSyncStore = createPersistStore(
         }
         if (typeof newState.autoSync !== "boolean") {
           newState.autoSync = true;
+        }
+      }
+
+      if (version < 1.5) {
+        if (!newState.webdav.baseUrl) {
+          const endpoint =
+            (newState.webdav as { endpoint?: string }).endpoint || "";
+          try {
+            const url = new URL(endpoint);
+            newState.webdav.baseUrl = `${url.protocol}//${url.host}`;
+            const pathname = url.pathname.replace(/\/+$/, "");
+            newState.webdav.prefix = pathname === "/" ? "" : pathname;
+          } catch {
+            newState.webdav.baseUrl = endpoint;
+            newState.webdav.prefix = "";
+          }
+        }
+        if (!newState.webdav.prefix) {
+          newState.webdav.prefix = "";
         }
       }
 

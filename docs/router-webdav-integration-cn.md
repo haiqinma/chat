@@ -43,7 +43,7 @@ flowchart TB
 ## WebDAV 集成
 
 - **配额接口**：`app/plugins/webdav.ts` 使用 `authUcanFetch` 调用 `/api/v1/public/webdav/quota`。
-- **同步接口**：`/api/webdav/*` 负责 WebDAV 文件同步，限制可用方法与目标路径，避免 SSRF。
+- **同步接口**：`/api/webdav/*` 负责 WebDAV 文件同步，代理到 `WEBDAV_BACKEND_BASE_URL + WEBDAV_BACKEND_PREFIX`，限制方法与目标路径，避免 SSRF。
 - **请求头**：配额代理使用允许头白名单，仅透传必要头部。
 - **受众 (audience)**：优先使用 `NEXT_PUBLIC_WEBDAV_UCAN_AUD`，未设置时自动推导 `did:web:<webdav-host>`。
 - **应用能力**：默认携带 `app:<appId>`（`appId` 默认当前域名）。
@@ -54,9 +54,10 @@ flowchart TB
 
 ### 启用方式
 
-1) 设置 `WEBDAV_BACKEND_URL` 为可公网访问的 WebDAV 地址（含协议）。
+1) 设置 `WEBDAV_BACKEND_BASE_URL` 为可公网访问的 WebDAV 基础地址（含协议，不含路径）。
 2) 设置「同步配置」中的 **Proxy** 为关闭（`useProxy = false`）。
-3) 确保 WebDAV 服务支持 UCAN 鉴权与 CORS。
+3) 如服务挂载在路径下，设置 `WEBDAV_BACKEND_PREFIX`（例如 `/dav`）。
+4) 确保 WebDAV 服务支持 UCAN 鉴权与 CORS。
 
 ### 直连要求（必须满足）
 
@@ -81,7 +82,8 @@ flowchart TB
 ## 关键配置项
 
 - `ROUTER_BACKEND_URL`: Router 后端地址（必填）
-- `WEBDAV_BACKEND_URL`: WebDAV 后端地址（必填）
+- `WEBDAV_BACKEND_BASE_URL`: WebDAV 后端基础地址（必填，不含路径）
+- `WEBDAV_BACKEND_PREFIX`: WebDAV 路径前缀（默认 `/dav`，可选修改）
 - `WebDAV app action`: 固定为 `write`
 - `通用 UCAN 能力`: 固定为 `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience（可选）

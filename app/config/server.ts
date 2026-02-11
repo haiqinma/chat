@@ -97,6 +97,8 @@ declare global {
 
       ENABLE_MCP?: string; // enable mcp functionality
 
+      WEBDAV_BACKEND_BASE_URL?: string;
+      WEBDAV_BACKEND_PREFIX?: string;
       WEBDAV_BACKEND_URL?: string;
       ROUTER_BACKEND_URL?: string;
       YEYING_BACKEND_URL?: string;
@@ -118,6 +120,40 @@ const ACCESS_CODES = (function getAccessCodes(): Set<string> {
 })();
 
 const DEFAULT_ROUTER_BACKEND_URL = "http://127.0.0.1:3011";
+
+function normalizeBaseUrl(raw: string): string {
+  return raw.trim().replace(/\/+$/, "");
+}
+
+function normalizePrefix(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "/") return "";
+  let next = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  next = next.replace(/\/+$/, "");
+  return next === "/" ? "" : next;
+}
+
+function splitLegacyWebdavEndpoint(endpoint: string): {
+  baseUrl: string;
+  prefix: string;
+} {
+  try {
+    const url = new URL(endpoint);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const pathname = url.pathname.replace(/\/+$/, "");
+    return { baseUrl, prefix: pathname === "/" ? "" : pathname };
+  } catch {
+    return { baseUrl: endpoint, prefix: "" };
+  }
+}
+
+function joinBasePrefix(baseUrl: string, prefix: string): string {
+  const base = normalizeBaseUrl(baseUrl);
+  const normalizedPrefix = normalizePrefix(prefix);
+  if (!base) return "";
+  if (!normalizedPrefix) return base;
+  return `${base}${normalizedPrefix}`;
+}
 
 function getApiKey(keys?: string) {
   const apiKeyEnvVar = keys ?? "";
@@ -185,6 +221,37 @@ export const getServerSideConfig = () => {
   const allowedWebDavEndpoints = (
     process.env.WHITE_WEBDAV_ENDPOINTS ?? ""
   ).split(",");
+
+  const webdavBackendBaseUrlEnv =
+    process.env.WEBDAV_BACKEND_BASE_URL?.trim() || "";
+  const rawWebdavBackendPrefixEnv = process.env.WEBDAV_BACKEND_PREFIX;
+  const hasWebdavBackendPrefixEnv = rawWebdavBackendPrefixEnv !== undefined;
+  const webdavBackendPrefixEnv = hasWebdavBackendPrefixEnv
+    ? rawWebdavBackendPrefixEnv.trim()
+    : "";
+  const legacyWebdavBackendUrl =
+    process.env.WEBDAV_BACKEND_URL?.trim() || "";
+  let webdavBackendBaseUrl = webdavBackendBaseUrlEnv;
+  let webdavBackendPrefix = webdavBackendPrefixEnv;
+  if (!webdavBackendBaseUrl && legacyWebdavBackendUrl) {
+    const parsed = splitLegacyWebdavEndpoint(legacyWebdavBackendUrl);
+    webdavBackendBaseUrl = parsed.baseUrl;
+    if (!webdavBackendPrefix && parsed.prefix) {
+      webdavBackendPrefix = parsed.prefix;
+    }
+  }
+  if (!hasWebdavBackendPrefixEnv && !webdavBackendPrefix) {
+    webdavBackendPrefix = "/dav";
+  }
+  webdavBackendBaseUrl = webdavBackendBaseUrl
+    ? normalizeBaseUrl(webdavBackendBaseUrl)
+    : "";
+  webdavBackendPrefix = webdavBackendPrefix
+    ? normalizePrefix(webdavBackendPrefix)
+    : "";
+  const webdavBackendUrl = webdavBackendBaseUrl
+    ? joinBasePrefix(webdavBackendBaseUrl, webdavBackendPrefix)
+    : legacyWebdavBackendUrl;
 
   const routerBackendUrl =
     process.env.ROUTER_BACKEND_URL?.trim() ||
@@ -285,7 +352,9 @@ export const getServerSideConfig = () => {
     visionModels,
     allowedWebDavEndpoints,
     enableMcp: process.env.ENABLE_MCP === "true",
-    web_dav_backend_url: process.env.WEBDAV_BACKEND_URL,
+    web_dav_backend_base_url: webdavBackendBaseUrl,
+    web_dav_backend_prefix: webdavBackendPrefix,
+    web_dav_backend_url: webdavBackendUrl,
     router_backend_url: routerBackendUrl,
   };
 };

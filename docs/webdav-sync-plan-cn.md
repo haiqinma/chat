@@ -35,19 +35,19 @@ flowchart TB
 ### 1) 代理模式（可选）
 
 - 浏览器请求 `http://<chat>/api/webdav/*`。
-- Next.js 代理转发到 `WEBDAV_BACKEND_URL`。
+- Next.js 代理转发到 `WEBDAV_BACKEND_BASE_URL + WEBDAV_BACKEND_PREFIX`。
 - 适合：避免 CORS、隐藏后端地址、统一安全策略。
 
 ### 2) 直连模式（默认，useProxy=false）
 
-- 浏览器直接请求 `WEBDAV_BACKEND_URL`。
+- 浏览器直接请求 `WEBDAV_BACKEND_BASE_URL + WEBDAV_BACKEND_PREFIX`。
 - 需要 WebDAV 服务端允许跨域与 `Authorization` 头。
 - 适合：降低代理压力、大流量场景。
 
 ## UCAN 关键要求
 
 - `aud` 必须与 WebDAV 服务端配置一致：
-  - 默认：`did:web:<host>`（由 `WEBDAV_BACKEND_URL` 推导）。
+  - 默认：`did:web:<host>`（由 `WEBDAV_BACKEND_BASE_URL` 推导）。
   - 可覆盖：`NEXT_PUBLIC_WEBDAV_UCAN_AUD`。
 - `capability` 需包含服务端配置要求（如 `app:<appId>/write`）。
 - 当服务端开启 `required_resource=app:*` 时，前端必须携带 `app:<appId>` 能力，
@@ -75,11 +75,13 @@ flowchart TB
 
 ## 配置项（核心）
 
-- `WEBDAV_BACKEND_URL`: WebDAV 服务地址（必填）
+- `WEBDAV_BACKEND_BASE_URL`: WebDAV 基础地址（必填，不含路径）
+- `WEBDAV_BACKEND_PREFIX`: WebDAV 路径前缀（默认 `/dav`，可选修改）
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`: WebDAV audience（可选）
 - `WebDAV app action`: 固定为 `write`
 - `通用 UCAN 能力`: 固定为 `profile/read`（主要用于 Router）
 - 同步设置：`useProxy`（关闭即直连）
+- 同步设置页会展示并可修改 WebDAV Base URL/Prefix，用于覆盖环境变量
 
 默认值（本项目）：
 
@@ -93,7 +95,7 @@ flowchart TB
 
 - **CORS 放行**：直连模式需允许来源 `http://localhost:3020` 等。
 - **UCAN 校验一致**：服务端 `audience/resource/action` 必须与前端一致。
-- **直连验证**：Network 中必须看到请求直达 `WEBDAV_BACKEND_URL`。
+- **直连验证**：Network 中必须看到请求直达 `WEBDAV_BACKEND_BASE_URL + WEBDAV_BACKEND_PREFIX`。
 
 ### 建议
 

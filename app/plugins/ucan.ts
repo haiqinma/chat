@@ -44,9 +44,10 @@ function toDidWeb(rawUrl?: string | null): string | null {
 function getBackendUrl(kind: "router" | "webdav"): string | null {
   const config = getClientConfig();
   if (!config) return null;
-  return kind === "router"
-    ? (config.routerBackendUrl ?? null)
-    : (config.webdavBackendUrl ?? null);
+  if (kind === "router") {
+    return config.routerBackendUrl ?? null;
+  }
+  return config.webdavBackendBaseUrl ?? null;
 }
 
 function sanitizeAppId(appId: string): string {
@@ -94,9 +95,11 @@ export function getUcanCapsKey(caps?: UcanCapability[] | null): string {
   return buildCapsKey(caps || []);
 }
 
-export function getWebdavAudience(): string | null {
+export function getWebdavAudience(backendUrl?: string | null): string | null {
   const envAud = process.env.NEXT_PUBLIC_WEBDAV_UCAN_AUD?.trim();
-  return envAud || toDidWeb(getBackendUrl("webdav"));
+  if (envAud) return envAud;
+  const resolvedBackendUrl = backendUrl ?? getBackendUrl("webdav");
+  return toDidWeb(resolvedBackendUrl ?? undefined);
 }
 
 export function getRouterAudience(): string | null {

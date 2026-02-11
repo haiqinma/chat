@@ -4,10 +4,10 @@ import { getServerSideConfig } from "@/app/config/server";
 
 async function handle(req: NextRequest) {
   const config = getServerSideConfig();
-  const WEBDAV_BACKEND_URL = config.web_dav_backend_url;
-  if (!WEBDAV_BACKEND_URL) {
+  const WEBDAV_BACKEND_BASE_URL = config.web_dav_backend_base_url;
+  if (!WEBDAV_BACKEND_BASE_URL) {
     return NextResponse.json(
-      { error: true, msg: "WEBDAV_BACKEND_URL is not configured" },
+      { error: true, msg: "WEBDAV_BACKEND_BASE_URL is not configured" },
       { status: 500 },
     );
   }
@@ -16,7 +16,7 @@ async function handle(req: NextRequest) {
   const urlPath = requestUrl.pathname;
 
   // 构造目标 URL
-  const targetUrl = `${WEBDAV_BACKEND_URL}${urlPath}`;
+  const targetUrl = `${WEBDAV_BACKEND_BASE_URL}${urlPath}`;
 
   // 转发请求头（白名单，避免透传敏感头）
   const ALLOWED_HEADERS = new Set([

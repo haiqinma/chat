@@ -28,7 +28,8 @@ flowchart TB
 ### 1) Environment Variables
 
 - `ROUTER_BACKEND_URL`: Router backend URL (required)
-- `WEBDAV_BACKEND_URL`: WebDAV backend URL (required)
+- `WEBDAV_BACKEND_BASE_URL`: WebDAV base URL (required, no path)
+- `WEBDAV_BACKEND_PREFIX`: path prefix (default `/dav`, optional to change)
 - Shared UCAN caps: fixed to `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience override (optional)
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`: WebDAV audience override (optional)
@@ -38,7 +39,7 @@ If `*_UCAN_AUD` is not set, the system derives `did:web:<host>` automatically.
 ### 2) Local Dev
 
 ```bash
-cp .env.template .env.local
+cp .env.template .env
 npm install
 npm run dev
 ```

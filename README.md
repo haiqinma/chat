@@ -41,10 +41,10 @@ Chat（UCAN 定制版）
 ## 本地启动
 
 ```bash
-cp .env.template .env.local
+cp .env.template .env
 # 确保本地 router 地址指向 3011（示例）
 # ROUTER_BACKEND_URL=http://localhost:3011/
-# 如使用 WebDAV 代理，请设置 WEBDAV_BACKEND_URL
+# 如使用 WebDAV 代理，请设置 WEBDAV_BACKEND_BASE_URL（仅填基础地址，不含路径）
 npm install
 npm run dev
 ```
@@ -62,9 +62,10 @@ bash scripts/start-all.sh
 ## 部署前准备
 
 1) **统一使用 npm 安装依赖**。
-2) 配置环境变量（`.env.local`）：
+2) 配置环境变量（`.env`）：
    - `ROUTER_BACKEND_URL`：router 鉴权后端地址  
-   - `WEBDAV_BACKEND_URL`：WebDAV 后端地址（**不设会导致 build 失败**）
+   - `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（**不设会导致 build 失败**，不含路径）
+   - `WEBDAV_BACKEND_PREFIX`：WebDAV 路径前缀（默认 `/dav`，可选修改）
 
 ## 部署步骤（standalone）
 

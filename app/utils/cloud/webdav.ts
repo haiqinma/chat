@@ -32,18 +32,93 @@ const DEFAULT_FILE = `${DEFAULT_FOLDER}/${BACKUP_FILENAME}`;
 const WEBDAV_PROXY_PREFIX = "/api/webdav";
 const ensuredAppDirs = new Set<string>();
 
+function normalizeBaseUrl(raw: string): string {
+  return raw.trim().replace(/\/+$/, "");
+}
+
+function normalizePrefix(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "/") return "";
+  let next = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  next = next.replace(/\/+$/, "");
+  return next === "/" ? "" : next;
+}
+
+function joinBasePrefix(baseUrl: string, prefix: string): string {
+  const base = normalizeBaseUrl(baseUrl);
+  const normalizedPrefix = normalizePrefix(prefix);
+  if (!normalizedPrefix) return base;
+  return `${base}${normalizedPrefix}`;
+}
+
+function getEnvWebdavBaseUrl(): string {
+  return getClientConfig()?.webdavBackendBaseUrl?.trim() || "";
+}
+
+function getEnvWebdavPrefix(): string {
+  return getClientConfig()?.webdavBackendPrefix?.trim() || "";
+}
+
+function resolveWebdavBaseUrl(store: SyncStore, fallbackBaseUrl = ""): string {
+  const config = store.webdav;
+  if (config.baseUrl.trim()) return normalizeBaseUrl(config.baseUrl);
+  if (fallbackBaseUrl.trim()) return normalizeBaseUrl(fallbackBaseUrl);
+  const endpoint = config.endpoint?.trim();
+  if (!endpoint) return "";
+  try {
+    const url = new URL(endpoint);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return endpoint;
+  }
+}
+
+function resolveWebdavPrefix(
+  store: SyncStore,
+  fallbackPrefix = "",
+  fallbackBaseUrl = "",
+): string {
+  const config = store.webdav;
+  const storePrefix = config.prefix.trim();
+  const storeBase = config.baseUrl.trim();
+  if (storeBase) {
+    return normalizePrefix(storePrefix);
+  }
+  if (fallbackBaseUrl.trim()) {
+    return normalizePrefix(storePrefix || fallbackPrefix);
+  }
+  if (storePrefix) return normalizePrefix(storePrefix);
+  const endpoint = config.endpoint?.trim();
+  if (!endpoint) return "";
+  try {
+    const url = new URL(endpoint);
+    const pathname = url.pathname.replace(/\/+$/, "");
+    return pathname === "/" ? "" : pathname;
+  } catch {
+    return "";
+  }
+}
+
 function createBasicWebDavClient(store: SyncStore) {
   const config = store.webdav;
   const proxyUrl =
     store.useProxy && store.proxyUrl.length > 0 ? store.proxyUrl : "";
+  const envBaseUrl = getEnvWebdavBaseUrl();
+  const envPrefix = getEnvWebdavPrefix();
+  const baseUrl = resolveWebdavBaseUrl(store, envBaseUrl);
+  const prefix = resolveWebdavPrefix(store, envPrefix, envBaseUrl);
+  const endpoint = joinBasePrefix(baseUrl, prefix);
 
   return {
     async check() {
       try {
-        const res = await fetch(this.path(DEFAULT_FOLDER, proxyUrl, "MKCOL"), {
-          method: "GET",
-          headers: this.headers(),
-        });
+        const res = await fetch(
+          this.path(DEFAULT_FOLDER, proxyUrl, "MKCOL", endpoint),
+          {
+            method: "GET",
+            headers: this.headers(),
+          },
+        );
         const success = [201, 200, 404, 405, 301, 302, 307, 308].includes(
           res.status,
         );
@@ -61,7 +136,7 @@ function createBasicWebDavClient(store: SyncStore) {
     },
 
     async get(key: string) {
-      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl), {
+      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl, "", endpoint), {
         method: "GET",
         headers: this.headers(),
       });
@@ -76,7 +151,7 @@ function createBasicWebDavClient(store: SyncStore) {
     },
 
     async set(key: string, value: string) {
-      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl), {
+      const res = await fetch(this.path(DEFAULT_FILE, proxyUrl, "", endpoint), {
         method: "PUT",
         headers: this.headers(),
         body: value,
@@ -92,7 +167,12 @@ function createBasicWebDavClient(store: SyncStore) {
         authorization: `Basic ${auth}`,
       };
     },
-    path(path: string, proxyUrl: string = "", proxyMethod: string = "") {
+    path(
+      path: string,
+      proxyUrl: string = "",
+      proxyMethod: string = "",
+      endpointUrl: string = "",
+    ) {
       if (path.startsWith("/")) {
         path = path.slice(1);
       }
@@ -101,19 +181,30 @@ function createBasicWebDavClient(store: SyncStore) {
         proxyUrl = proxyUrl.slice(0, -1);
       }
 
+      const resolvedEndpoint = endpointUrl || endpoint;
+
       let url;
       const pathPrefix = `${WEBDAV_PROXY_PREFIX}/`;
 
       try {
-        let u = new URL(proxyUrl + pathPrefix + path);
-        // add query params
-        u.searchParams.append("endpoint", config.endpoint);
-        proxyMethod && u.searchParams.append("proxy_method", proxyMethod);
-        url = u.toString();
+        if (!store.useProxy && resolvedEndpoint) {
+          const direct = joinBasePrefix(resolvedEndpoint, "");
+          url = `${direct}/${path}`;
+        } else {
+          let u = new URL(proxyUrl + pathPrefix + path);
+          // add query params
+          u.searchParams.append("endpoint", resolvedEndpoint);
+          proxyMethod && u.searchParams.append("proxy_method", proxyMethod);
+          url = u.toString();
+        }
       } catch (e) {
-        url = pathPrefix + path + "?endpoint=" + config.endpoint;
-        if (proxyMethod) {
-          url += "&proxy_method=" + proxyMethod;
+        if (!store.useProxy && resolvedEndpoint) {
+          url = `${resolvedEndpoint.replace(/\/+$/, "")}/${path}`;
+        } else {
+          url = pathPrefix + path + "?endpoint=" + resolvedEndpoint;
+          if (proxyMethod) {
+            url += "&proxy_method=" + proxyMethod;
+          }
         }
       }
 
@@ -140,23 +231,28 @@ function createWebdavProxyFetcher(endpoint: string) {
 }
 
 async function getUcanWebDavClient(store: SyncStore) {
+  const envBaseUrl = getEnvWebdavBaseUrl();
+  const envPrefix = getEnvWebdavPrefix();
   console.log("[WebDav UCAN] config", {
     useProxy: store.useProxy,
-    backendUrl: getClientConfig()?.webdavBackendUrl ?? "",
+    backendBaseUrl: envBaseUrl,
+    backendPrefix: envPrefix,
     authType: store.webdav.authType,
   });
-  const backendUrl = getClientConfig()?.webdavBackendUrl?.trim();
+  const backendUrl = resolveWebdavBaseUrl(store, envBaseUrl);
   if (!backendUrl) {
-    throw new Error("WEBDAV_BACKEND_URL is not configured");
+    throw new Error("WEBDAV_BACKEND_BASE_URL is not configured");
   }
-  const audience = getWebdavAudience();
+  const webdavPrefix = resolveWebdavPrefix(store, envPrefix, envBaseUrl);
+  const audience = getWebdavAudience(backendUrl);
   if (!audience) {
     throw new Error("WebDAV UCAN audience is not configured");
   }
   const useProxy = store.useProxy;
+  const endpoint = joinBasePrefix(backendUrl, webdavPrefix);
   const baseUrl = useProxy ? "" : backendUrl;
-  const prefix = useProxy ? WEBDAV_PROXY_PREFIX : "";
-  const fetcher = useProxy ? createWebdavProxyFetcher(backendUrl) : undefined;
+  const prefix = useProxy ? WEBDAV_PROXY_PREFIX : webdavPrefix;
+  const fetcher = useProxy ? createWebdavProxyFetcher(endpoint) : undefined;
 
   const session = await getCachedUcanSession();
   if (!session) {

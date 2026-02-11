@@ -249,6 +249,10 @@ const cn = {
 
         WebDav: {
           Endpoint: "WebDAV 地址",
+          BaseUrl: "WebDAV 基础地址",
+          BaseUrlSubTitle: "不含路径，例如 https://webdav.example.com",
+          Prefix: "WebDAV 前缀",
+          PrefixSubTitle: "默认 /dav，可修改",
           UserName: "用户名",
           Password: "密码",
         },

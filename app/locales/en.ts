@@ -252,6 +252,10 @@ const en: LocaleType = {
 
         WebDav: {
           Endpoint: "WebDAV Endpoint",
+          BaseUrl: "WebDAV Base URL",
+          BaseUrlSubTitle: "No path included, e.g. https://webdav.example.com",
+          Prefix: "WebDAV Prefix",
+          PrefixSubTitle: "Default /dav, optional to change",
           UserName: "User Name",
           Password: "Password",
         },

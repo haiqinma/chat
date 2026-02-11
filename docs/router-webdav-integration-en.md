@@ -43,7 +43,7 @@ flowchart TB
 ## WebDAV Integration
 
 - **Quota**: `app/plugins/webdav.ts` calls `/api/v1/public/webdav/quota` via `authUcanFetch`.
-- **Sync**: `/api/webdav/*` handles WebDAV file sync with method and path restrictions to prevent SSRF.
+- **Sync**: `/api/webdav/*` proxies WebDAV file sync to `WEBDAV_BACKEND_BASE_URL + WEBDAV_BACKEND_PREFIX`, with method/path restrictions to prevent SSRF.
 - **Headers**: quota proxy uses an allowlist to avoid forwarding sensitive headers.
 - **Audience**: `NEXT_PUBLIC_WEBDAV_UCAN_AUD` if set; otherwise derived as `did:web:<webdav-host>`.
 - **App capability**: defaults to `app:<appId>` (`appId` defaults to current host).
@@ -54,9 +54,10 @@ When proxy is disabled, the browser will call the WebDAV server directly (no `/a
 
 ### How to enable
 
-1) Set `WEBDAV_BACKEND_URL` to a publicly reachable WebDAV origin (with scheme).
+1) Set `WEBDAV_BACKEND_BASE_URL` to a publicly reachable WebDAV base URL (with scheme, no path).
 2) Turn off **Proxy** in Sync settings (`useProxy = false`).
-3) Ensure the WebDAV service supports UCAN and CORS.
+3) If the service is mounted under a path, set `WEBDAV_BACKEND_PREFIX` (e.g. `/dav`).
+4) Ensure the WebDAV service supports UCAN and CORS.
 
 ### Requirements
 
@@ -81,7 +82,8 @@ When proxy is disabled, the browser will call the WebDAV server directly (no `/a
 ## Key Environment Variables
 
 - `ROUTER_BACKEND_URL`: Router backend URL (required)
-- `WEBDAV_BACKEND_URL`: WebDAV backend URL (required)
+- `WEBDAV_BACKEND_BASE_URL`: WebDAV base URL (required, no path)
+- `WEBDAV_BACKEND_PREFIX`: path prefix (default `/dav`, optional to change)
 - `WebDAV app action`: fixed to `write`
 - `Shared UCAN caps`: fixed to `profile/read`
 - `NEXT_PUBLIC_ROUTER_UCAN_AUD`: Router audience (optional)

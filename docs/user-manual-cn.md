@@ -34,7 +34,8 @@ Root UCAN 可同时用于多个后端服务，Invocation UCAN 会根据目标后
 
 主要环境变量：
 
-- `WEBDAV_BACKEND_URL`：WebDAV 后端地址
+- `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（不含路径）
+- `WEBDAV_BACKEND_PREFIX`：WebDAV 路径前缀（默认 `/dav`，可选修改）
 - `ROUTER_BACKEND_URL`：Router 后端地址
 - 通用 UCAN 能力：固定为 `profile/read`
 - `NEXT_PUBLIC_WEBDAV_UCAN_AUD`：WebDAV audience（可选）

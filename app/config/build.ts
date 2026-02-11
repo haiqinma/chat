@@ -12,7 +12,41 @@ export const getBuildConfig = () => {
   const buildMode = process.env.BUILD_MODE ?? "standalone";
   const isApp = !!process.env.BUILD_APP;
   const version = "v" + tauriConfig.package.version;
-  const webdavBackendUrl = process.env.WEBDAV_BACKEND_URL;
+  const webdavBackendBaseUrlEnv =
+    process.env.WEBDAV_BACKEND_BASE_URL?.trim() || "";
+  const rawWebdavBackendPrefixEnv = process.env.WEBDAV_BACKEND_PREFIX;
+  const hasWebdavBackendPrefixEnv = rawWebdavBackendPrefixEnv !== undefined;
+  const webdavBackendPrefixEnv = hasWebdavBackendPrefixEnv
+    ? rawWebdavBackendPrefixEnv.trim()
+    : "";
+  const legacyWebdavBackendUrl =
+    process.env.WEBDAV_BACKEND_URL?.trim() || "";
+  let webdavBackendBaseUrl = webdavBackendBaseUrlEnv;
+  let webdavBackendPrefix = webdavBackendPrefixEnv;
+  if (!webdavBackendBaseUrl && legacyWebdavBackendUrl) {
+    try {
+      const url = new URL(legacyWebdavBackendUrl);
+      webdavBackendBaseUrl = `${url.protocol}//${url.host}`;
+      const pathname = url.pathname.replace(/\/+$/, "");
+      if (!webdavBackendPrefix && pathname && pathname !== "/") {
+        webdavBackendPrefix = pathname;
+      }
+    } catch {
+      webdavBackendBaseUrl = legacyWebdavBackendUrl;
+    }
+  }
+  if (!hasWebdavBackendPrefixEnv && !webdavBackendPrefix) {
+    webdavBackendPrefix = "/dav";
+  }
+  if (webdavBackendBaseUrl) {
+    webdavBackendBaseUrl = webdavBackendBaseUrl.replace(/\/+$/, "");
+  }
+  if (webdavBackendPrefix) {
+    const trimmed = webdavBackendPrefix.trim();
+    webdavBackendPrefix = trimmed
+      ? (trimmed.startsWith("/") ? trimmed : `/${trimmed}`).replace(/\/+$/, "")
+      : "";
+  }
   const routerBackendUrl =
     process.env.ROUTER_BACKEND_URL ??
     process.env.YEYING_BACKEND_URL ??
@@ -47,7 +81,8 @@ export const getBuildConfig = () => {
     isApp,
     template: process.env.DEFAULT_INPUT_TEMPLATE ?? DEFAULT_INPUT_TEMPLATE,
     adminWalletAccount,
-    webdavBackendUrl,
+    webdavBackendBaseUrl,
+    webdavBackendPrefix,
     routerBackendUrl,
   };
 };
