@@ -2,10 +2,13 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  min-width: 0;
   .sd-img-item{
     width: 48%;
+    min-width: 0;
     .sd-img-item-info{
       flex:1;
+      min-width: 0;
       width: 100%;
       overflow: hidden;
       user-select: text;
@@ -21,6 +24,7 @@
     }
     .pre-img{
       display: flex;
+      flex-shrink: 0;
       width: 130px;
       justify-content: center;
       align-items: center;
@@ -30,6 +34,7 @@
     .img{
       width: 130px;
       height: 130px;
+      flex-shrink: 0;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;

@@ -25,7 +25,8 @@ function formatBytes(bytes?: number): string {
     value /= 1024;
     unitIndex += 1;
   }
-  const precision = unitIndex === 0 ? 0 : value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  const precision =
+    unitIndex === 0 ? 0 : value >= 100 ? 0 : value >= 10 ? 1 : 2;
   return `${value.toFixed(precision)} ${units[unitIndex]}`;
 }
 
@@ -72,7 +73,7 @@ export function Centers() {
   }, []);
 
   return (
-    <div>
+    <div className={styles["center-page"]}>
       <div className="window-header" data-tauri-drag-region>
         <div className="window-header-title">
           <div className="window-header-main-title">

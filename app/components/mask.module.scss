@@ -3,10 +3,17 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 
   .mask-page-body {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
     padding: 20px;
+    overflow: auto;
     overflow-y: auto;
+    overflow-x: hidden;
 
     .mask-filter {
       width: 100%;
@@ -14,8 +21,9 @@
       margin-bottom: 20px;
       animation: slide-in ease 0.3s;
       height: 40px;
-
       display: flex;
+      min-width: 0;
+      flex-shrink: 0;
 
       .search-bar {
         flex-grow: 1;
@@ -36,10 +44,11 @@
       }
     }
 
-      .mask-item {
+    .mask-item {
       display: flex;
       justify-content: space-between;
       gap: 16px;
+      min-width: 0;
       padding: 20px;
       border: var(--border-in-light);
       animation: slide-in ease 0.3s;
@@ -61,9 +70,12 @@
       .mask-header {
         display: flex;
         align-items: center;
+        flex: 1;
+        min-width: 0;
 
         .mask-icon {
           display: flex;
+          flex-shrink: 0;
           align-items: center;
           justify-content: center;
           margin-right: 10px;
@@ -71,9 +83,13 @@
 
         .mask-title {
           flex: 1;
+          min-width: 0;
           .mask-name {
             font-size: 14px;
             font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           .mask-category {
             display: inline-flex;
@@ -117,6 +133,7 @@
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
+        flex-shrink: 0;
         transition: all ease 0.3s;
       }
 

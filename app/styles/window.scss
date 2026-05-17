@@ -2,14 +2,17 @@
   padding: 14px 20px;
   border-bottom: rgba(0, 0, 0, 0.1) 1px solid;
   position: relative;
-
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .window-header-title {
-  max-width: calc(100% - 100px);
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 
   .window-header-main-title {
@@ -29,6 +32,8 @@
 
 .window-actions {
   display: inline-flex;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .window-action-button:not(:first-child) {

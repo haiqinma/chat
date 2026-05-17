@@ -19,6 +19,7 @@ Chat（UCAN 定制版）
 - 架构 / 部署 / 安全清单：`docs/架构部署安全清单.md`
 - 模型端点选择与支持机制：`docs/模型端点选择与支持机制.md`
 - 图像工作空间方案：`docs/图像工作空间方案.md`
+- 容器与布局样式方案：`docs/容器与布局样式方案.md`
 - 用户登录方案：`docs/用户登录方案.md`
 - 数据同步：`docs/数据同步方案.md`
 - Cloudflare Pages 部署指南：`docs/CloudflarePages部署指南.md`

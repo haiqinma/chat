@@ -4,6 +4,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 
   .loading-indicator {
     font-size: 12px;
@@ -14,8 +16,13 @@
   }
 
   .mcp-market-page-body {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
     padding: 20px;
+    overflow: auto;
     overflow-y: auto;
+    overflow-x: hidden;
 
     .loading-container,
     .empty-container {
@@ -45,6 +52,8 @@
       animation: slide-in ease 0.3s;
       height: 40px;
       display: flex;
+      min-width: 0;
+      flex-shrink: 0;
 
       .search-bar {
         flex-grow: 1;
@@ -57,9 +66,11 @@
       display: flex;
       flex-direction: column;
       gap: 1px;
+      min-width: 0;
     }
 
     .mcp-market-item {
+      min-width: 0;
       padding: 20px;
       border: var(--border-in-light);
       animation: slide-in ease 0.3s;
@@ -134,9 +145,11 @@
         justify-content: space-between;
         align-items: flex-start;
         width: 100%;
+        min-width: 0;
 
         .mcp-market-title {
           flex-grow: 1;
+          min-width: 0;
           margin-right: 20px;
           max-width: calc(100% - 300px);
         }
@@ -148,6 +161,7 @@
           align-items: center;
           gap: 8px;
           margin-bottom: 8px;
+          min-width: 0;
 
           .server-status {
             display: inline-flex;
@@ -221,6 +235,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          min-width: 0;
         }
 
         .mcp-market-actions {
@@ -230,6 +245,29 @@
           flex-shrink: 0;
           min-width: 180px;
           justify-content: flex-end;
+        }
+      }
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    .mcp-market-page-body {
+      .mcp-market-item {
+        .mcp-market-header {
+          flex-direction: column;
+          gap: 12px;
+
+          .mcp-market-title {
+            max-width: 100%;
+            margin-right: 0;
+          }
+
+          .mcp-market-actions {
+            width: 100%;
+            min-width: 0;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
         }
       }
     }

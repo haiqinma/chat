@@ -1,6 +1,18 @@
+.settings-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 .settings {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   padding: 20px;
   overflow: auto;
+  overflow-x: hidden;
 }
 
 .avatar {

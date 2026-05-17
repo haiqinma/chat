@@ -7,6 +7,8 @@
   align-items: stretch;
   justify-content: flex-start;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 
@@ -14,14 +16,17 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
+    min-width: 0;
     padding: 10px;
     box-sizing: border-box;
     animation: slide-in-from-top ease 0.3s;
+    flex-shrink: 0;
   }
 
   .mask-cards {
     display: flex;
     align-self: center;
+    flex-shrink: 0;
     margin-top: 24px;
     margin-bottom: 20px;
     animation: slide-in ease 0.3s;
@@ -45,6 +50,7 @@
   }
 
   .title {
+    flex-shrink: 0;
     text-align: center;
     font-size: 32px;
     font-weight: bolder;
@@ -53,11 +59,13 @@
   }
 
   .sub-title {
+    flex-shrink: 0;
     text-align: center;
     animation: slide-in ease 0.4s;
   }
 
   .featured-title {
+    flex-shrink: 0;
     width: min(1100px, calc(100% - 40px));
     margin: 28px auto 0;
     font-size: 18px;
@@ -66,6 +74,7 @@
   }
 
   .featured-subtitle {
+    flex-shrink: 0;
     width: min(1100px, calc(100% - 40px));
     margin: 8px auto 0;
     font-size: 13px;
@@ -75,6 +84,7 @@
   }
 
   .actions {
+    flex-shrink: 0;
     margin-top: 28px;
     margin-bottom: 2vh;
     animation: slide-in ease 0.45s;
@@ -90,6 +100,7 @@
   .masks {
     flex-grow: 0;
     width: 100%;
+    min-width: 0;
     overflow: visible;
     padding: 20px 20px 40px;
     animation: slide-in ease 0.5s;
@@ -97,6 +108,7 @@
 
   .featured-masks {
     width: min(1100px, calc(100% - 40px));
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
@@ -108,6 +120,7 @@
 
   .mask-group {
     width: min(1100px, 100%);
+    min-width: 0;
     margin: 0 auto 20px;
   }
 
@@ -124,11 +137,13 @@
     gap: 10px;
     margin-bottom: 10px;
     align-items: stretch;
+    min-width: 0;
   }
 
   .mask {
     display: flex;
     align-items: flex-start;
+    min-width: 0;
     padding: 14px 16px;
     border: var(--border-in-light);
     box-shadow: var(--card-shadow);

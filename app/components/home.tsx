@@ -280,6 +280,7 @@ function Screen() {
   const shouldUseWorkspaceShell =
     (location.pathname === Path.Chat || location.pathname === Path.Home) &&
     currentSessionType === "studio";
+  const shouldUseFullShell = shouldTightBorder || shouldUseWorkspaceShell;
 
   useEffect(() => {
     loadAsyncGoogleFont();
@@ -309,17 +310,19 @@ function Screen() {
           })}
         />
         <WindowContent>
-          <Routes>
-            <Route path={Path.Home} element={<Chat />} />
-            <Route path={Path.NewChat} element={<NewChat />} />
-            <Route path={Path.Masks} element={<MaskPage />} />
-            <Route path={Path.Plugins} element={<PluginPage />} />
-            <Route path={Path.SearchChat} element={<SearchChat />} />
-            <Route path={Path.Chat} element={<Chat />} />
-            <Route path={Path.Settings} element={<Settings />} />
-            <Route path={Path.Centers} element={<Centers />} />
-            <Route path={Path.McpMarket} element={<McpMarketPage />} />
-          </Routes>
+          <div className={styles["page-content"]}>
+            <Routes>
+              <Route path={Path.Home} element={<Chat />} />
+              <Route path={Path.NewChat} element={<NewChat />} />
+              <Route path={Path.Masks} element={<MaskPage />} />
+              <Route path={Path.Plugins} element={<PluginPage />} />
+              <Route path={Path.SearchChat} element={<SearchChat />} />
+              <Route path={Path.Chat} element={<Chat />} />
+              <Route path={Path.Settings} element={<Settings />} />
+              <Route path={Path.Centers} element={<Centers />} />
+              <Route path={Path.McpMarket} element={<McpMarketPage />} />
+            </Routes>
+          </div>
         </WindowContent>
       </>
     );
@@ -328,8 +331,7 @@ function Screen() {
   return (
     <div
       className={clsx(styles.container, {
-        [styles["tight-container"]]: shouldTightBorder,
-        [styles["workspace-container"]]: shouldUseWorkspaceShell,
+        [styles["container-full"]]: shouldUseFullShell,
         [styles["rtl-screen"]]: getLang() === "ar",
       })}
     >
