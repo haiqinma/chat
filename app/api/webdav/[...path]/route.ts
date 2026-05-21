@@ -10,8 +10,13 @@ export function generateStaticParams() {
 
 const config = getServerSideConfig();
 
+function isEnabledEnv(value?: string): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true";
+}
+
 const allowLocalWebDav =
-  process.env.ALLOW_LOCAL_WEBDAV === "1" ||
+  isEnabledEnv(process.env.ALLOW_LOCAL_WEBDAV) ||
   process.env.NODE_ENV !== "production";
 const localAllowedWebDavEndpoints = allowLocalWebDav
   ? ["http://127.0.0.1/", "http://localhost/", "http://[::1]/"]
@@ -73,8 +78,8 @@ async function handle(
       if (isPublicApiPath) {
         return true;
       }
-      return (
-        normalizedEndpoint.pathname.startsWith(normalizedAllowedEndpoint.pathname)
+      return normalizedEndpoint.pathname.startsWith(
+        normalizedAllowedEndpoint.pathname,
       );
     })
   ) {

@@ -5,20 +5,23 @@
 ## 1. 结论先行
 
 - `ENABLE_MCP` 是**服务端开关**，不是纯前端变量。
-- 只有当它严格等于字符串 `"true"` 时，MCP 被判定为启用。
+- 当它等于字符串 `"1"` 或 `"true"` 时，MCP 被判定为启用。
 - MCP 启用后，前端页面会通过 Server Action 读取状态，并触发 MCP 系统初始化、工具展示、工具调用等流程。
 
 对应实现：
 
-- `app/config/server.ts`：`enableMcp: process.env.ENABLE_MCP === "true"`
+- `app/config/server.ts`：统一布尔解析，`ENABLE_MCP=1` / `true` 都会启用
 - `app/mcp/actions.ts`：`isMcpEnabled()`
 
 ## 2. 生效条件
 
-`ENABLE_MCP` 的判定是严格比较：
+`ENABLE_MCP` 的判定当前支持以下写法：
 
+- `ENABLE_MCP=1` -> 启用
 - `ENABLE_MCP=true` -> 启用
-- `ENABLE_MCP=1` / `TRUE` / `yes` / 空值 -> 都视为未启用
+- `ENABLE_MCP=0` / `false` / 空值 -> 不启用
+
+推荐统一使用 `0` / `1`。
 
 ## 3. 运行时数据流
 
@@ -85,11 +88,11 @@ flowchart LR
 - `npm run dev` / `npm run build`：Next 默认加载 `.env`。
 - `scripts/starter.sh`：脚本会显式 `source .env` 后再启动 `node server.js`。
 
-因此无论本地开发还是部署，只要目标进程拿到 `ENABLE_MCP=true`，MCP 开关都会生效。
+因此无论本地开发还是部署，只要目标进程拿到 `ENABLE_MCP=1` 或 `ENABLE_MCP=true`，MCP 开关都会生效。
 
 ## 7. 排查清单（启用但看不到 MCP）
 
-1. 检查环境变量是否严格为 `true`：`ENABLE_MCP=true`
+1. 检查环境变量是否已正确开启：`ENABLE_MCP=1` 或 `ENABLE_MCP=true`
 2. 检查服务端日志中是否出现：
    - `[MCP] initializing...`
    - `[MCP] initialized`

@@ -444,7 +444,9 @@ export function isModelNotavailableInServer(
 ): boolean {
   // Check DISABLE_GPT4 environment variable
   if (
-    process.env.DISABLE_GPT4 === "1" &&
+    ["1", "true"].includes(
+      process.env.DISABLE_GPT4?.trim().toLowerCase() ?? "",
+    ) &&
     isGPT4Model(modelName.toLowerCase())
   ) {
     return true;

@@ -104,9 +104,7 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     : "";
 
   const routerBackendUrl = normalizeBaseUrl(
-    process.env.ROUTER_BACKEND_URL?.trim() ||
-      process.env.YEYING_BACKEND_URL?.trim() ||
-      defaultRouterBackendUrl,
+    process.env.ROUTER_BACKEND_URL?.trim() || defaultRouterBackendUrl,
   );
 
   return {

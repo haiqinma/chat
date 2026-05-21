@@ -99,7 +99,6 @@ declare global {
 
       WEBDAV_BACKEND_BASE_URL?: string;
       WEBDAV_BACKEND_PREFIX?: string;
-      YEYING_BACKEND_URL?: string;
       CENTRAL_UCAN_AUTH_BASE_URL?: string;
       CENTRAL_UCAN_APP_ID?: string;
       UCAN_LOGIN_FORCE_MODE?: "auto" | "wallet" | "central";
@@ -161,6 +160,11 @@ function getApiKey(keys?: string) {
   return apiKeys[randomIndex];
 }
 
+function isEnabledEnv(value?: string): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true";
+}
+
 export const getServerSideConfig = () => {
   if (typeof process === "undefined") {
     throw Error(
@@ -168,7 +172,7 @@ export const getServerSideConfig = () => {
     );
   }
 
-  const disableGPT4 = !!process.env.DISABLE_GPT4;
+  const disableGPT4 = isEnabledEnv(process.env.DISABLE_GPT4);
   let customModels = process.env.CUSTOM_MODELS ?? "";
   let defaultModel = process.env.DEFAULT_MODEL ?? "";
   let visionModels = process.env.VISION_MODELS ?? "";
@@ -316,16 +320,16 @@ export const getServerSideConfig = () => {
     codes: ACCESS_CODES,
 
     proxyUrl: process.env.PROXY_URL,
-    isVercel: !!process.env.VERCEL,
+    isVercel: isEnabledEnv(process.env.VERCEL),
 
-    hideUserApiKey: !!process.env.HIDE_USER_API_KEY,
+    hideUserApiKey: isEnabledEnv(process.env.HIDE_USER_API_KEY),
     disableGPT4,
-    hideBalanceQuery: !process.env.ENABLE_BALANCE_QUERY,
-    disableFastLink: !!process.env.DISABLE_FAST_LINK,
+    hideBalanceQuery: !isEnabledEnv(process.env.ENABLE_BALANCE_QUERY),
+    disableFastLink: isEnabledEnv(process.env.DISABLE_FAST_LINK),
     customModels,
     defaultModel,
     visionModels,
-    enableMcp: process.env.ENABLE_MCP === "true",
+    enableMcp: isEnabledEnv(process.env.ENABLE_MCP),
     web_dav_backend_base_url: webdavBackendBaseUrl,
     web_dav_backend_prefix: webdavBackendPrefix,
     web_dav_backend_url: webdavBackendUrl,

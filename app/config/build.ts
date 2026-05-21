@@ -1,5 +1,10 @@
 import tauriConfig from "../../src-tauri/tauri.conf.json";
 
+function isEnabledEnv(value?: string): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true";
+}
+
 export const getBuildConfig = () => {
   if (typeof process === "undefined") {
     throw Error(
@@ -7,7 +12,7 @@ export const getBuildConfig = () => {
     );
   }
   const buildMode = process.env.BUILD_MODE ?? "standalone";
-  const isApp = !!process.env.BUILD_APP;
+  const isApp = isEnabledEnv(process.env.BUILD_APP);
   const version = "v" + tauriConfig.version;
 
   const commitInfo = (() => {

@@ -1,9 +1,14 @@
 import webpack from "webpack";
 
+function isEnabledEnv(value) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true";
+}
+
 const mode = process.env.BUILD_MODE ?? "standalone";
 console.log("[Next] build mode", mode);
 
-const disableChunk = !!process.env.DISABLE_CHUNK;
+const disableChunk = isEnabledEnv(process.env.DISABLE_CHUNK);
 console.log("[Next] build with chunk: ", !disableChunk);
 
 /** @type {import('next').NextConfig} */

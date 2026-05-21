@@ -6,12 +6,23 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 OUTPUT_DIR="${ROOT_DIR}/output"
 ENV_FILE="${ROOT_DIR}/.env"
 ENV_TEMPLATE="${ROOT_DIR}/.env.template"
+BUILD_ENV_FILE="${ROOT_DIR}/.env.build"
+BUILD_ENV_TEMPLATE="${ROOT_DIR}/.env.build.template"
 
 cd "${ROOT_DIR}"
 
 usage() {
   echo "Usage: $0 [TAG]"
   echo "TAG format: v<major>.<minor>.<patch>, for example: v1.0.1"
+}
+
+load_env_file() {
+  local env_path="$1"
+  if [ -f "${env_path}" ]; then
+    set -a
+    . "${env_path}"
+    set +a
+  fi
 }
 
 if [ "$#" -gt 1 ]; then
@@ -114,6 +125,14 @@ if [ ! -f "${ENV_FILE}" ]; then
   echo "Generated ${ENV_FILE} from template for build."
 fi
 
+load_env_file "${ENV_FILE}"
+
+if [ -f "${BUILD_ENV_FILE}" ]; then
+  load_env_file "${BUILD_ENV_FILE}"
+elif [ -f "${BUILD_ENV_TEMPLATE}" ]; then
+  load_env_file "${BUILD_ENV_TEMPLATE}"
+fi
+
 PROJECT_NAME="$(node -p "require('./package.json').name || 'app'")"
 SHORT_HASH="$(git rev-parse --short=7 HEAD)"
 PACKAGE_NAME="${PROJECT_NAME}-${TARGET_TAG}-${SHORT_HASH}"
@@ -162,6 +181,10 @@ fi
 
 if [ -f "${ENV_TEMPLATE}" ]; then
   cp "${ENV_TEMPLATE}" "${PACKAGE_DIR}/.env.template"
+fi
+
+if [ -f "${BUILD_ENV_TEMPLATE}" ]; then
+  cp "${BUILD_ENV_TEMPLATE}" "${PACKAGE_DIR}/.env.build.template"
 fi
 
 mkdir -p "${PACKAGE_DIR}/scripts"
