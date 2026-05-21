@@ -17,6 +17,7 @@ Chat（UCAN 定制版）
 - 用户使用手册：`docs/用户使用手册.md`
 - 常见问题：`docs/常见问题.md`
 - 架构 / 部署 / 安全清单：`docs/架构部署安全清单.md`
+- 运行时配置与发包：`docs/运行时配置与发包.md`
 - 模型端点选择与支持机制：`docs/模型端点选择与支持机制.md`
 - 容器与布局样式方案：`docs/容器与布局样式方案.md`
 - 用户登录方案：`docs/用户登录方案.md`
@@ -38,65 +39,91 @@ Chat（UCAN 定制版）
 
 ```bash
 cp .env.template .env
-# 确保本地 router 地址指向 3011（示例）
-# ROUTER_BACKEND_URL=http://localhost:3011/
-# 如启用中心化 UCAN 登录，需配置 Node 认证服务地址
-# CENTRAL_UCAN_AUTH_BASE_URL=http://127.0.0.1:8100
-# 中心化 UCAN 应用 AppId（在 Node 应用市场发布后获得）
-# CENTRAL_UCAN_APP_ID=<你的应用AppId>
-# 登录路径强制模式：auto（默认）| wallet（仅钱包）| central（仅中心化授权）
-# UCAN_LOGIN_FORCE_MODE=auto
-# 如使用 WebDAV 代理，请设置 WEBDAV_BACKEND_BASE_URL（仅填基础地址，不含路径）
 npm install
 npm run dev
 ```
 
 默认端口：`3020`
 
-## Volcengine 配置
-
-如果需要启用 Volcengine 直连或服务端默认 Key，可在运行环境中配置：
+如需调整构建细节变量，例如 `DISABLE_CHUNK`，请使用：
 
 ```bash
-VOLCENGINE_URL=https://ark.cn-beijing.volces.com
-VOLCENGINE_API_KEY=<your-volcengine-api-key>
+cp .env.build.template .env.build
 ```
 
-说明：
+然后再执行对应构建或打包命令。
 
-- `VOLCENGINE_URL` 可省略，默认会使用内置 Volcengine 基础地址。
-- `VOLCENGINE_API_KEY` 主要用于服务端 `/api/volcengine` 代理链路。
-- 当前代码标准命名已经统一为 `Volcengine / volcengine`，旧的 `BYTEDANCE_*` 不再是当前配置名。
+# 配置模型
 
-## 测试机器启动
+当前仓库把配置分成两类文件：
 
-```bash
-bash scripts/start-all.sh
-```
+- `.env.template` / `.env`
+  - 运行期配置
+  - 服务启动时读取
+  - 修改后通常需要重启服务，前端公开配置还需要刷新页面
+- `.env.build.template` / `.env.build`
+  - 构建期配置
+  - 用于控制构建细节，例如 `DISABLE_CHUNK`
+  - 不再手工配置 `BUILD_MODE` / `BUILD_APP`
+
+更完整的配置说明见：`docs/运行时配置与发包.md`
 
 # 生产部署
 
 ## 部署前准备
 
 1) **统一使用 npm 安装依赖**。
-2) 配置环境变量（`.env`）：
+2) 配置运行期环境变量（`.env`）：
    - `ROUTER_BACKEND_URL`：router 鉴权后端地址  
    - `CENTRAL_UCAN_APP_ID`：中心化 UCAN 应用 AppId（在 Node 应用市场发布后获得）
    - `UCAN_LOGIN_FORCE_MODE`：登录路径强制模式（`auto`/`wallet`/`central`，默认 `auto`）
-   - `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（**不设会导致 build 失败**，不含路径）
+   - `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（按需配置，不含路径）
    - `WEBDAV_BACKEND_PREFIX`：WebDAV 路径前缀（默认 `/dav`，可选修改）
-   - `VOLCENGINE_URL`：Volcengine 基础地址（可选）
-   - `VOLCENGINE_API_KEY`：Volcengine API Key（按需配置）
+   - 以及你实际使用的 provider 配置（如 OpenAI / Gemini / Anthropic / Volcengine 等）
+3) 如需调整构建细节变量，配置 `.env.build`：
+   - `DISABLE_CHUNK`
+   - Tauri 签名相关变量
 
-## 部署步骤（standalone）
+## 推荐发包方式（standalone）
+
+推荐直接使用仓库脚本生成 standalone 部署包：
 
 ```bash
+cp .env.template .env
+cp .env.build.template .env.build
+bash scripts/package.sh standalone
+```
+
+默认会在仓库下的 `output/` 生成产物；如需指定输出目录：
+
+```bash
+bash scripts/package.sh standalone --output-dir ./dist
+```
+
+产物内会包含：
+
+- `server.js`
+- `.env.template`
+- `.env.build.template`
+- `scripts/starter.sh`
+- Next standalone 运行依赖与静态资源
+
+## 直接部署步骤（standalone）
+
+```bash
+cp .env.template .env
 npm install
 npm run build
-nohup npm start > /home/ubuntu/code/chat_UCAN/next-start.log 2>&1 &
+PORT=3020 npm run start
 ```
 
 默认端口：`3020`
+
+更推荐使用打包产物内的启动脚本：
+
+```bash
+bash scripts/starter.sh start
+```
 
 ## 反代配置（如需公网）
 
@@ -115,6 +142,34 @@ curl -s -o /dev/null -w "http=%{http_code} time=%{time_total}\n" http://127.0.0.
 ```bash
 curl -I -k https://<你的域名>/_next/static/chunks/webpack-*.js | sed -n '1,15p'
 ```
+
+# 打包模式
+
+当前 `scripts/package.sh` 支持以下模式：
+
+- `standalone`：Node 服务部署包
+- `export`：静态导出包
+- `app`：桌面端构建产物包
+- `app-release`：桌面端 updater release 产物包
+
+示例：
+
+```bash
+bash scripts/package.sh standalone
+bash scripts/package.sh export v1.2.3
+bash scripts/package.sh app
+bash scripts/package.sh app-release
+```
+
+# MCP
+
+如需启用 MCP：
+
+1. 在 `.env` 中设置 `ENABLE_MCP=1`
+2. 确保运行环境允许启动外部命令
+3. 确保服务进程对 `app/mcp/mcp_config.json` 可读写
+
+更完整的说明见：`docs/MCP启用机制与演进.md`
 
 # 贡献指南
 
