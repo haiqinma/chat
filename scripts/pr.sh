@@ -4,8 +4,12 @@ set -euo pipefail
 # ============ 配置区域（按需修改）============
 
 # 是否在本地 rebase 完成后自动 push 到 origin
-# 可通过环境变量覆盖：AUTO_PUSH=false ./scripts/sync.sh
+# 可通过环境变量覆盖：AUTO_PUSH=false ./scripts/pr.sh
 AUTO_PUSH="${AUTO_PUSH:-true}"
+
+# 是否在同步 upstream 后，使用 force-with-lease 推送到 origin
+# 适用于 fork/main 被当作个人主开发分支使用的场景
+FORCE_WITH_LEASE_PUSH="${FORCE_WITH_LEASE_PUSH:-true}"
 
 # =========================================
 
@@ -138,12 +142,22 @@ info "rebase 完成，本地分支 $CURRENT_BRANCH 已同步到 $UPSTREAM_BRANCH
 if [ "$AUTO_PUSH" = "true" ]; then
   blank
   info "准备将更新推送到 origin/$CURRENT_BRANCH..."
-  git push origin "$CURRENT_BRANCH"
-  info "已推送到 origin/$CURRENT_BRANCH"
+  if [ "$FORCE_WITH_LEASE_PUSH" = "true" ]; then
+    info "检测到 fork 工作流，使用 --force-with-lease 推送以保持 origin/$CURRENT_BRANCH 与 upstream/$CURRENT_BRANCH 线性一致..."
+    git push --force-with-lease origin "$CURRENT_BRANCH"
+    info "已使用 --force-with-lease 推送到 origin/$CURRENT_BRANCH"
+  else
+    git push origin "$CURRENT_BRANCH"
+    info "已推送到 origin/$CURRENT_BRANCH"
+  fi
 else
   blank
   info "未自动推送到 origin。若需要，请手动执行："
-  info "  git push origin $CURRENT_BRANCH"
+  if [ "$FORCE_WITH_LEASE_PUSH" = "true" ]; then
+    info "  git push --force-with-lease origin $CURRENT_BRANCH"
+  else
+    info "  git push origin $CURRENT_BRANCH"
+  fi
 fi
 
 blank
