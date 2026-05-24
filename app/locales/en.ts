@@ -828,6 +828,10 @@ const en: LocaleType = {
     Settings: "Detected settings from url, confirm to apply?",
   },
   SdPanel: {
+    Mode: "Mode",
+    SourceType: "Image Source",
+    UploadImage: "Upload Image",
+    SelectHistory: "Select History Image",
     Provider: "Provider",
     Prompt: "Prompt",
     NegativePrompt: "Negative Prompt",
@@ -859,6 +863,14 @@ const en: LocaleType = {
       Photographic: "photographic",
       PixelArt: "pixel-art",
       TileTexture: "tile-texture",
+    },
+    Modes: {
+      Generation: "Generate",
+      Editing: "Edit",
+    },
+    SourceTypes: {
+      History: "History Images",
+      Upload: "Local Upload",
     },
   },
   Sd: {
@@ -896,6 +908,7 @@ const en: LocaleType = {
       Unauthorized:
         "You do not have access to this image model. Check your login state and group configuration.",
     },
+    SelectImageFirst: "Choose an image to edit first.",
   },
   MyCenter: {
     Title: "person center",

@@ -783,6 +783,10 @@ const da: PartialLocaleType = {
     Settings: "Så ud til, at der var indstillinger i linket. Vil du bruge dem?",
   },
   SdPanel: {
+    Mode: "Tilstand",
+    SourceType: "Billedkilde",
+    UploadImage: "Upload billede",
+    SelectHistory: "Vælg historikbillede",
     Provider: "Udbyder",
     Prompt: "Prompt",
     NegativePrompt: "Negativ prompt",
@@ -814,6 +818,14 @@ const da: PartialLocaleType = {
       Photographic: "fotografisk",
       PixelArt: "pixel-art",
       TileTexture: "tile-texture",
+    },
+    Modes: {
+      Generation: "Generer",
+      Editing: "Rediger",
+    },
+    SourceTypes: {
+      History: "Historikbilleder",
+      Upload: "Lokal upload",
     },
   },
   Sd: {
@@ -850,6 +862,7 @@ const da: PartialLocaleType = {
       Unauthorized:
         "Du har ikke adgang til denne billedmodel. Kontroller loginstatus og gruppekonfiguration.",
     },
+    SelectImageFirst: "Vælg først et billede, der skal redigeres.",
   },
 };
 

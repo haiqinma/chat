@@ -5,7 +5,7 @@ import homeStyles from "@/app/components/home.module.scss";
 import { IconButton } from "@/app/components/button";
 import ReturnIcon from "@/app/icons/return.svg";
 import Locale from "@/app/locales";
-import { Path } from "@/app/constant";
+import { Path, CACHE_URL_PREFIX } from "@/app/constant";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   copyToClipboard,
@@ -293,8 +293,12 @@ export function Sd() {
                                 if (
                                   await showConfirm(Locale.Sd.Danger.Delete)
                                 ) {
-                                  // remove img_data + remove item in list
-                                  removeImage(item.img_data).finally(() => {
+                                  const cleanup =
+                                    typeof item.img_data === "string" &&
+                                    item.img_data.includes(CACHE_URL_PREFIX)
+                                      ? removeImage(item.img_data)
+                                      : Promise.resolve();
+                                  cleanup.finally(() => {
                                     sdStore.draw = sdImages.filter(
                                       (i: any) => i.id !== item.id,
                                     );

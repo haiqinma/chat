@@ -19,11 +19,10 @@ import {
 import { collectModelsWithDefaultModel } from "@/app/utils/model";
 import {
   preProcessImageContent,
-  uploadImage,
   base64Image2Blob,
+  uploadGeneratedImageAndGetStableUrl,
   streamWithThink,
 } from "@/app/utils/chat";
-import { uploadFileToWebDavAndCreateShareLink } from "@/app/utils/cloud/webdav";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
 import { ModelSize, DalleQuality, DalleStyle } from "@/app/typing";
 
@@ -72,7 +71,6 @@ import {
   getTimeoutMSByModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
-import { useSyncStore } from "@/app/store/sync";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -118,29 +116,10 @@ type CachedInvocationToken = {
 };
 let cachedRouterInvocationToken: CachedInvocationToken | null = null;
 
-async function uploadGeneratedImageAndGetStableUrl(b64Json: string) {
-  const imageBlob = base64Image2Blob(b64Json, "image/png");
-
-  try {
-    const syncStore = useSyncStore.getState();
-    const uploaded = await uploadFileToWebDavAndCreateShareLink({
-      store: syncStore,
-      file: imageBlob,
-      fileName: `generated-${Date.now()}.png`,
-      expiresValue: 0,
-      expiresUnit: "day",
-    });
-    if (uploaded.url) {
-      return uploaded.url;
-    }
-  } catch (error) {
-    console.warn(
-      "[OpenAI] upload generated image to WebDAV failed, fallback to local cache",
-      error,
-    );
-  }
-
-  return await uploadImage(imageBlob);
+async function uploadGeneratedImageAndGetStableUrlFromBase64(b64Json: string) {
+  return await uploadGeneratedImageAndGetStableUrl(
+    base64Image2Blob(b64Json, "image/png"),
+  );
 }
 
 const ROUTER_BACKEND_HOST = (() => {
@@ -808,7 +787,7 @@ export class ChatGPTApi implements LLMApi {
       let url = res.data?.at(0)?.url ?? "";
       const b64_json = res.data?.at(0)?.b64_json ?? "";
       if (!url && b64_json) {
-        url = await uploadGeneratedImageAndGetStableUrl(b64_json);
+        url = await uploadGeneratedImageAndGetStableUrlFromBase64(b64_json);
       }
       return [
         {

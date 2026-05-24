@@ -1,6 +1,7 @@
 import { LLMModel, supportsImageGenerationEndpoint } from "@/app/client/api";
 import {
   getImageEndpointSchema,
+  ImageFormMode,
   ImageEndpointType,
   ImageParamSchema,
 } from "./image-endpoint-schemas";
@@ -34,16 +35,28 @@ export function getImageModelByValue(
 }
 
 function buildRuntimeImageModel(model: LLMModel): ImageModelDefinition | null {
+  return buildRuntimeImageModelForMode(model, "generation");
+}
+
+function buildRuntimeImageModelForMode(
+  model: LLMModel,
+  mode: ImageFormMode,
+): ImageModelDefinition | null {
   const tags = model.tags ?? [];
   const endpoints = model.supportedEndpoints ?? [];
   if (!tags.includes("image")) return null;
-  if (!supportsImageGenerationEndpoint(endpoints)) return null;
+  const endpointType: ImageEndpointType =
+    mode === "editing" ? "images-edits" : "images-generation";
+  const isSupported =
+    mode === "editing"
+      ? endpoints.includes("/v1/images/edits")
+      : supportsImageGenerationEndpoint(endpoints);
+  if (!isSupported) return null;
 
   const providerName =
     model.provider?.providerName || model.ownedBy || model.provider?.id || "";
   const providerId =
     model.provider?.id || providerName.trim().toLowerCase() || "router";
-  const endpointType: ImageEndpointType = "images-generation";
 
   return {
     name: model.displayName || model.name,
@@ -56,11 +69,14 @@ function buildRuntimeImageModel(model: LLMModel): ImageModelDefinition | null {
   };
 }
 
-export function resolveImageModels(runtimeModels?: readonly LLMModel[]) {
+export function resolveImageModels(
+  runtimeModels?: readonly LLMModel[],
+  mode: ImageFormMode = "generation",
+) {
   const finalModels = new Map<string, ImageModelDefinition>();
 
   (runtimeModels ?? [])
-    .map((model) => buildRuntimeImageModel(model))
+    .map((model) => buildRuntimeImageModelForMode(model, mode))
     .filter((model): model is ImageModelDefinition => !!model)
     .forEach((model) => {
       finalModels.set(model.value, model);

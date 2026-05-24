@@ -235,6 +235,32 @@ export function removeImage(imageUrl: string) {
   });
 }
 
+export async function uploadGeneratedImageAndGetStableUrl(
+  file: Blob,
+  fileName?: string,
+): Promise<string> {
+  try {
+    const syncStore = useSyncStore.getState();
+    const uploaded = await uploadFileToWebDavAndCreateShareLink({
+      store: syncStore,
+      file,
+      fileName: fileName || `generated-${Date.now()}.png`,
+      expiresValue: 0,
+      expiresUnit: "day",
+    });
+    if (uploaded.url) {
+      return uploaded.url;
+    }
+  } catch (error) {
+    console.warn(
+      "[Upload] upload generated image to WebDAV failed, fallback to local cache",
+      error,
+    );
+  }
+
+  return await uploadImage(file);
+}
+
 export async function uploadAttachmentForChat(
   file: File,
 ): Promise<MultimodalContent> {

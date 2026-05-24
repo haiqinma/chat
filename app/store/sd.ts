@@ -1,9 +1,15 @@
 import { StoreKey, ApiPath, OpenaiPath, ServiceProvider } from "@/app/constant";
 import { createPersistStore } from "@/app/utils/store";
 import { nanoid } from "nanoid";
-import { uploadImage, base64Image2Blob } from "@/app/utils/chat";
+import {
+  uploadGeneratedImageAndGetStableUrl,
+  base64Image2Blob,
+} from "@/app/utils/chat";
 import { getModelParamBasicData } from "@/app/components/sd/sd-panel";
-import { getImageEndpointSchema } from "@/app/components/sd/image-endpoint-schemas";
+import {
+  getImageEndpointSchema,
+  ImageFormMode,
+} from "@/app/components/sd/image-endpoint-schemas";
 import { getDefaultImageModel } from "@/app/components/sd/image-registry";
 import { getHeadersWithRouterUcan } from "@/app/client/platforms/openai";
 import { useAccessStore } from "./access";
@@ -45,6 +51,10 @@ const defaultParams = getModelParamBasicData(defaultModel.params({}), {});
 const DEFAULT_SD_STATE = {
   currentId: 0,
   draw: [],
+  currentMode: "generation" as ImageFormMode,
+  editSourceType: "history" as "history" | "upload",
+  editSourceImage: "",
+  editSourceName: "",
   currentModel: defaultModel,
   currentParams: defaultParams,
 };
@@ -53,6 +63,10 @@ export const useSdStore = createPersistStore<
   {
     currentId: number;
     draw: any[];
+    currentMode: ImageFormMode;
+    editSourceType: "history" | "upload";
+    editSourceImage: string;
+    editSourceName: string;
     currentModel: typeof defaultModel;
     currentParams: any;
   },
@@ -60,6 +74,9 @@ export const useSdStore = createPersistStore<
     getNextId: () => number;
     sendTask: (data: any, okCall?: Function) => void;
     updateDraw: (draw: any) => void;
+    setCurrentMode: (mode: ImageFormMode) => void;
+    setEditSourceType: (type: "history" | "upload") => void;
+    setEditSourceImage: (image: string, name?: string) => void;
     setCurrentModel: (model: any) => void;
     setCurrentParams: (data: any) => void;
   }
@@ -86,28 +103,44 @@ export const useSdStore = createPersistStore<
         this.imageGenerationRequestCall(data);
         okCall?.();
       },
-      imageGenerationRequestCall(data: any) {
+      async imageGenerationRequestCall(data: any) {
         const accessStore = useAccessStore.getState();
         const prefix = (
           accessStore.useCustomConfig
             ? accessStore.openaiUrl || (ApiPath.OpenAI as string)
             : (ApiPath.OpenAI as string)
         ).replace(/\/+$/, "");
-        const schema = getImageEndpointSchema("images-generation");
+        const endpointType = data.endpoint_type || "images-generation";
+        const schema = getImageEndpointSchema(endpointType);
+        const sourceImage = data.source_image
+          ? await fetch(data.source_image).then((res) => res.blob())
+          : undefined;
         const requestBody = schema.buildRequestBody({
           model: data.model,
           params: data.params,
+          sourceImage,
         });
 
-        const path = `${prefix}/${OpenaiPath.ImagePath}`;
+        const endpointPath =
+          endpointType === "images-edits"
+            ? OpenaiPath.ImagePath.replace("generations", "edits")
+            : OpenaiPath.ImagePath;
+        const path = `${prefix}/${endpointPath}`;
         getHeadersWithRouterUcan(path, ServiceProvider.OpenAI)
-          .then((headers) =>
-            fetch(path, {
+          .then((headers) => {
+            const nextHeaders = { ...headers };
+            if (requestBody instanceof FormData) {
+              delete nextHeaders["Content-Type"];
+            }
+            return fetch(path, {
               method: "POST",
-              headers,
-              body: JSON.stringify(requestBody),
-            }),
-          )
+              headers: nextHeaders,
+              body:
+                requestBody instanceof FormData
+                  ? requestBody
+                  : JSON.stringify(requestBody),
+            });
+          })
           .then((response) => response.json())
           .then((resData) => {
             const errorMessage = schema.resolveErrorMessage(resData);
@@ -121,8 +154,8 @@ export const useSdStore = createPersistStore<
               return;
             }
 
-            const imageData = schema.resolveImageData(resData);
-            if (!imageData) {
+            const imageResult = schema.resolveImageResult(resData);
+            if (!imageResult) {
               this.updateDraw({
                 ...data,
                 status: "error",
@@ -132,8 +165,15 @@ export const useSdStore = createPersistStore<
               return;
             }
 
-            uploadImage(base64Image2Blob(imageData, "image/png"))
-              .then((img_data) => {
+            const imagePromise =
+              imageResult.type === "url"
+                ? Promise.resolve(imageResult.value)
+                : uploadGeneratedImageAndGetStableUrl(
+                    base64Image2Blob(imageResult.value, "image/png"),
+                  );
+
+            imagePromise
+              .then((img_data: string) => {
                 this.updateDraw({
                   ...data,
                   status: "success",
@@ -170,6 +210,15 @@ export const useSdStore = createPersistStore<
             return true;
           }
         });
+      },
+      setCurrentMode(mode: ImageFormMode) {
+        set({ currentMode: mode });
+      },
+      setEditSourceType(type: "history" | "upload") {
+        set({ editSourceType: type });
+      },
+      setEditSourceImage(image: string, name?: string) {
+        set({ editSourceImage: image, editSourceName: name || "" });
       },
       setCurrentModel(model: any) {
         set({ currentModel: model });

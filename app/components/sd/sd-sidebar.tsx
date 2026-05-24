@@ -36,6 +36,8 @@ export function SideBar(props: { className?: string }) {
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const navigate = useNavigate();
   const sdStore = useSdStore();
+  const currentMode = sdStore.currentMode;
+  const editSourceImage = sdStore.editSourceImage;
   const currentModel = sdStore.currentModel;
   const params = sdStore.currentParams;
   const setParams = sdStore.setCurrentParams;
@@ -44,6 +46,10 @@ export function SideBar(props: { className?: string }) {
     const columns = getParams?.(currentModel, params);
     if (!currentModel.value || columns.length === 0) {
       showToast(Locale.Sd.EmptyRecord);
+      return;
+    }
+    if (currentMode === "editing" && !editSourceImage) {
+      showToast(Locale.Sd.SelectImageFirst);
       return;
     }
     const reqParams: any = {};
@@ -64,6 +70,7 @@ export function SideBar(props: { className?: string }) {
       model: currentModel.value,
       model_name: currentModel.name,
       status: "wait",
+      source_image: currentMode === "editing" ? editSourceImage : "",
       params: reqParams,
       created_at: new Date().toLocaleString(),
       img_data: "",

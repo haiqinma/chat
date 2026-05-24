@@ -818,6 +818,10 @@ const cn = {
     Time: "时间",
   },
   SdPanel: {
+    Mode: "模式",
+    SourceType: "图片来源",
+    UploadImage: "上传图片",
+    SelectHistory: "选择历史图片",
     Provider: "提供商",
     Prompt: "画面提示",
     NegativePrompt: "否定提示",
@@ -849,6 +853,14 @@ const cn = {
       Photographic: "摄影",
       PixelArt: "像素艺术",
       TileTexture: "贴图",
+    },
+    Modes: {
+      Generation: "生成",
+      Editing: "编辑",
+    },
+    SourceTypes: {
+      History: "历史图片",
+      Upload: "本地上传",
     },
   },
   Sd: {
@@ -884,6 +896,7 @@ const cn = {
       MissingToken: "当前未提供 Router 访问令牌，请先登录后再试。",
       Unauthorized: "当前没有访问该图片模型的权限，请检查登录态和分组配置。",
     },
+    SelectImageFirst: "请先选择一张要编辑的图片。",
   },
   MyCenter: {
     Title: "个人中心",

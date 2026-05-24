@@ -1,6 +1,7 @@
 import Locale from "@/app/locales";
 
-export type ImageEndpointType = "images-generation";
+export type ImageEndpointType = "images-generation" | "images-edits";
+export type ImageFormMode = "generation" | "editing";
 
 export type ImageParamOption = {
   name: string;
@@ -25,8 +26,18 @@ export type ImageEndpointSchema = {
   buildRequestBody: (data: {
     model: string;
     params: Record<string, any>;
-  }) => Record<string, any>;
-  resolveImageData: (response: any) => string | undefined;
+    sourceImage?: Blob;
+  }) => Record<string, any> | FormData;
+  resolveImageResult: (response: any) =>
+    | {
+        type: "b64_json";
+        value: string;
+      }
+    | {
+        type: "url";
+        value: string;
+      }
+    | undefined;
   resolveErrorMessage: (response: any) => string;
 };
 
@@ -92,7 +103,69 @@ export const imageEndpointSchemas: Record<
       quality: params.quality || "standard",
       style: params.style || "vivid",
     }),
-    resolveImageData: (response) => response?.data?.[0]?.b64_json,
+    resolveImageResult: (response) => {
+      const b64Json = response?.data?.[0]?.b64_json;
+      if (typeof b64Json === "string" && b64Json) {
+        return {
+          type: "b64_json",
+          value: b64Json,
+        };
+      }
+
+      const url = response?.data?.[0]?.url;
+      if (typeof url === "string" && url) {
+        return {
+          type: "url",
+          value: url,
+        };
+      }
+
+      return undefined;
+    },
+    resolveErrorMessage: (response) =>
+      response?.error?.message ||
+      response?.message ||
+      (Array.isArray(response?.errors) ? response.errors[0] : "") ||
+      "",
+  },
+  "images-edits": {
+    params: () => [
+      promptParam,
+      imageSizeParam,
+      imageQualityParam,
+      imageStyleParam,
+    ],
+    buildRequestBody: ({ model, params, sourceImage }) => {
+      const body = new FormData();
+      body.append("model", model);
+      body.append("prompt", params.prompt || "");
+      body.append("size", params.size || "1024x1024");
+      body.append("quality", params.quality || "standard");
+      body.append("style", params.style || "vivid");
+      if (sourceImage) {
+        body.append("image", sourceImage, "image.png");
+      }
+      return body;
+    },
+    resolveImageResult: (response) => {
+      const b64Json = response?.data?.[0]?.b64_json;
+      if (typeof b64Json === "string" && b64Json) {
+        return {
+          type: "b64_json",
+          value: b64Json,
+        };
+      }
+
+      const url = response?.data?.[0]?.url;
+      if (typeof url === "string" && url) {
+        return {
+          type: "url",
+          value: url,
+        };
+      }
+
+      return undefined;
+    },
     resolveErrorMessage: (response) =>
       response?.error?.message ||
       response?.message ||

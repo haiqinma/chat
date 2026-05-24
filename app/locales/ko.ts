@@ -804,6 +804,10 @@ const ko: PartialLocaleType = {
     Time: "시간",
   },
   SdPanel: {
+    Mode: "모드",
+    SourceType: "이미지 소스",
+    UploadImage: "이미지 업로드",
+    SelectHistory: "기록 이미지 선택",
     Provider: "제공자",
     Prompt: "프롬프트",
     NegativePrompt: "부정적 프롬프트",
@@ -835,6 +839,14 @@ const ko: PartialLocaleType = {
       Photographic: "photographic",
       PixelArt: "pixel-art",
       TileTexture: "tile-texture",
+    },
+    Modes: {
+      Generation: "생성",
+      Editing: "편집",
+    },
+    SourceTypes: {
+      History: "기록 이미지",
+      Upload: "로컬 업로드",
     },
   },
   Sd: {
@@ -872,6 +884,7 @@ const ko: PartialLocaleType = {
       Unauthorized:
         "이 이미지 모델에 접근할 권한이 없습니다. 로그인 상태와 그룹 설정을 확인하세요.",
     },
+    SelectImageFirst: "먼저 편집할 이미지를 선택하세요.",
   },
 };
 

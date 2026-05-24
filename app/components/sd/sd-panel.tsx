@@ -6,6 +6,7 @@ import { useSdStore } from "@/app/store/sd";
 import clsx from "clsx";
 import { useAllModels } from "@/app/utils/hooks";
 import { resolveImageModels } from "./image-registry";
+import { ImageFormMode } from "./image-endpoint-schemas";
 
 export function ControlParamItem(props: {
   title: string;
@@ -157,13 +158,32 @@ export const getParams = (model: any, params: any) => {
 export function SdPanel() {
   const sdStore = useSdStore();
   const runtimeModels = useAllModels();
+  const currentMode = sdStore.currentMode;
+  const setCurrentMode = sdStore.setCurrentMode;
+  const editSourceType = sdStore.editSourceType;
+  const setEditSourceType = sdStore.setEditSourceType;
+  const editSourceImage = sdStore.editSourceImage;
+  const editSourceName = sdStore.editSourceName;
+  const setEditSourceImage = sdStore.setEditSourceImage;
   const currentModel = sdStore.currentModel;
   const setCurrentModel = sdStore.setCurrentModel;
   const params = sdStore.currentParams;
   const setParams = sdStore.setCurrentParams;
+  const successfulImages = React.useMemo(
+    () =>
+      sdStore.draw
+        .filter((item: any) => item.status === "success" && !!item.img_data)
+        .map((item: any) => ({
+          value: item.id,
+          name: `${item.model_name} · ${item.created_at}`,
+          image: item.img_data,
+        })),
+    [sdStore.draw],
+  );
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const imageModels = React.useMemo(
-    () => resolveImageModels(runtimeModels),
-    [runtimeModels],
+    () => resolveImageModels(runtimeModels, currentMode),
+    [runtimeModels, currentMode],
   );
   const hasImageModels = imageModels.length > 0;
 
@@ -193,9 +213,34 @@ export function SdPanel() {
     setCurrentModel(model);
     setParams(getModelParamBasicData(model.params({}), params));
   };
+  const handleModeChange = (mode: ImageFormMode) => {
+    setCurrentMode(mode);
+  };
+  const handleUploadImage = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setEditSourceImage(reader.result, file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <>
+      <ControlParamItem title={Locale.SdPanel.Mode}>
+        <Select
+          aria-label={Locale.SdPanel.Mode}
+          value={currentMode}
+          onChange={(e) =>
+            handleModeChange(e.currentTarget.value as ImageFormMode)
+          }
+        >
+          <option value="generation">{Locale.SdPanel.Modes.Generation}</option>
+          <option value="editing">{Locale.SdPanel.Modes.Editing}</option>
+        </Select>
+      </ControlParamItem>
       <ControlParamItem title={Locale.SdPanel.AIModel}>
         <Select
           aria-label={Locale.SdPanel.AIModel}
@@ -221,11 +266,82 @@ export function SdPanel() {
           )}
         </Select>
       </ControlParamItem>
+      {currentMode === "editing" && (
+        <ControlParamItem title={Locale.SdPanel.SourceType}>
+          <Select
+            aria-label={Locale.SdPanel.SourceType}
+            value={editSourceType}
+            onChange={(e) =>
+              setEditSourceType(e.currentTarget.value as "history" | "upload")
+            }
+          >
+            <option value="history">
+              {Locale.SdPanel.SourceTypes.History}
+            </option>
+            <option value="upload">{Locale.SdPanel.SourceTypes.Upload}</option>
+          </Select>
+        </ControlParamItem>
+      )}
+      {currentMode === "editing" && editSourceType === "history" && (
+        <ControlParamItem title={Locale.SdPanel.SelectHistory}>
+          <Select
+            aria-label={Locale.SdPanel.SelectHistory}
+            value={
+              successfulImages.find((item) => item.image === editSourceImage)
+                ?.value || ""
+            }
+            onChange={(e) => {
+              const selected = successfulImages.find(
+                (item) => item.value === e.currentTarget.value,
+              );
+              if (selected) {
+                setEditSourceImage(selected.image, selected.name);
+              }
+            }}
+          >
+            <option value="">{Locale.Sd.SelectImageFirst}</option>
+            {successfulImages.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.name}
+              </option>
+            ))}
+          </Select>
+        </ControlParamItem>
+      )}
+      {currentMode === "editing" && editSourceType === "upload" && (
+        <ControlParamItem title={Locale.SdPanel.UploadImage}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleUploadImage(e.target.files?.[0])}
+          />
+        </ControlParamItem>
+      )}
+      {currentMode === "editing" && editSourceImage && (
+        <ControlParamItem title={editSourceName || Locale.SdPanel.UploadImage}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={editSourceImage}
+            alt={editSourceName || "edit-source"}
+            style={{
+              width: "100%",
+              maxHeight: 180,
+              objectFit: "contain",
+              borderRadius: 8,
+              border: "var(--border-in-light)",
+            }}
+          />
+        </ControlParamItem>
+      )}
       {hasImageModels && (
         <ControlParamItem title={Locale.Sd.SourceLabel}>
           <div>{currentModel.providerName || currentModel.provider || "-"}</div>
           <div className={styles["ctrl-param-item-sub-title"]}>
-            {Locale.Sd.EndpointLabel}: /v1/images/generations
+            {Locale.Sd.EndpointLabel}:{" "}
+            {currentMode === "editing"
+              ? "/v1/images/edits"
+              : "/v1/images/generations"}
           </div>
         </ControlParamItem>
       )}
