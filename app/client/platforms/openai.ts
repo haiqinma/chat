@@ -14,8 +14,11 @@ import {
   useAccessStore,
   useAppConfig,
   useChatStore,
-  usePluginStore,
 } from "@/app/store";
+import {
+  getNativeToolBundle,
+  shouldUseNativeMcpTools,
+} from "@/app/store/native-tools";
 import { collectModelsWithDefaultModel } from "@/app/utils/model";
 import {
   preProcessImageContent,
@@ -894,11 +897,15 @@ export class ChatGPTApi implements LLMApi {
       let tools: any[] = [];
       let funcs: Record<string, Function> = {};
       if (shouldStream) {
-        const toolPair = usePluginStore
-          .getState()
-          .getAsTools(
-            useChatStore.getState().currentSession().mask?.plugin || [],
-          ) as [any[], Record<string, Function>];
+        const toolPair = (await getNativeToolBundle(
+          useChatStore.getState().currentSession().mask?.plugin || [],
+          {
+            includeMcp: shouldUseNativeMcpTools({
+              providerName: modelConfig.providerName,
+              endpointPath,
+            }),
+          },
+        )) as [any[], Record<string, Function>];
         tools = toolPair[0] ?? [];
         funcs = toolPair[1] ?? {};
       }

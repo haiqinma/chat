@@ -51,6 +51,7 @@ import { createEmptyMask, Mask } from "./mask";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
 import { isValidUcanAuthorization } from "../plugins/wallet";
+import { shouldUseNativeMcpTools } from "./native-tools";
 
 const localStorage = safeLocalStorage();
 
@@ -798,7 +799,20 @@ export const useChatStore = createPersistStore(
             session.mask.modelConfig.model.startsWith("chatgpt-"));
 
         const mcpEnabled = await isMcpEnabled();
-        const mcpSystemPrompt = mcpEnabled ? await getMcpSystemPrompt() : "";
+        const nativeMcpEnabled = shouldUseNativeMcpTools({
+          providerName: resolveRuntimeModelRouting(
+            modelConfig.model,
+            modelConfig.providerName,
+            { preferResponses: false },
+          ).requestProvider,
+          endpointPath: resolveRuntimeModelRouting(
+            modelConfig.model,
+            modelConfig.providerName,
+            { preferResponses: false },
+          ).endpointPath,
+        });
+        const mcpSystemPrompt =
+          mcpEnabled && !nativeMcpEnabled ? await getMcpSystemPrompt() : "";
 
         var systemPrompts: ChatMessage[] = [];
 
