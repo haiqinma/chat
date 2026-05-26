@@ -60,7 +60,7 @@ const en: LocaleType = {
     },
     Commands: {
       new: "Start a new chat",
-      newm: "Start a new chat with mask",
+      newm: "Start with a skill",
       next: "Next Chat",
       prev: "Previous Chat",
       clear: "Clear Context",
@@ -76,7 +76,7 @@ const en: LocaleType = {
         dark: "Dark Theme",
       },
       Prompt: "Prompts",
-      Masks: "Masks",
+      Masks: "Skills",
       Clear: "Clear Context",
       Settings: "Settings",
       UploadImage: "Upload Images",
@@ -95,7 +95,7 @@ const en: LocaleType = {
     StopSpeak: "Stop Speak",
     Config: {
       Reset: "Reset to Default",
-      SaveAs: "Save as Mask",
+      SaveAs: "Save as Skill",
     },
     IsContext: "Contextual Prompt",
     ShortcutKey: {
@@ -121,7 +121,7 @@ const en: LocaleType = {
     },
     IncludeContext: {
       Title: "Including Context",
-      SubTitle: "Export context prompts in mask or not",
+      SubTitle: "Export skill context prompts or not",
     },
     Steps: {
       Select: "Select",
@@ -267,18 +267,18 @@ const en: LocaleType = {
 
       LocalState: "Local Data",
       Overview: (overview: any) => {
-        return `${overview.chat} chats，${overview.message} messages，${overview.prompt} prompts，${overview.mask} masks`;
+        return `${overview.chat} chats，${overview.message} messages，${overview.prompt} prompts，${overview.mask} skills`;
       },
       ImportFailed: "Failed to import from file",
     },
     Mask: {
       Splash: {
-        Title: "Mask Splash Screen",
-        SubTitle: "Show a mask splash screen before starting new chat",
+        Title: "Skill Picker",
+        SubTitle: "Show the skill picker before starting a new chat",
       },
       Builtin: {
-        Title: "Hide Builtin Masks",
-        SubTitle: "Hide builtin masks in mask list",
+        Title: "Hide Builtin Skills",
+        SubTitle: "Hide builtin skills in the skill list",
       },
     },
     Prompt: {
@@ -675,7 +675,7 @@ const en: LocaleType = {
     Name: "Discovery",
   },
   Mcp: {
-    Name: "MCP",
+    Name: "Tools",
   },
   FineTuned: {
     Sysmessage: "You are an assistant that",
@@ -696,13 +696,13 @@ const en: LocaleType = {
     },
   },
   Plugin: {
-    Name: "Plugin",
+    Name: "API Integration",
     Page: {
-      Title: "Plugins",
-      SubTitle: (count: number) => `${count} plugins`,
-      Search: "Search Plugin",
+      Title: "API Integrations",
+      SubTitle: (count: number) => `${count} API integrations`,
+      Search: "Search API Integration",
       Create: "Create",
-      Find: "You can find awesome plugins on github: ",
+      Find: "You can find API integrations on GitHub: ",
     },
     Item: {
       Info: (count: number) => `${count} method`,
@@ -727,7 +727,7 @@ const en: LocaleType = {
     },
     EditModal: {
       Title: (readonly: boolean) =>
-        `Edit Plugin ${readonly ? "(readonly)" : ""}`,
+        `Edit API Integration ${readonly ? "(readonly)" : ""}`,
       Download: "Download",
       Auth: "Authentication Type",
       Content: "OpenAPI Schema",
@@ -740,11 +740,11 @@ const en: LocaleType = {
     CollectWallet: "collect wallet",
   },
   Mask: {
-    Name: "Mask",
+    Name: "Skills",
     Page: {
-      Title: "Prompt Template",
-      SubTitle: (count: number) => `${count} prompt templates`,
-      Search: "Search Templates",
+      Title: "Skills",
+      SubTitle: (count: number) => `${count} skills`,
+      Search: "Search Skills",
       Create: "Create",
     },
     Item: {
@@ -757,8 +757,8 @@ const en: LocaleType = {
     },
     EditModal: {
       Title: (readonly: boolean) =>
-        `Edit Prompt Template ${readonly ? "(readonly)" : ""}`,
-      Download: "Download",
+        `Edit Skill ${readonly ? "(readonly)" : ""}`,
+      Download: "Download Skill",
       Clone: "Clone",
     },
     Config: {
@@ -783,8 +783,8 @@ const en: LocaleType = {
           "Automatically collapse/expand overly long code blocks when CodeFold is enabled",
       },
       Share: {
-        Title: "Share This Mask",
-        SubTitle: "Generate a link to this mask",
+        Title: "Share This Skill",
+        SubTitle: "Generate a link to this skill",
         Action: "Copy Link",
       },
     },
@@ -792,12 +792,11 @@ const en: LocaleType = {
   NewChat: {
     Return: "Return",
     Skip: "Just Start",
-    Title: "Pick a Mask",
-    SubTitle: "Chat with the Soul behind the Mask",
-    FeaturedTitle: "Recommended Masks",
-    FeaturedSubTitle:
-      "Pick a working mode first, then start from the example prompts for more stable results.",
-    More: "Find More",
+    Title: "Choose a Skill",
+    SubTitle: "Pick a working mode for the current task",
+    FeaturedTitle: "Recommended Skills",
+    FeaturedSubTitle: "Skills apply task-specific prompts and model settings.",
+    More: "Manage Skills",
     NotShow: "Never Show Again",
     ConfirmNoShow: "Confirm to disable？You can enable it in settings later.",
   },

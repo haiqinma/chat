@@ -468,7 +468,7 @@ export const useChatStore = createPersistStore(
 
           if (hasCandidateModelRestriction && sessionModels.length === 0) {
             showToast(
-              "该面具当前没有任何可用模型，请检查 router 分组配置或调整面具候选模型",
+              "该技能当前没有任何可用模型，请检查 router 分组配置或调整技能候选模型",
             );
             return false;
           }
@@ -491,7 +491,7 @@ export const useChatStore = createPersistStore(
           session.topic = mask.name;
 
           if (hasCandidateModelRestriction && !hasCurrentModel) {
-            showToast("面具默认模型当前不可用，请先选择一个可用模型");
+            showToast("技能默认模型当前不可用，请先选择一个可用模型");
           }
         }
 

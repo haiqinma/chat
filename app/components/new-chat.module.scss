@@ -23,37 +23,12 @@
     flex-shrink: 0;
   }
 
-  .mask-cards {
-    display: flex;
-    align-self: center;
-    flex-shrink: 0;
-    margin-top: 24px;
-    margin-bottom: 20px;
-    animation: slide-in ease 0.3s;
-
-    .mask-card {
-      padding: 20px 10px;
-      border: var(--border-in-light);
-      box-shadow: var(--card-shadow);
-      border-radius: 14px;
-      background-color: var(--white);
-      transform: scale(1);
-
-      &:first-child {
-        transform: rotate(-15deg) translateY(5px);
-      }
-
-      &:last-child {
-        transform: rotate(15deg) translateY(5px);
-      }
-    }
-  }
-
   .title {
     flex-shrink: 0;
     text-align: center;
     font-size: 32px;
     font-weight: bolder;
+    margin-top: 32px;
     margin-bottom: 1vh;
     animation: slide-in ease 0.35s;
   }
@@ -97,15 +72,6 @@
     }
   }
 
-  .masks {
-    flex-grow: 0;
-    width: 100%;
-    min-width: 0;
-    overflow: visible;
-    padding: 20px 20px 40px;
-    animation: slide-in ease 0.5s;
-  }
-
   .featured-masks {
     width: min(1100px, calc(100% - 40px));
     min-width: 0;
@@ -115,29 +81,8 @@
     margin-top: 18px;
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 40px;
     flex-shrink: 0;
-  }
-
-  .mask-group {
-    width: min(1100px, 100%);
-    min-width: 0;
-    margin: 0 auto 20px;
-  }
-
-  .mask-group-title {
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 10px;
-    opacity: 0.8;
-  }
-
-  .mask-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
-    align-items: stretch;
-    min-width: 0;
   }
 
   .mask {
@@ -196,13 +141,9 @@
   }
 
   @media screen and (max-width: 600px) {
-    .mask-cards {
-      margin-top: 16px;
-      margin-bottom: 16px;
-    }
-
     .title {
       font-size: 26px;
+      margin-top: 20px;
       padding: 0 12px;
     }
 
@@ -220,12 +161,5 @@
       grid-template-columns: 1fr;
     }
 
-    .masks {
-      padding: 16px 12px 28px;
-    }
-
-    .mask-group {
-      width: 100%;
-    }
   }
 }

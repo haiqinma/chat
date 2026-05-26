@@ -1,6 +1,5 @@
 import { Path } from "../constant";
 import { IconButton } from "./button";
-import { EmojiAvatar } from "./emoji";
 import styles from "./new-chat.module.scss";
 
 import LeftIcon from "../icons/left.svg";
@@ -62,16 +61,6 @@ export function NewChat() {
   const maskStore = useMaskStore();
 
   const masks = maskStore.getAll();
-  const featuredMasks = masks.slice(0, 6);
-  const groupedMasks = masks.reduce(
-    (groups, mask) => {
-      const category = mask.category || "Other";
-      groups[category] ??= [];
-      groups[category].push(mask);
-      return groups;
-    },
-    {} as Record<string, Mask[]>,
-  );
 
   const navigate = useNavigate();
   const config = useAppConfig();
@@ -119,18 +108,6 @@ export function NewChat() {
           ></IconButton>
         )}
       </div>
-      <div className={styles["mask-cards"]}>
-        <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f606" size={24} />
-        </div>
-        <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f916" size={24} />
-        </div>
-        <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f479" size={24} />
-        </div>
-      </div>
-
       <div className={styles["title"]}>{Locale.NewChat.Title}</div>
       <div className={styles["sub-title"]}>{Locale.NewChat.SubTitle}</div>
 
@@ -161,30 +138,13 @@ export function NewChat() {
       </div>
 
       <div className={styles["featured-masks"]}>
-        {featuredMasks.map((mask) => (
+        {masks.map((mask) => (
           <MaskItem
             key={mask.id}
             mask={mask}
             detailed
             onClick={() => startChat(mask)}
           />
-        ))}
-      </div>
-
-      <div className={styles["masks"]}>
-        {Object.entries(groupedMasks).map(([category, categoryMasks]) => (
-          <div key={category} className={styles["mask-group"]}>
-            <div className={styles["mask-group-title"]}>{category}</div>
-            <div className={styles["mask-row"]}>
-              {categoryMasks.map((mask) => (
-                <MaskItem
-                  key={mask.id}
-                  mask={mask}
-                  onClick={() => startChat(mask)}
-                />
-              ))}
-            </div>
-          </div>
         ))}
       </div>
     </div>

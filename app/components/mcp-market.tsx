@@ -659,7 +659,7 @@ export function McpMarketPage() {
         <div className="window-header">
           <div className="window-header-title">
             <div className="window-header-main-title">
-              MCP Market
+              工具连接器
               {loadingStates["all"] && (
                 <span className={styles["loading-indicator"]}>
                   {loadingStates["all"]}
@@ -697,7 +697,7 @@ export function McpMarketPage() {
             <input
               type="text"
               className={styles["search-bar"]}
-              placeholder={"Search MCP Server"}
+              placeholder={"搜索工具连接器"}
               autoFocus
               onInput={(e) => setSearchText(e.currentTarget.value)}
             />
