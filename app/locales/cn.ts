@@ -737,6 +737,8 @@ const cn = {
       SubTitle: (count: number) => `${count} 个技能`,
       Search: "搜索技能",
       Create: "新建",
+      AllCategories: "全部",
+      Empty: "没有找到匹配的技能",
     },
     Item: {
       Info: (count: number) => `包含 ${count} 条预设对话`,

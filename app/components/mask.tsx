@@ -38,7 +38,7 @@ import Locale, { AllLangs, ALL_LANG_OPTIONS, Lang } from "../locales";
 import { useNavigate } from "react-router-dom";
 
 import chatStyle from "./chat.module.scss";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   copyToClipboard,
   downloadAs,
@@ -591,22 +591,37 @@ export function MaskPage() {
     .getAll()
     .filter((m) => !filterLang || m.lang === filterLang);
 
-  const [searchMasks, setSearchMasks] = useState<Mask[]>([]);
   const [searchText, setSearchText] = useState("");
-  const masks = searchText.length > 0 ? searchMasks : allMasks;
-
-  // refactored already, now it accurate
-  const onSearch = (text: string) => {
-    setSearchText(text);
-    if (text.length > 0) {
-      const result = allMasks.filter((m) =>
-        m.name.toLowerCase().includes(text.toLowerCase()),
-      );
-      setSearchMasks(result);
-    } else {
-      setSearchMasks(allMasks);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(allMasks.map((m) => m.category).filter(Boolean) as string[]),
+      ),
+    [allMasks],
+  );
+  useEffect(() => {
+    if (selectedCategory && !categories.includes(selectedCategory)) {
+      setSelectedCategory("");
     }
-  };
+  }, [categories, selectedCategory]);
+  const masks = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return allMasks.filter((m) => {
+      const matchCategory =
+        !selectedCategory || m.category === selectedCategory;
+      const haystack = [
+        m.name,
+        m.category,
+        m.description,
+        ...(m.starters ?? []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return matchCategory && (!keyword || haystack.includes(keyword));
+    });
+  }, [allMasks, searchText, selectedCategory]);
 
   const [editingMaskId, setEditingMaskId] = useState<string | undefined>();
   const editingMask =
@@ -684,7 +699,7 @@ export function MaskPage() {
               className={styles["search-bar"]}
               placeholder={Locale.Mask.Page.Search}
               autoFocus
-              onInput={(e) => onSearch(e.currentTarget.value)}
+              onInput={(e) => setSearchText(e.currentTarget.value)}
             />
             <Select
               className={styles["mask-filter-lang"]}
@@ -720,7 +735,34 @@ export function MaskPage() {
             />
           </div>
 
-          <div>
+          {categories.length > 0 && (
+            <div className={styles["mask-categories"]}>
+              <button
+                className={clsx(
+                  styles["mask-category-filter"],
+                  !selectedCategory && styles["mask-category-filter-active"],
+                )}
+                onClick={() => setSelectedCategory("")}
+              >
+                {Locale.Mask.Page.AllCategories}
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  className={clsx(
+                    styles["mask-category-filter"],
+                    selectedCategory === category &&
+                      styles["mask-category-filter-active"],
+                  )}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={styles["mask-grid"]}>
             {masks.map((m) => (
               <div className={styles["mask-item"]} key={m.id}>
                 <div className={styles["mask-header"]}>
@@ -792,6 +834,11 @@ export function MaskPage() {
                 </div>
               </div>
             ))}
+            {masks.length === 0 && (
+              <div className={styles["mask-empty"]}>
+                {Locale.Mask.Page.Empty}
+              </div>
+            )}
           </div>
         </div>
       </div>

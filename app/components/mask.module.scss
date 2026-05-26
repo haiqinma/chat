@@ -44,27 +44,69 @@
       }
     }
 
+    .mask-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      animation: slide-in ease 0.3s;
+    }
+
+    .mask-category-filter {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: var(--border-in-light);
+      background: var(--white);
+      color: var(--black);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all ease 0.2s;
+
+      &:hover {
+        border-color: var(--primary);
+      }
+    }
+
+    .mask-category-filter-active {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--hover-color);
+      font-weight: 600;
+    }
+
+    .mask-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mask-empty {
+      padding: 36px 20px;
+      border: var(--border-in-light);
+      border-radius: 10px;
+      color: var(--black);
+      opacity: 0.65;
+      text-align: center;
+      background: var(--white);
+    }
+
     .mask-item {
       display: flex;
+      flex-direction: column;
       justify-content: space-between;
       gap: 16px;
       min-width: 0;
+      min-height: 240px;
       padding: 20px;
       border: var(--border-in-light);
+      border-radius: 10px;
+      background: var(--white);
       animation: slide-in ease 0.3s;
 
-      &:not(:last-child) {
-        border-bottom: 0;
-      }
-
-      &:first-child {
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
-      }
-
-      &:last-child {
-        border-bottom-left-radius: 10px;
-        border-bottom-right-radius: 10px;
+      &:hover {
+        border-color: var(--primary);
       }
 
       .mask-header {
@@ -133,7 +175,9 @@
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
+        justify-content: flex-end;
         flex-shrink: 0;
+        gap: 6px;
         transition: all ease 0.3s;
       }
 
@@ -145,15 +189,28 @@
         margin-bottom: 20px;
         box-shadow: var(--card-shadow);
 
-        &:not(:last-child) {
-          border-bottom: var(--border-in-light);
-        }
-
         .mask-actions {
           width: 100%;
           justify-content: space-between;
           padding-top: 10px;
         }
+      }
+    }
+
+    @media screen and (max-width: 600px) {
+      .mask-filter {
+        height: auto;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .mask-filter-lang,
+        .mask-create {
+          margin-left: 0;
+        }
+      }
+
+      .mask-grid {
+        grid-template-columns: 1fr;
       }
     }
   }

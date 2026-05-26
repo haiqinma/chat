@@ -746,6 +746,8 @@ const en: LocaleType = {
       SubTitle: (count: number) => `${count} skills`,
       Search: "Search Skills",
       Create: "Create",
+      AllCategories: "All",
+      Empty: "No matching skills",
     },
     Item: {
       Info: (count: number) => `${count} prompts`,
