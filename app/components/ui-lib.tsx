@@ -10,7 +10,6 @@ import CancelIcon from "../icons/cancel.svg";
 import MaxIcon from "../icons/max.svg";
 import MinIcon from "../icons/min.svg";
 import DownloadIcon from "../icons/download.svg";
-import AddIcon from "../icons/add.svg";
 import ZoomIcon from "../icons/zoom.svg";
 
 import Locale from "../locales";
@@ -29,6 +28,32 @@ import React, {
 import { IconButton } from "./button";
 import { Avatar } from "./emoji";
 import clsx from "clsx";
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M8 3.333v9.334M3.333 8h9.334"
+        stroke="currentColor"
+        strokeWidth="1.333"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MinusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M3.333 8h9.334"
+        stroke="currentColor"
+        strokeWidth="1.333"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function getImageFileExtension(blob: Blob, src: string) {
   const mimeExtension = blob.type.split("/")[1]?.split("+")[0];
@@ -559,9 +584,36 @@ function ImagePreview(props: {
 }) {
   const [zoom, setZoom] = useState(1);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const hasManualZoomRef = useRef(false);
   const updateZoom = useCallback((nextZoom: number) => {
     setZoom(Math.min(5, Math.max(0.25, Number(nextZoom.toFixed(2)))));
   }, []);
+
+  const fitToViewport = useCallback(() => {
+    const box = boxRef.current;
+    if (!box || naturalSize.width <= 0 || naturalSize.height <= 0) return;
+    const nextZoom = Math.min(
+      box.clientWidth / naturalSize.width,
+      box.clientHeight / naturalSize.height,
+      1,
+    );
+    setZoom(Math.min(5, Math.max(0.25, Number(nextZoom.toFixed(2)))));
+  }, [naturalSize.height, naturalSize.width]);
+
+  useEffect(() => {
+    if (naturalSize.width <= 0 || naturalSize.height <= 0) return;
+    fitToViewport();
+  }, [fitToViewport, naturalSize.height, naturalSize.width]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (hasManualZoomRef.current) return;
+      fitToViewport();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [fitToViewport]);
 
   const imageWidth =
     naturalSize.width > 0 ? naturalSize.width * zoom : undefined;
@@ -594,30 +646,40 @@ function ImagePreview(props: {
             onClick={() => void downloadImage(props.img)}
           />
           <IconButton
-            icon={<AddIcon />}
+            icon={<PlusIcon />}
             bordered
             title="Zoom in"
             aria="Zoom in"
-            onClick={() => updateZoom(zoom + 0.25)}
+            onClick={() => {
+              hasManualZoomRef.current = true;
+              updateZoom(zoom + 0.25);
+            }}
           />
           <IconButton
-            icon={<MinIcon />}
+            icon={<MinusIcon />}
             bordered
             title="Zoom out"
             aria="Zoom out"
-            onClick={() => updateZoom(zoom - 0.25)}
+            onClick={() => {
+              hasManualZoomRef.current = true;
+              updateZoom(zoom - 0.25);
+            }}
           />
           <IconButton
             icon={<ZoomIcon />}
             text={`${Math.round(zoom * 100)}%`}
             bordered
-            title="Reset zoom"
-            onClick={() => updateZoom(1)}
+            title="Actual size"
+            onClick={() => {
+              hasManualZoomRef.current = true;
+              updateZoom(1);
+            }}
           />
         </div>
       </div>
 
       <div
+        ref={boxRef}
         style={{
           display: "flex",
           justifyContent: "center",
@@ -630,6 +692,7 @@ function ImagePreview(props: {
         onWheel={(e) => {
           if (!e.ctrlKey && !e.metaKey) return;
           e.preventDefault();
+          hasManualZoomRef.current = true;
           updateZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
         }}
       >
@@ -647,8 +710,8 @@ function ImagePreview(props: {
             ...props.style,
             width: imageWidth,
             height: imageHeight,
-            maxWidth: zoom === 1 ? props.style?.maxWidth : "none",
-            maxHeight: zoom === 1 ? props.style?.maxHeight : "none",
+            maxWidth: "none",
+            maxHeight: "none",
             objectFit: "contain",
             transition: "width 0.12s ease, height 0.12s ease",
           }}
