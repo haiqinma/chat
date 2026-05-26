@@ -1,4 +1,4 @@
-import { Mask } from "../store/mask";
+import { Skill } from "../store/skill";
 
 import { type BuiltinSkill } from "./typing";
 export { type BuiltinSkill, type BuiltinMask } from "./typing";
@@ -10,7 +10,7 @@ export const BUILTIN_SKILL_STORE = {
   skills: {} as Record<string, BuiltinSkill>,
   get(id?: string) {
     if (!id) return undefined;
-    return this.skills[id] as Mask | undefined;
+    return this.skills[id] as Skill | undefined;
   },
   add(skill: BuiltinSkill) {
     const savedSkill = { ...skill, id: this.buildinId++, builtin: true };

@@ -46,7 +46,7 @@ type MessageLike = {
   audio_url?: string;
 };
 
-type MaskLike = {
+type SkillLike = {
   context?: MessageLike[];
 };
 
@@ -178,12 +178,17 @@ function collectCacheMediaUrls(appState: AppState) {
     );
   }
 
-  const masks = (appState[StoreKey.Mask]?.masks ?? {}) as Record<
+  const skillState = appState[StoreKey.Skill] as
+    | ((typeof appState)[typeof StoreKey.Skill] & {
+        masks?: Record<string, SkillLike>;
+      })
+    | undefined;
+  const skills = (skillState?.skills ?? skillState?.masks ?? {}) as Record<
     string,
-    MaskLike
+    SkillLike
   >;
-  for (const mask of Object.values(masks)) {
-    collectMessageMediaUrls(mask.context, mediaUrls);
+  for (const skill of Object.values(skills)) {
+    collectMessageMediaUrls(skill.context, mediaUrls);
   }
 
   return Array.from(mediaUrls);

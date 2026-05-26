@@ -1,7 +1,7 @@
 import { ModelConfig } from "../store";
-import { type Mask } from "../store/mask";
+import { type Skill } from "../store/skill";
 
-export type BuiltinSkill = Omit<Mask, "id" | "modelConfig"> & {
+export type BuiltinSkill = Omit<Skill, "id" | "modelConfig"> & {
   builtin: Boolean;
   modelConfig: Partial<ModelConfig>;
 };

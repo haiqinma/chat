@@ -7,7 +7,7 @@ import LightningIcon from "../icons/lightning.svg";
 import EyeIcon from "../icons/eye.svg";
 
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mask, useMaskStore } from "../store/mask";
+import { Skill, useSkillStore } from "../store/skill";
 import Locale from "../locales";
 import { useAppConfig, useChatStore } from "../store";
 import { MaskAvatar } from "./mask";
@@ -16,8 +16,8 @@ import { showConfirm } from "./ui-lib";
 import { BUILTIN_SKILL_STORE } from "../skills";
 import clsx from "clsx";
 
-function MaskItem(props: {
-  mask: Mask;
+function SkillItem(props: {
+  skill: Skill;
   onClick?: () => void;
   detailed?: boolean;
 }) {
@@ -30,21 +30,21 @@ function MaskItem(props: {
       onClick={props.onClick}
     >
       <MaskAvatar
-        avatar={props.mask.avatar}
-        model={props.mask.modelConfig.model}
+        avatar={props.skill.avatar}
+        model={props.skill.modelConfig.model}
       />
       <div className={styles["mask-texts"]}>
         <div className={clsx(styles["mask-name"], "one-line")}>
-          {props.mask.name}
+          {props.skill.name}
         </div>
-        {props.detailed && props.mask.description && (
-          <div className={styles["mask-desc"]}>{props.mask.description}</div>
+        {props.detailed && props.skill.description && (
+          <div className={styles["mask-desc"]}>{props.skill.description}</div>
         )}
         {props.detailed &&
-          props.mask.starters &&
-          props.mask.starters.length > 0 && (
+          props.skill.starters &&
+          props.skill.starters.length > 0 && (
             <div className={styles["mask-starters"]}>
-              {props.mask.starters.slice(0, 2).map((starter) => (
+              {props.skill.starters.slice(0, 2).map((starter) => (
                 <div key={starter} className={styles["mask-starter"]}>
                   {starter}
                 </div>
@@ -58,18 +58,18 @@ function MaskItem(props: {
 
 export function NewChat() {
   const chatStore = useChatStore();
-  const maskStore = useMaskStore();
+  const skillStore = useSkillStore();
 
-  const masks = maskStore.getAll();
+  const skills = skillStore.getAll();
 
   const navigate = useNavigate();
   const config = useAppConfig();
 
   const { state } = useLocation();
 
-  const startChat = (mask?: Mask) => {
+  const startChat = (skill?: Skill) => {
     setTimeout(() => {
-      if (chatStore.newSession(mask) !== false) {
+      if (chatStore.newSession(skill) !== false) {
         navigate(Path.Chat);
       }
     }, 10);
@@ -78,10 +78,10 @@ export function NewChat() {
   useCommand({
     mask: (id) => {
       try {
-        const mask = maskStore.get(id) ?? BUILTIN_SKILL_STORE.get(id);
-        startChat(mask ?? undefined);
+        const skill = skillStore.get(id) ?? BUILTIN_SKILL_STORE.get(id);
+        startChat(skill ?? undefined);
       } catch {
-        console.error("[New Chat] failed to create chat from mask id=", id);
+        console.error("[New Chat] failed to create chat from skill id=", id);
       }
     },
   });
@@ -138,12 +138,12 @@ export function NewChat() {
       </div>
 
       <div className={styles["featured-masks"]}>
-        {masks.map((mask) => (
-          <MaskItem
-            key={mask.id}
-            mask={mask}
+        {skills.map((skill) => (
+          <SkillItem
+            key={skill.id}
+            skill={skill}
             detailed
-            onClick={() => startChat(mask)}
+            onClick={() => startChat(skill)}
           />
         ))}
       </div>

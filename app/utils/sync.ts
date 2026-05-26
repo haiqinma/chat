@@ -4,7 +4,7 @@ import {
   useAppConfig,
   useChatStore,
 } from "../store";
-import { useMaskStore } from "../store/mask";
+import { useSkillStore } from "../store/skill";
 import { usePromptStore } from "../store/prompt";
 import { StoreKey } from "../constant";
 import { merge } from "./merge";
@@ -118,7 +118,7 @@ const LocalStateGetters = {
   [StoreKey.Chat]: () => getNonFunctionFileds(useChatStore.getState()),
   [StoreKey.Access]: () => getNonFunctionFileds(useAccessStore.getState()),
   [StoreKey.Config]: () => getNonFunctionFileds(useAppConfig.getState()),
-  [StoreKey.Mask]: () => getNonFunctionFileds(useMaskStore.getState()),
+  [StoreKey.Skill]: () => getNonFunctionFileds(useSkillStore.getState()),
   [StoreKey.Prompt]: () => getNonFunctionFileds(usePromptStore.getState()),
 } as const;
 
@@ -248,10 +248,16 @@ const MergeStates: StateMerger = {
     };
     return localState;
   },
-  [StoreKey.Mask]: (localState, remoteState) => {
-    localState.masks = {
-      ...remoteState.masks,
-      ...localState.masks,
+  [StoreKey.Skill]: (localState, remoteState) => {
+    const localSkillState = localState as typeof localState & {
+      masks?: typeof localState.skills;
+    };
+    const remoteSkillState = remoteState as typeof remoteState & {
+      masks?: typeof remoteState.skills;
+    };
+    localState.skills = {
+      ...(remoteSkillState.skills ?? remoteSkillState.masks ?? {}),
+      ...(localSkillState.skills ?? localSkillState.masks ?? {}),
     };
     return localState;
   },
@@ -319,7 +325,7 @@ export function setLocalAppState(appState: AppState) {
   useChatStore.setState(appState[StoreKey.Chat]);
   useAccessStore.setState(appState[StoreKey.Access]);
   useAppConfig.setState(appState[StoreKey.Config]);
-  useMaskStore.setState(appState[StoreKey.Mask]);
+  useSkillStore.setState(appState[StoreKey.Skill]);
   usePromptStore.setState(appState[StoreKey.Prompt]);
 }
 

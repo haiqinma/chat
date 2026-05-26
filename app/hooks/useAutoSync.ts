@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccessStore, useAppConfig, useChatStore } from "../store";
-import { useMaskStore } from "../store/mask";
+import { useSkillStore } from "../store/skill";
 import { usePromptStore } from "../store/prompt";
 import { useSyncStore } from "../store/sync";
 import { UCAN_AUTH_EVENT } from "../plugins/wallet";
@@ -24,7 +24,7 @@ export function useAutoSync() {
   const chatUpdate = useChatStore((state) => state.lastUpdateTime);
   const configUpdate = useAppConfig((state) => state.lastUpdateTime);
   const accessUpdate = useAccessStore((state) => state.lastUpdateTime);
-  const maskUpdate = useMaskStore((state) => state.lastUpdateTime);
+  const skillUpdate = useSkillStore((state) => state.lastUpdateTime);
   const promptUpdate = usePromptStore((state) => state.lastUpdateTime);
 
   const enabled = autoSyncEnabled && hasHydrated && canSync;
@@ -93,7 +93,7 @@ export function useAutoSync() {
     accessUpdate,
     chatUpdate,
     configUpdate,
-    maskUpdate,
+    skillUpdate,
     promptUpdate,
     enabled,
     scheduleSync,
