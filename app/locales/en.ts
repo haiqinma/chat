@@ -681,7 +681,7 @@ const en: LocaleType = {
       all: "All",
       skill: "Skills",
       tool: "Tools",
-      model: "Models",
+      provider: "Providers",
     },
     Status: {
       Enabled: "Enabled",
@@ -711,13 +711,18 @@ const en: LocaleType = {
     Enable: "Enable",
     MyCapabilities: "My Capabilities",
     BackToMarket: "Back to Market",
-    SearchMarket: "Search skills, tools, and models",
+    SearchMarket: "Search skills, tools, and providers",
     SearchMine: "Search my capabilities",
     Empty: "No matching capabilities",
     DefaultSkillDesc:
       "A task-oriented workflow that can bind models, prompts, and tools.",
-    DefaultModelDesc:
-      "A model available for chat, tool calling, or multimodal tasks.",
+    RouterProviderTitle: "Community Router",
+    RouterProviderDesc:
+      "Default model provider for accessing community-available models.",
+    ProviderDesc: (available: number, total: number, tags: string[]) =>
+      tags.length > 0
+        ? `${available}/${total} models available · ${tags.join(" / ")}`
+        : `${available}/${total} models available`,
     ToolMcpTitle: "Tool Connectors",
     ToolMcpDesc:
       "Connect MCP tools such as search, fetch, filesystem, git, and time.",

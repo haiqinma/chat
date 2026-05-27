@@ -17,7 +17,7 @@ import CloseIcon from "../icons/close.svg";
 import EyeIcon from "../icons/eye.svg";
 import styles from "./discovery.module.scss";
 
-type CapabilityType = "all" | "skill" | "tool" | "model";
+type CapabilityType = "all" | "skill" | "tool" | "provider";
 type PricingType = "free" | "subscription" | "usage";
 type RuntimeType = "cloud" | "local" | "both";
 type DiscoveryView = "market" | "mine";
@@ -35,11 +35,12 @@ type Capability = {
   installed: boolean;
 };
 
-const typeOrder: CapabilityType[] = ["all", "skill", "tool", "model"];
+const typeOrder: CapabilityType[] = ["all", "skill", "tool", "provider"];
 
 function getInitialType(search: string): CapabilityType {
   const type = new URLSearchParams(search).get("type");
-  if (type === "skill" || type === "tool" || type === "model") return type;
+  if (type === "model") return "provider";
+  if (type === "skill" || type === "tool" || type === "provider") return type;
   return "all";
 }
 
@@ -200,25 +201,75 @@ export function DiscoveryPage() {
       ...pluginToolItems,
     ];
 
-    const modelItems = models.slice(0, 60).map((model) => ({
-      id: `model:${model.provider?.providerName || "model"}:${model.name}`,
-      type: "model" as const,
-      title: model.displayName || model.name,
-      description:
-        model.description ||
-        model.tags?.slice(0, 4).join(" / ") ||
-        Locale.Discovery.DefaultModelDesc,
-      status: model.available
-        ? Locale.Discovery.Status.Enabled
-        : Locale.Discovery.Status.Unavailable,
-      pricing: "usage" as const,
-      runtime: "cloud" as const,
-      source: model.provider?.providerName || Locale.Discovery.Source.Provider,
-      path: Path.Settings,
-      installed: model.available,
-    }));
+    const providerMap = new Map<
+      string,
+      {
+        title: string;
+        total: number;
+        available: number;
+        tags: Set<string>;
+      }
+    >();
+    providerMap.set("router", {
+      title: Locale.Discovery.RouterProviderTitle,
+      total: 0,
+      available: 0,
+      tags: new Set(["router"]),
+    });
 
-    return [...skillItems, ...toolItems, ...modelItems];
+    models.forEach((model) => {
+      const providerName =
+        model.provider?.providerName?.trim() ||
+        model.ownedBy?.trim() ||
+        Locale.Discovery.Source.Provider;
+      const key = providerName.toLowerCase();
+      const provider = providerMap.get(key) ?? {
+        title: providerName,
+        total: 0,
+        available: 0,
+        tags: new Set<string>(),
+      };
+      provider.total += 1;
+      if (model.available) provider.available += 1;
+      model.tags?.forEach((tag) => provider.tags.add(tag));
+      providerMap.set(key, provider);
+    });
+
+    const providerItems: Capability[] = Array.from(providerMap.entries()).map(
+      ([key, provider]) => ({
+        id: `provider:${key}`,
+        type: "provider",
+        title: provider.title,
+        description:
+          provider.total > 0
+            ? Locale.Discovery.ProviderDesc(
+                provider.available,
+                provider.total,
+                Array.from(provider.tags).slice(0, 4),
+              )
+            : Locale.Discovery.RouterProviderDesc,
+        status:
+          provider.available > 0 || key === "router"
+            ? Locale.Discovery.Status.Enabled
+            : Locale.Discovery.Status.Unavailable,
+        pricing: "usage",
+        runtime: "cloud",
+        source:
+          key === "router"
+            ? Locale.Discovery.Source.Official
+            : Locale.Discovery.Source.Provider,
+        path: Path.Settings,
+        installed: provider.available > 0 || key === "router",
+      }),
+    );
+
+    const sortedProviderItems = providerItems.sort((a, b) => {
+      if (a.id === "provider:router") return -1;
+      if (b.id === "provider:router") return 1;
+      return a.title.localeCompare(b.title);
+    });
+
+    return [...skillItems, ...toolItems, ...sortedProviderItems];
   }, [mcpConfig?.mcpServers, mcpStatuses, models, plugins, skills]);
 
   const visibleCapabilities = capabilities.filter((item) => {

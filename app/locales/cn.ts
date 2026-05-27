@@ -672,7 +672,7 @@ const cn = {
       all: "全部",
       skill: "技能",
       tool: "工具",
-      model: "模型",
+      provider: "供应商",
     },
     Status: {
       Enabled: "已启用",
@@ -702,11 +702,16 @@ const cn = {
     Enable: "启用",
     MyCapabilities: "我的能力",
     BackToMarket: "返回市场",
-    SearchMarket: "搜索技能、工具、模型",
+    SearchMarket: "搜索技能、工具、供应商",
     SearchMine: "搜索我的能力",
     Empty: "没有找到匹配的能力",
     DefaultSkillDesc: "面向任务的工作方式，可绑定模型、提示词和工具。",
-    DefaultModelDesc: "可用于聊天、工具调用或多模态任务的模型。",
+    RouterProviderTitle: "社区 Router",
+    RouterProviderDesc: "默认模型供应商，统一接入社区可用模型。",
+    ProviderDesc: (available: number, total: number, tags: string[]) =>
+      tags.length > 0
+        ? `${available}/${total} 个模型可用 · ${tags.join(" / ")}`
+        : `${available}/${total} 个模型可用`,
     ToolMcpTitle: "工具连接器",
     ToolMcpDesc: "连接搜索、抓取、文件、Git、时间等 MCP 工具。",
     ToolApiTitle: "API 工具",
