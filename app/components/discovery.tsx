@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 import { Path } from "../constant";
-import Locale from "../locales";
+import Locale, { getLang } from "../locales";
+import { BUILTIN_SKILLS } from "../skills";
 import { useAppConfig } from "../store";
 import { useSkillStore } from "../store/skill";
 import { usePluginStore } from "../store/plugin";
@@ -34,13 +35,42 @@ const typeOrder: CapabilityType[] = ["skill", "tool", "model"];
 export function DiscoveryPage() {
   const navigate = useNavigate();
   const [activeType, setActiveType] = useState<CapabilityType>("skill");
-  const skills = useSkillStore((state) => state.getAll());
-  const plugins = usePluginStore((state) => state.getAll());
+  const skillRecords = useSkillStore((state) => state.skills);
+  const pluginRecords = usePluginStore((state) => state.plugins);
   const models = useAppConfig((state) => state.models);
+  const hideBuiltinSkills = useAppConfig((state) => state.hideBuiltinSkills);
+  const modelConfig = useAppConfig((state) => state.modelConfig);
+
+  const skills = useMemo(() => {
+    const userSkills = Object.values(skillRecords).sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+    if (hideBuiltinSkills) return userSkills;
+
+    const seen = new Set<string>();
+    const builtinSkills = BUILTIN_SKILLS.filter((skill) => {
+      if (skill.lang !== getLang() || seen.has(skill.name)) return false;
+      seen.add(skill.name);
+      return true;
+    }).map((skill) => ({
+      ...skill,
+      modelConfig: {
+        ...modelConfig,
+        ...skill.modelConfig,
+      },
+    }));
+
+    return [...userSkills, ...builtinSkills];
+  }, [hideBuiltinSkills, modelConfig, skillRecords]);
+  const plugins = useMemo(
+    () =>
+      Object.values(pluginRecords).sort((a, b) => b.createdAt - a.createdAt),
+    [pluginRecords],
+  );
 
   const capabilities = useMemo<Capability[]>(() => {
     const skillItems = skills.map((skill) => ({
-      id: `skill:${skill.id}`,
+      id: `skill:${"id" in skill ? skill.id : skill.name}`,
       type: "skill" as const,
       title: skill.name,
       description: skill.description || Locale.Discovery.DefaultSkillDesc,
