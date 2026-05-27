@@ -673,6 +673,46 @@ const en: LocaleType = {
   },
   Discovery: {
     Name: "Discovery",
+    Page: {
+      Title: "Discovery",
+      SubTitle: "Browse and manage skills, tools, and model capabilities",
+    },
+    Types: {
+      skill: "Skills",
+      tool: "Tools",
+      model: "Models",
+    },
+    Status: {
+      Enabled: "Enabled",
+      Installed: "Installed",
+      Configurable: "Configurable",
+      Unavailable: "Unavailable",
+    },
+    Pricing: {
+      free: "Free",
+      subscription: "Subscription",
+      usage: "Usage-based",
+    },
+    Runtime: {
+      cloud: "Cloud",
+      local: "Local",
+      both: "Cloud / Local",
+    },
+    Source: {
+      Official: "Official",
+      Custom: "Custom",
+      Provider: "Model Provider",
+    },
+    SourceLabel: "Source",
+    Manage: "Manage",
+    DefaultSkillDesc:
+      "A task-oriented workflow that can bind models, prompts, and tools.",
+    DefaultModelDesc:
+      "A model available for chat, tool calling, or multimodal tasks.",
+    ToolMcpTitle: "Tool Connectors",
+    ToolMcpDesc:
+      "Connect MCP tools such as search, fetch, filesystem, git, and time.",
+    ToolApiDesc: "Expose external actions to models through API integrations.",
   },
   Mcp: {
     Name: "Tools",

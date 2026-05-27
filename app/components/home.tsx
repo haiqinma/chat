@@ -134,6 +134,13 @@ const McpMarketPage = dynamic(
   },
 );
 
+const DiscoveryPage = dynamic(
+  async () => (await import("./discovery")).DiscoveryPage,
+  {
+    loading: () => <Loading noLogo />,
+  },
+);
+
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -314,6 +321,7 @@ function Screen() {
               <Route path={Path.Chat} element={<Chat />} />
               <Route path={Path.Settings} element={<Settings />} />
               <Route path={Path.Centers} element={<Centers />} />
+              <Route path={Path.Discovery} element={<DiscoveryPage />} />
               <Route path={Path.McpMarket} element={<McpMarketPage />} />
             </Routes>
           </div>

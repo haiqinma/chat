@@ -664,6 +664,43 @@ const cn = {
   },
   Discovery: {
     Name: "发现",
+    Page: {
+      Title: "发现",
+      SubTitle: "浏览和管理技能、工具与模型能力",
+    },
+    Types: {
+      skill: "技能",
+      tool: "工具",
+      model: "模型",
+    },
+    Status: {
+      Enabled: "已启用",
+      Installed: "已安装",
+      Configurable: "可配置",
+      Unavailable: "不可用",
+    },
+    Pricing: {
+      free: "免费",
+      subscription: "订阅",
+      usage: "按量",
+    },
+    Runtime: {
+      cloud: "云端",
+      local: "本地",
+      both: "云端 / 本地",
+    },
+    Source: {
+      Official: "官方",
+      Custom: "自定义",
+      Provider: "模型服务",
+    },
+    SourceLabel: "来源",
+    Manage: "管理",
+    DefaultSkillDesc: "面向任务的工作方式，可绑定模型、提示词和工具。",
+    DefaultModelDesc: "可用于聊天、工具调用或多模态任务的模型。",
+    ToolMcpTitle: "工具连接器",
+    ToolMcpDesc: "连接搜索、抓取、文件、Git、时间等 MCP 工具。",
+    ToolApiDesc: "通过 API 集成为模型提供外部操作能力。",
   },
   Mcp: {
     Name: "工具",

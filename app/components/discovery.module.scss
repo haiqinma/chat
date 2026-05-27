@@ -1,0 +1,131 @@
+@use "../styles/animation.scss";
+
+.discovery-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.discovery-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px;
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  animation: slide-in ease 0.3s;
+}
+
+.tab {
+  height: 34px;
+  padding: 0 14px;
+  border: var(--border-in-light);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tab-active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--hover-color);
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  animation: slide-in ease 0.35s;
+}
+
+.card {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: var(--border-in-light);
+  border-radius: 10px;
+  background: var(--white);
+  box-sizing: border-box;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.card-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: 0.76;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--hover-color);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.badge-paid {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.meta {
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+@media screen and (max-width: 600px) {
+  .discovery-body {
+    padding: 14px 12px 24px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
