@@ -410,7 +410,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
             </select>
           </ListItem>
 
-          <ListItem title="Auto Sync">
+          <ListItem title={Locale.Settings.Sync.Config.AutoSync.Title}>
             <input
               type="checkbox"
               checked={syncStore.autoSync}
@@ -423,7 +423,9 @@ function SyncConfigModal(props: { onClose?: () => void }) {
           </ListItem>
 
           {syncStore.autoSync ? (
-            <ListItem title="Auto Sync Interval (min)">
+            <ListItem
+              title={Locale.Settings.Sync.Config.AutoSyncInterval.Title}
+            >
               <input
                 type="number"
                 min={1}
@@ -478,7 +480,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
         </List>
 
         <List>
-          <ListItem title="WebDAV Auth">
+          <ListItem title={Locale.Settings.Sync.Config.WebDav.AuthType}>
             <select
               value={syncStore.webdav.authType}
               onChange={(e) => {
@@ -501,7 +503,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
               <ListItem
                 title={
                   syncStore.webdav.authType === "ucan"
-                    ? "WEBDAV_BACKEND_BASE_URL"
+                    ? Locale.Settings.Sync.Config.WebDav.UcanBaseUrl
                     : Locale.Settings.Sync.Config.WebDav.BaseUrl
                 }
                 subTitle={Locale.Settings.Sync.Config.WebDav.BaseUrlSubTitle}
@@ -520,7 +522,7 @@ function SyncConfigModal(props: { onClose?: () => void }) {
               <ListItem
                 title={
                   syncStore.webdav.authType === "ucan"
-                    ? "WEBDAV_BACKEND_PREFIX"
+                    ? Locale.Settings.Sync.Config.WebDav.UcanPrefix
                     : Locale.Settings.Sync.Config.WebDav.Prefix
                 }
                 subTitle={Locale.Settings.Sync.Config.WebDav.PrefixSubTitle}
@@ -926,10 +928,7 @@ export function Settings() {
               </Popover>
             </ListItem>
             {walletAddress && (
-              <ListItem
-                title={Locale.Settings.Account.Address.Title}
-                subTitle={walletAddress}
-              >
+              <ListItem title={Locale.Settings.Account.Address.Title}>
                 <WalletAccount address={walletAddress} title={walletAddress} />
               </ListItem>
             )}

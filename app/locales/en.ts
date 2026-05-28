@@ -249,6 +249,12 @@ const en: LocaleType = {
           Title: "Sync Type",
           SubTitle: "Choose your favorite sync service",
         },
+        AutoSync: {
+          Title: "Auto Sync",
+        },
+        AutoSyncInterval: {
+          Title: "Auto Sync Interval (min)",
+        },
         Proxy: {
           Title: "Enable CORS Proxy",
           SubTitle: "Enable a proxy to avoid cross-origin restrictions",
@@ -265,12 +271,15 @@ const en: LocaleType = {
           BaseUrlSubTitle: "No path included, e.g. https://webdav.example.com",
           Prefix: "WebDAV Prefix",
           PrefixSubTitle: "Default /dav, optional to change",
+          UcanBaseUrl: "WebDAV Backend Base URL",
+          UcanPrefix: "WebDAV Backend Prefix",
+          AuthType: "WebDAV Auth",
           UserName: "User Name",
           Password: "Password",
         },
 
         UpStash: {
-          Endpoint: "UpStash Redis REST Url",
+          Endpoint: "UpStash Redis REST URL",
           UserName: "Backup Name",
           Password: "UpStash Redis REST Token",
         },

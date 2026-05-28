@@ -293,6 +293,24 @@ export function SideBar(props: { className?: string }) {
           ) : undefined
         }
         subTitle={show ? "" : undefined}
+        extra={
+          <>
+            <Link to={Path.Settings}>
+              <IconButton
+                aria={Locale.Settings.Title}
+                icon={<SettingsIcon />}
+                shadow
+              />
+            </Link>
+            <Link to={Path.Centers}>
+              <IconButton
+                aria={Locale.Export.MessageFromChatGPT}
+                icon={<CenterIcon />}
+                shadow
+              />
+            </Link>
+          </>
+        }
       >
         {!show && (
           <div className={styles["sidebar-header-bar"]}>
@@ -355,24 +373,6 @@ export function SideBar(props: { className?: string }) {
                   }
                 }}
               />
-            </div>
-            <div className={styles["sidebar-action"]}>
-              <Link to={Path.Settings}>
-                <IconButton
-                  aria={Locale.Settings.Title}
-                  icon={<SettingsIcon />}
-                  shadow
-                />
-              </Link>
-            </div>
-            <div className={styles["sidebar-action"]}>
-              <Link to={Path.Centers}>
-                <IconButton
-                  aria={Locale.Export.MessageFromChatGPT}
-                  icon={<CenterIcon />}
-                  shadow
-                />
-              </Link>
             </div>
           </>
         }

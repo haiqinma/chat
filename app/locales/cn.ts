@@ -246,6 +246,12 @@ const cn = {
           Title: "同步类型",
           SubTitle: "选择喜爱的同步服务器",
         },
+        AutoSync: {
+          Title: "自动同步",
+        },
+        AutoSyncInterval: {
+          Title: "自动同步间隔（分钟）",
+        },
         Proxy: {
           Title: "启用代理",
           SubTitle: "在浏览器中同步时，必须启用代理以避免跨域限制",
@@ -261,14 +267,17 @@ const cn = {
           BaseUrlSubTitle: "不含路径，例如 https://webdav.example.com",
           Prefix: "WebDAV 前缀",
           PrefixSubTitle: "默认 /dav，可修改",
+          UcanBaseUrl: "WebDAV 后端基础地址",
+          UcanPrefix: "WebDAV 后端前缀",
+          AuthType: "WebDAV 授权方式",
           UserName: "用户名",
           Password: "密码",
         },
 
         UpStash: {
-          Endpoint: "UpStash Redis REST Url",
+          Endpoint: "UpStash Redis REST 地址",
           UserName: "备份名称",
-          Password: "UpStash Redis REST Token",
+          Password: "UpStash Redis REST 令牌",
         },
       },
 
