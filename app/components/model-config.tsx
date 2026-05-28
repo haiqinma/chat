@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { ServiceProvider } from "@/app/constant";
-import { LLMModel } from "../client/api";
+import {
+  LLMModel,
+  supportsImageEditEndpoint,
+  supportsImageGenerationEndpoint,
+  supportsTextEndpoint,
+} from "../client/api";
 import { ModalConfigValidator, ModelConfig } from "../store";
 
 import Locale from "../locales";
@@ -55,6 +60,26 @@ export function ModelConfigList(props: {
             : ""
       : "";
   const compressModelValue = `${props.modelConfig.compressModel}@${props.modelConfig?.compressProviderName}`;
+  const textModelOptions = useMemo(
+    () =>
+      allModels.filter((model) => {
+        if (!model.available) return false;
+        const runtimeModel = model as LLMModel;
+        const endpoints = runtimeModel.supportedEndpoints ?? [];
+        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
+        const tags = runtimeModel.tags ?? [];
+        const imageOnly =
+          tags.includes("image") ||
+          runtimeModel.modelType === "image" ||
+          supportsImageGenerationEndpoint(endpoints) ||
+          supportsImageEditEndpoint(endpoints);
+        return !imageOnly;
+      }),
+    [allModels],
+  );
+  const selectedCompressModelValue = props.modelConfig.compressModel
+    ? compressModelValue
+    : "";
 
   return (
     <>
@@ -300,8 +325,15 @@ export function ModelConfigList(props: {
         <Select
           className={styles["select-compress-model"]}
           aria-label={Locale.Settings.CompressModel.Title}
-          value={compressModelValue}
+          value={selectedCompressModelValue}
           onChange={(e) => {
+            if (!e.currentTarget.value) {
+              props.updateConfig((config) => {
+                config.compressModel = "";
+                config.compressProviderName = "";
+              });
+              return;
+            }
             const [model, providerName] = getModelProvider(
               e.currentTarget.value,
             );
@@ -311,16 +343,15 @@ export function ModelConfigList(props: {
             });
           }}
         >
-          {allModels
-            .filter((v: { available: any }) => v.available)
-            .map((v: any, i: number) => (
-              <option
-                value={`${v.name}@${v.provider?.providerName ?? ServiceProvider.OpenAI}`}
-                key={i}
-              >
-                {v.displayName}({v.provider?.providerName})
-              </option>
-            ))}
+          <option value="">{Locale.Settings.CompressModel.Auto}</option>
+          {textModelOptions.map((v: LLMModel, i: number) => (
+            <option
+              value={`${v.name}@${v.provider?.providerName ?? ServiceProvider.OpenAI}`}
+              key={i}
+            >
+              {v.displayName}({v.provider?.providerName})
+            </option>
+          ))}
         </Select>
       </ListItem>
     </>

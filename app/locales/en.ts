@@ -585,6 +585,7 @@ const en: LocaleType = {
     CompressModel: {
       Title: "Summary Model",
       SubTitle: "Model used to compress history and generate title",
+      Auto: "Auto",
     },
     Temperature: {
       Title: "Temperature",
