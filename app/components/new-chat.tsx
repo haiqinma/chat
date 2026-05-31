@@ -117,6 +117,14 @@ export function NewChat() {
         console.error("[New Chat] failed to create chat from skill id=", id);
       }
     },
+    skill: (id) => {
+      try {
+        const skill = skillStore.get(id) ?? BUILTIN_SKILL_STORE.get(id);
+        startChat(skill ?? undefined);
+      } catch {
+        console.error("[New Chat] failed to create chat from skill id=", id);
+      }
+    },
   });
 
   return (

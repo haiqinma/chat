@@ -47,7 +47,7 @@ import {
   normalizeModelCandidates,
   normalizeProviderName,
 } from "../utils/model";
-import { createEmptyMask, Mask } from "./mask";
+import { createEmptySkill, Skill } from "./skill";
 import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
 import { extractMcpJson, isMcpJson } from "../mcp/utils";
 import { isValidUcanAuthorization } from "../plugins/wallet";
@@ -111,7 +111,7 @@ export interface ChatSession {
   lastSummarizeIndex: number;
   clearContextIndex?: number;
 
-  mask: Mask;
+  mask: Skill;
 }
 
 export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
@@ -135,7 +135,7 @@ function createEmptySession(): ChatSession {
     lastUpdate: Date.now(),
     lastSummarizeIndex: 0,
 
-    mask: createEmptyMask(),
+    mask: createEmptySkill(),
   };
 }
 
@@ -436,22 +436,22 @@ export const useChatStore = createPersistStore(
         });
       },
 
-      newSession(mask?: Mask) {
+      newSession(skill?: Skill) {
         const session = createEmptySession();
 
-        if (mask) {
+        if (skill) {
           const config = useAppConfig.getState();
           const accessStore = useAccessStore.getState();
           const globalModelConfig = config.modelConfig;
-          const shouldSyncFromGlobal = mask.syncGlobalConfig !== false;
+          const shouldSyncFromGlobal = skill.syncGlobalConfig !== false;
           const candidateModels = normalizeModelCandidates(
-            mask.candidateModels,
+            skill.candidateModels,
           );
           const nextModelConfig = shouldSyncFromGlobal
             ? { ...globalModelConfig }
             : {
                 ...globalModelConfig,
-                ...mask.modelConfig,
+                ...skill.modelConfig,
               };
           const runtimeModels = collectModelsWithDefaultModel(
             config.models,
@@ -483,12 +483,12 @@ export const useChatStore = createPersistStore(
             );
 
           session.mask = {
-            ...mask,
+            ...skill,
             candidateModels,
             syncGlobalConfig: shouldSyncFromGlobal,
             modelConfig: nextModelConfig,
           };
-          session.topic = mask.name;
+          session.topic = skill.name;
 
           if (hasCandidateModelRestriction && !hasCurrentModel) {
             showToast("技能默认模型当前不可用，请先选择一个可用模型");

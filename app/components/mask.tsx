@@ -590,7 +590,7 @@ export function ContextPrompts(props: {
   );
 }
 
-export function MaskPage() {
+export function SkillPage() {
   const navigate = useNavigate();
 
   const skillStore = useSkillStore();
@@ -658,7 +658,7 @@ export function MaskPage() {
           }
           return;
         }
-        //if the content is a single mask.
+        // If the file contains a single skill, import it directly.
         if (importMasks.name) {
           skillStore.create(importMasks);
         }
@@ -904,3 +904,5 @@ export function MaskPage() {
     </ErrorBoundary>
   );
 }
+
+export const MaskPage = SkillPage;
