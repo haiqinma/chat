@@ -938,9 +938,6 @@ const en: LocaleType = {
     ResetZoom: "Reset Zoom",
     MaskBrushMode: "Brush Mode",
     MaskBrushSize: "Brush Size",
-    MaskToolbarPaint: "Brush",
-    MaskToolbarView: "View",
-    MaskToolbarActions: "Actions",
     MaskSaved: "Saved",
     MaskUnsaved: "Unsaved",
     MaskShortcutHint:

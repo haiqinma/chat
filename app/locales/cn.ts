@@ -922,9 +922,6 @@ const cn = {
     ResetZoom: "重置缩放",
     MaskBrushMode: "画笔模式",
     MaskBrushSize: "画笔大小",
-    MaskToolbarPaint: "画笔",
-    MaskToolbarView: "视图",
-    MaskToolbarActions: "操作",
     MaskSaved: "已保存",
     MaskUnsaved: "未保存",
     MaskShortcutHint:
