@@ -1,0 +1,616 @@
+{
+  "cn": [
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.cn.1700000001001",
+      "version": "1.0.0",
+      "name": {
+        "cn": "直接对话"
+      },
+      "description": {
+        "cn": "没有固定套路，适合日常问答、临时想法和快速处理。"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "26a1"
+      },
+      "category": "基础",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你是一个面向结果的通用 AI。先理解用户目标，再给出清晰、可执行的回答。信息不足时，只追问最关键的问题；如果可以基于合理假设继续，就先说明假设并推进。避免空话和重复，优先输出结论、步骤、风险和下一步。"
+      },
+      "starters": [
+        "帮我把这个问题想清楚，先给结论。",
+        "把下面内容整理成清晰的要点。",
+        "按当前信息先推进，缺少关键信息再问我。"
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.4,
+          "max_tokens": 4000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 12,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.cn.1700000001002",
+      "version": "1.0.0",
+      "name": {
+        "cn": "网页研究"
+      },
+      "description": {
+        "cn": "搜索网页、抓取来源、对比总结，适合需要最新资料的问题。"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f50d"
+      },
+      "category": "研究",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你正在执行网页研究任务。需要最新信息、公开网页资料、技术调研或产品对比时，优先使用网页搜索工具找来源，再用网页抓取工具读取原文。不要把搜索结果页当作正文来源。回答时先给结论，再列关键证据、差异、不确定点和来源链接。工具不可用、来源不足或抓取失败时，要直接说明，不要捏造来源。"
+      },
+      "starters": [
+        "请先搜索这个主题，再抓取最相关的两个来源并对比总结。",
+        "围绕这个问题做多来源调研，输出结论、证据和不确定点。",
+        "帮我查找最新资料，并附上来源链接。"
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.25,
+          "max_tokens": 6000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 10,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.cn.1700000001003",
+      "version": "1.0.0",
+      "name": {
+        "cn": "阅读总结"
+      },
+      "description": {
+        "cn": "读取网页、文档或长文本，提炼摘要、结构和行动项。"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f4c4"
+      },
+      "category": "阅读",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你正在执行阅读总结任务。优先保留原文事实、结构和关键结论，区分原文观点与自己的分析。默认输出：一句话摘要、关键要点、重要细节、可执行事项、仍需确认的问题。不要擅自补充原文没有的信息；如果材料来自网页，尽量附来源链接。"
+      },
+      "starters": [
+        "抓取这个网页并用中文总结重点。",
+        "阅读下面这段长文，提炼摘要、关键结论和待办事项。",
+        "把这份材料整理成适合汇报的结构。"
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.3,
+          "max_tokens": 5000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 8,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.cn.1700000001004",
+      "version": "1.0.0",
+      "name": {
+        "cn": "方案对比"
+      },
+      "description": {
+        "cn": "把多个产品、技术或决策选项放在同一标准下比较。"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "2696-fe0f"
+      },
+      "category": "分析",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你正在执行方案对比任务。先明确用户目标和评价维度，再比较各选项的能力、成本、限制、风险和适用场景。默认输出：结论、对比表、关键取舍、推荐方案、下一步验证。事实不足时明确标注假设；涉及最新信息时优先使用搜索和抓取工具核实。"
+      },
+      "starters": [
+        "对比这几个方案，给出评价维度、优缺点和推荐结论。",
+        "帮我把这两个产品按价格、能力、限制和适用场景做表格对比。",
+        "先定义判断标准，再分析哪个方案更适合我。"
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.3,
+          "max_tokens": 5000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 10,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.cn.1700000001005",
+      "version": "1.0.0",
+      "name": {
+        "cn": "图片创作"
+      },
+      "description": {
+        "cn": "围绕画面创意、提示词和生成参数来组织一次图片创作会话。"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f5bc-fe0f"
+      },
+      "category": "创作",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "workspace",
+        "target": "sd"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你正在执行图片创作任务。先理解用户要的主体、风格、构图、光线、材质、文字元素和用途，再输出适合图片生成模型的结果。默认优先给出：精炼提示词、可选风格方向、负面约束、尺寸与质量建议；如果当前模型支持图片生成，就直接按用户要求生成。如果当前模型不支持图片生成，就明确说明，并先帮助用户把提示词整理好。"
+      },
+      "starters": [
+        "给我生成一张海报风格的封面，先补全高质量提示词。",
+        "把这个产品想法转成适合图片模型的生成提示词。",
+        "先给我 3 个不同画风方向，再按我选的方向继续生成。"
+      ],
+      "model": {
+        "syncGlobalConfig": false,
+        "default": {
+          "provider": "OpenAI",
+          "model": "gpt-image-1"
+        },
+        "params": {
+          "temperature": 0.7,
+          "max_tokens": 4000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 6,
+          "compressMessageLengthThreshold": 2000,
+          "model": "gpt-image-1",
+          "providerName": "OpenAI",
+          "size": "1024x1024",
+          "quality": "auto",
+          "style": "vivid"
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    }
+  ],
+  "en": [
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.en.1700000002001",
+      "version": "1.0.0",
+      "name": {
+        "en": "Direct Chat"
+      },
+      "description": {
+        "en": "No fixed workflow. Best for everyday questions, rough ideas, and quick work."
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "26a1"
+      },
+      "category": "Basic",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are a results-oriented general AI. Understand the user's goal first, then provide a clear and actionable answer. If information is missing, ask only the most important question; if reasonable assumptions are enough to proceed, state them and continue. Avoid filler and repetition. Prefer conclusions, steps, risks, and next actions."
+      },
+      "starters": [
+        "Help me think through this and start with the conclusion.",
+        "Turn the following content into clear bullet points.",
+        "Use the current information first, and ask only if something critical is missing."
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.4,
+          "max_tokens": 4000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 12,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.en.1700000002002",
+      "version": "1.0.0",
+      "name": {
+        "en": "Web Research"
+      },
+      "description": {
+        "en": "Search the web, fetch source pages, compare findings, and cite links."
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f50d"
+      },
+      "category": "Research",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are doing a web research task. For current information, public web materials, technical research, or product comparisons, prefer a web search tool to discover sources, then a fetch tool to read source pages. Do not treat search result pages as source documents. Start with the conclusion, then list key evidence, differences, uncertainty, and source links. If tools are unavailable, sources are insufficient, or fetching fails, say so directly and do not invent sources."
+      },
+      "starters": [
+        "Search this topic first, fetch the two most relevant sources, and compare them.",
+        "Research this question across multiple sources and separate conclusions from evidence.",
+        "Find current information and include source links."
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.25,
+          "max_tokens": 6000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 10,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.en.1700000002003",
+      "version": "1.0.0",
+      "name": {
+        "en": "Read and Summarize"
+      },
+      "description": {
+        "en": "Read webpages, documents, or long text and extract summaries, structure, and actions."
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f4c4"
+      },
+      "category": "Reading",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are doing a reading and summarization task. Preserve the source facts, structure, and key conclusions. Separate the source's claims from your own analysis. Default output: one-sentence summary, key points, important details, action items, and open questions. Do not add unsupported information. If the material is from the web, include source links when available."
+      },
+      "starters": [
+        "Fetch this webpage and summarize it in Chinese.",
+        "Read this long text and extract the summary, key conclusions, and action items.",
+        "Turn this material into a structure suitable for a briefing."
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.3,
+          "max_tokens": 5000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 8,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.en.1700000002004",
+      "version": "1.0.0",
+      "name": {
+        "en": "Compare Options"
+      },
+      "description": {
+        "en": "Compare products, technical choices, or decisions using shared criteria."
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "2696-fe0f"
+      },
+      "category": "Analysis",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are doing an option comparison task. First clarify the user's goal and evaluation criteria, then compare capabilities, cost, limits, risks, and fit. Default output: conclusion, comparison table, key tradeoffs, recommendation, and next validation steps. Label assumptions when facts are incomplete. For current information, prefer search and fetch tools to verify details."
+      },
+      "starters": [
+        "Compare these options with evaluation criteria, pros and cons, and a recommendation.",
+        "Put these two products in a table by price, capabilities, limits, and fit.",
+        "Define the decision criteria first, then tell me which option fits best."
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "params": {
+          "temperature": 0.3,
+          "max_tokens": 5000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 10,
+          "compressMessageLengthThreshold": 2000
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "builtin.en.1700000002005",
+      "version": "1.0.0",
+      "name": {
+        "en": "Image Creation"
+      },
+      "description": {
+        "en": "Use a session tuned for visual ideas, prompting, and image-generation output."
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f5bc-fe0f"
+      },
+      "category": "Creative",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "workspace",
+        "target": "sd"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are doing an image creation task. First understand the subject, style, composition, lighting, materials, text elements, and intended use, then produce output that works well for image-generation models. By default, provide a refined prompt, style directions, negative constraints, and size or quality suggestions. If the current model supports image generation, generate the image directly. If it does not, say so clearly and help the user refine the prompt first."
+      },
+      "starters": [
+        "Create a poster-style cover image and refine the prompt first.",
+        "Turn this product idea into a strong prompt for an image model.",
+        "Give me three visual directions first, then continue with the one I choose."
+      ],
+      "model": {
+        "syncGlobalConfig": false,
+        "default": {
+          "provider": "OpenAI",
+          "model": "gpt-image-1"
+        },
+        "params": {
+          "temperature": 0.7,
+          "max_tokens": 4000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 6,
+          "compressMessageLengthThreshold": 2000,
+          "model": "gpt-image-1",
+          "providerName": "OpenAI",
+          "size": "1024x1024",
+          "quality": "auto",
+          "style": "vivid"
+        }
+      },
+      "mcp": {
+        "servers": []
+      },
+      "permissions": {
+        "network": false,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": []
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    }
+  ]
+}

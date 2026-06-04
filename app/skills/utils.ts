@@ -12,6 +12,8 @@ type BuiltinSkillInput = {
   lang: Lang;
   createdAt: number;
   context: ChatMessage[];
+  syncGlobalConfig?: boolean;
+  launch?: BuiltinSkill["launch"];
   modelConfig?: Partial<ModelConfig>;
 };
 
@@ -30,7 +32,7 @@ export function createBuiltinSkill(input: BuiltinSkillInput): BuiltinSkill {
     ...input,
     builtin: true,
     hideContext: true,
-    syncGlobalConfig: true,
+    syncGlobalConfig: input.syncGlobalConfig ?? true,
     modelConfig: {
       ...DEFAULT_MODEL_CONFIG,
       ...input.modelConfig,

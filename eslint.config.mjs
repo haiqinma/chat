@@ -6,6 +6,7 @@ const config = [
     ignores: [
       ".next/**",
       "out/**",
+      "output/**",
       "src-tauri/target/**",
       "src-tauri/gen/schemas/**",
       "public/serviceWorker.js",

@@ -251,6 +251,33 @@
   border-color: var(--primary);
 }
 
+.chat-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chat-item-main > .chat-item-avatar {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+
+.chat-item-main > .chat-item-avatar svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chat-item-content {
+  min-width: 0;
+  flex: 1;
+}
+
 .chat-item-title {
   font-size: 14px;
   font-weight: bolder;

@@ -41,10 +41,6 @@ export function SideBar(props: { className?: string }) {
   const currentModel = sdStore.currentModel;
   const params = sdStore.currentParams;
   const setParams = sdStore.setCurrentParams;
-  const currentModeLabel =
-    currentMode === "editing"
-      ? Locale.SdPanel.Modes.Editing
-      : Locale.SdPanel.Modes.Generation;
   const paramColumns = getParams?.(currentModel, params) || [];
   const hasModelSelection = !!currentModel.value && paramColumns.length > 0;
   const canSubmit =
@@ -133,7 +129,6 @@ export function SideBar(props: { className?: string }) {
       ) : (
         <SideBarHeader
           title={Locale.Sd.Title}
-          subTitle={currentModeLabel}
           logo={<SDIcon width={38} height={"100%"} />}
           extra={
             <IconButton
@@ -153,9 +148,6 @@ export function SideBar(props: { className?: string }) {
           <div className={styles["submit-card-header"]}>
             <div className={styles["submit-card-title"]}>
               {Locale.SdPanel.Submit}
-            </div>
-            <div className={styles["submit-card-badge"]}>
-              {currentModeLabel}
             </div>
           </div>
           <div className={styles["submit-card-summary"]}>{footerSummary}</div>

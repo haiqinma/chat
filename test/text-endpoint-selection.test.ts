@@ -3,25 +3,31 @@ import {
   selectPreferredTextEndpoint,
   SupportedEndpoint,
   SupportedTextEndpoint,
-} from "../app/client/api";
+} from "../app/client/endpoints";
 
 describe("selectPreferredTextEndpoint", () => {
-  test("prefers chat completions by default when both endpoints are supported", () => {
+  test("prefers responses by default when both endpoints are supported", () => {
     const endpoint = selectPreferredTextEndpoint([
       SupportedTextEndpoint.Responses,
       SupportedTextEndpoint.ChatCompletions,
     ]);
 
+    expect(endpoint).toBe(SupportedTextEndpoint.Responses);
+  });
+
+  test("prefers chat completions when explicitly requested", () => {
+    const endpoint = selectPreferredTextEndpoint(
+      [SupportedTextEndpoint.ChatCompletions, SupportedTextEndpoint.Responses],
+      { preferResponses: false },
+    );
+
     expect(endpoint).toBe(SupportedTextEndpoint.ChatCompletions);
   });
 
-  test("prefers responses when explicitly requested", () => {
+  test("prefers responses for gpt series even when chat completions is requested", () => {
     const endpoint = selectPreferredTextEndpoint(
-      [
-        SupportedTextEndpoint.ChatCompletions,
-        SupportedTextEndpoint.Responses,
-      ],
-      { preferResponses: true },
+      [SupportedTextEndpoint.ChatCompletions, SupportedTextEndpoint.Responses],
+      { preferResponses: false, modelName: "gpt-5.4" },
     );
 
     expect(endpoint).toBe(SupportedTextEndpoint.Responses);

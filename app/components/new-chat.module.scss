@@ -88,6 +88,39 @@
     animation: slide-in ease 0.45s;
   }
 
+  .model-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: var(--border-in-light);
+    background: var(--hover-color);
+    color: var(--black);
+    box-sizing: border-box;
+  }
+
+  .model-selector {
+    flex-shrink: 0;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    select {
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      max-width: 220px;
+    }
+  }
+
   .launch-input {
     width: 100%;
     min-height: 96px;
@@ -111,7 +144,6 @@
     margin-top: 8px;
   }
 
-  .quick-action,
   .send-action {
     display: inline-flex;
     align-items: center;
@@ -132,17 +164,11 @@
     }
   }
 
-  .quick-action {
-    background: var(--hover-color);
-    color: var(--black);
-  }
-
   .send-action {
     background: var(--primary);
     color: white;
   }
 
-  .quick-action:hover,
   .send-action:hover {
     transform: translateY(-1px);
   }
@@ -233,8 +259,13 @@
       flex-direction: column;
     }
 
-    .quick-action,
+    .model-selector,
     .send-action {
+      width: 100%;
+    }
+
+    .model-selector select {
+      max-width: none;
       width: 100%;
     }
 

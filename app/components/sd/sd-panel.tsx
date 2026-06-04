@@ -273,18 +273,32 @@ function MaskPainter(props: {
     setIsDirty(false);
     props.onDone?.();
   }, [props]);
+  const clearMask = React.useCallback(() => {
+    const overlayCanvas = overlayCanvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
+    const overlayCtx = overlayCanvas?.getContext("2d");
+    const maskCtx = maskCanvas?.getContext("2d");
+    if (!overlayCanvas || !maskCanvas || !overlayCtx || !maskCtx) {
+      return;
+    }
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    markDirty();
+  }, [markDirty]);
 
   return (
     <div className={styles["mask-editor"]}>
       <div className={styles["mask-editor-toolbar"]}>
-        <div className={styles["mask-toolbar-row"]}>
+        <div className={styles["mask-toolbar-main"]}>
+          <span
+            className={clsx(styles["mask-toolbar-dot"], {
+              [styles["mask-toolbar-dot-dirty"]]: isDirty,
+            })}
+            title={
+              isDirty ? Locale.SdPanel.MaskUnsaved : Locale.SdPanel.MaskSaved
+            }
+          />
           <div className={styles["mask-toolbar-group"]}>
-            <IconButton
-              icon={showOverlay ? <EyeIcon /> : <EyeOffIcon />}
-              bordered
-              title={Locale.SdPanel.MaskOverlay}
-              onClick={() => setShowOverlay((prev) => !prev)}
-            />
             <IconButton
               icon={<EditIcon />}
               bordered
@@ -298,6 +312,16 @@ function MaskPainter(props: {
               title={Locale.SdPanel.MaskInteractionModes.Pan}
               type={interactionMode === "pan" ? "primary" : null}
               onClick={() => setInteractionMode("pan")}
+            />
+            <IconButton
+              icon={showOverlay ? <EyeIcon /> : <EyeOffIcon />}
+              bordered
+              title={
+                showOverlay
+                  ? Locale.SdPanel.MaskOverlayModes.Hide
+                  : Locale.SdPanel.MaskOverlayModes.Show
+              }
+              onClick={() => setShowOverlay((prev) => !prev)}
             />
           </div>
           <div className={styles["mask-toolbar-group"]}>
@@ -322,21 +346,17 @@ function MaskPainter(props: {
               {Locale.SdPanel.MaskBrushModes.Restore}
             </button>
           </div>
-        </div>
-        <div className={styles["mask-toolbar-row"]}>
           <label className={styles["mask-slider-control"]}>
             <span>{Locale.SdPanel.MaskZoom}</span>
-            <div className={styles["mask-slider-main"]}>
-              <input
-                type="range"
-                min={1}
-                max={4}
-                step={0.1}
-                value={zoom}
-                onChange={(e) => updateZoom(Number(e.currentTarget.value))}
-              />
-              <span>{Math.round(zoom * 100)}%</span>
-            </div>
+            <input
+              type="range"
+              min={1}
+              max={4}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => updateZoom(Number(e.currentTarget.value))}
+            />
+            <strong>{Math.round(zoom * 100)}%</strong>
           </label>
           <IconButton
             icon={<ResetIcon />}
@@ -344,63 +364,35 @@ function MaskPainter(props: {
             title={Locale.SdPanel.ResetZoom}
             onClick={() => updateZoom(1)}
           />
-        </div>
-        <div className={styles["mask-toolbar-row"]}>
           <label className={styles["mask-slider-control"]}>
             <span>{Locale.SdPanel.MaskBrushSize}</span>
-            <div className={styles["mask-slider-main"]}>
-              <input
-                type="range"
-                min={8}
-                max={120}
-                step={2}
-                value={brushSize}
-                disabled={panEnabled}
-                onChange={(e) => setBrushSize(Number(e.currentTarget.value))}
-              />
-              <span>{brushSize}px</span>
-            </div>
+            <input
+              type="range"
+              min={8}
+              max={120}
+              step={2}
+              value={brushSize}
+              disabled={panEnabled}
+              onChange={(e) => setBrushSize(Number(e.currentTarget.value))}
+            />
+            <strong>{brushSize}px</strong>
           </label>
-        </div>
-        <div className={styles["mask-toolbar-row"]}>
-          <div className={styles["ctrl-param-item-sub-title"]}>
-            {Locale.SdPanel.MaskShortcutHint}
+          <div className={styles["mask-toolbar-actions"]}>
+            <button
+              type="button"
+              className={styles["danger-inline-button"]}
+              onClick={clearMask}
+            >
+              {Locale.SdPanel.ClearMask}
+            </button>
+            <button
+              type="button"
+              className={styles["primary-inline-button"]}
+              onClick={exportMask}
+            >
+              {Locale.SdPanel.SaveMask}
+            </button>
           </div>
-        </div>
-        <div className={styles["mask-toolbar-row"]}>
-          <button
-            type="button"
-            className={styles["danger-inline-button"]}
-            onClick={() => {
-              const overlayCanvas = overlayCanvasRef.current;
-              const maskCanvas = maskCanvasRef.current;
-              const overlayCtx = overlayCanvas?.getContext("2d");
-              const maskCtx = maskCanvas?.getContext("2d");
-              if (!overlayCanvas || !maskCanvas || !overlayCtx || !maskCtx) {
-                return;
-              }
-              overlayCtx.clearRect(
-                0,
-                0,
-                overlayCanvas.width,
-                overlayCanvas.height,
-              );
-              maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-              if (isDirty) {
-                props.onDirtyChange?.(true);
-              }
-              setIsDirty(true);
-            }}
-          >
-            {Locale.SdPanel.ClearMask}
-          </button>
-          <button
-            type="button"
-            className={styles["primary-inline-button"]}
-            onClick={exportMask}
-          >
-            {Locale.SdPanel.SaveMask}
-          </button>
         </div>
       </div>
       <div
@@ -614,17 +606,20 @@ function PanelSection(props: {
   title: string;
   subTitle?: string;
   children?: React.ReactNode;
+  hideTitle?: boolean;
 }) {
   return (
     <section className={styles["panel-section"]}>
-      <div className={styles["panel-section-header"]}>
-        <div className={styles["panel-section-title"]}>{props.title}</div>
-        {props.subTitle && (
-          <div className={styles["panel-section-sub-title"]}>
-            {props.subTitle}
-          </div>
-        )}
-      </div>
+      {!props.hideTitle && (
+        <div className={styles["panel-section-header"]}>
+          <div className={styles["panel-section-title"]}>{props.title}</div>
+          {props.subTitle && (
+            <div className={styles["panel-section-sub-title"]}>
+              {props.subTitle}
+            </div>
+          )}
+        </div>
+      )}
       <div className={styles["panel-section-body"]}>{props.children}</div>
     </section>
   );
@@ -822,11 +817,6 @@ export function SdPanel() {
       ...rest,
     ] as any[];
   }, [modelParams]);
-  const currentModeLabel =
-    currentMode === "editing"
-      ? Locale.SdPanel.Modes.Editing
-      : Locale.SdPanel.Modes.Generation;
-
   React.useEffect(() => {
     if (imageModels.length === 0) return;
     const matched = imageModels.find(
@@ -924,7 +914,7 @@ export function SdPanel() {
 
   return (
     <>
-      <PanelSection title={Locale.SdPanel.Mode}>
+      <PanelSection title={Locale.SdPanel.Mode} hideTitle>
         <div className={styles["segmented-control"]}>
           <button
             type="button"
@@ -1069,7 +1059,7 @@ export function SdPanel() {
         </PanelSection>
       )}
       {hasImageModels && (
-        <PanelSection title={Locale.Sd.GenerateParams}>
+        <PanelSection title={Locale.Sd.GenerateParams} hideTitle>
           <ControlParam
             columns={orderedModelParams}
             data={params}

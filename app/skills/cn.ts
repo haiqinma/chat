@@ -1,5 +1,6 @@
 import { BuiltinSkill } from "./typing";
 import { createBuiltinSkill } from "./utils";
+import { ServiceProvider } from "../constant";
 
 export const CN_SKILLS: BuiltinSkill[] = [
   createBuiltinSkill({
@@ -107,6 +108,39 @@ export const CN_SKILLS: BuiltinSkill[] = [
       temperature: 0.3,
       max_tokens: 5000,
       historyMessageCount: 10,
+    },
+  }),
+  createBuiltinSkill({
+    avatar: "1f5bc-fe0f",
+    name: "图片创作",
+    description: "围绕画面创意、提示词和生成参数来组织一次图片创作会话。",
+    category: "创作",
+    starters: [
+      "给我生成一张海报风格的封面，先补全高质量提示词。",
+      "把这个产品想法转成适合图片模型的生成提示词。",
+      "先给我 3 个不同画风方向，再按我选的方向继续生成。",
+    ],
+    lang: "cn",
+    createdAt: 1700000001005,
+    syncGlobalConfig: false,
+    launch: { type: "sd" },
+    context: [
+      {
+        id: "cn-image-0",
+        role: "system",
+        content:
+          "你正在执行图片创作任务。先理解用户要的主体、风格、构图、光线、材质、文字元素和用途，再输出适合图片生成模型的结果。默认优先给出：精炼提示词、可选风格方向、负面约束、尺寸与质量建议；如果当前模型支持图片生成，就直接按用户要求生成。如果当前模型不支持图片生成，就明确说明，并先帮助用户把提示词整理好。",
+        date: "",
+      },
+    ],
+    modelConfig: {
+      model: "gpt-image-1",
+      providerName: ServiceProvider.OpenAI,
+      temperature: 0.7,
+      historyMessageCount: 6,
+      size: "1024x1024",
+      quality: "auto",
+      style: "vivid",
     },
   }),
 ];

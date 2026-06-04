@@ -100,10 +100,21 @@ export function Sd() {
   const sdStore = useSdStore();
   const [sdImages, setSdImages] = useState(sdStore.draw);
   const isSd = location.pathname === Path.Sd;
+  const selectedTaskId = new URLSearchParams(location.search).get("task");
 
   useEffect(() => {
     setSdImages(sdStore.draw);
   }, [sdStore.currentId, sdStore.draw]);
+
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    const timer = window.setTimeout(() => {
+      scrollRef.current
+        ?.querySelector(`[data-sd-task-id="${CSS.escape(selectedTaskId)}"]`)
+        ?.scrollIntoView({ block: "center" });
+    });
+    return () => window.clearTimeout(timer);
+  }, [selectedTaskId, sdImages]);
 
   return (
     <>
@@ -161,7 +172,11 @@ export function Sd() {
                 sdImages.map((item: any) => {
                   const prompt = item.params?.prompt || "";
                   return (
-                    <div key={item.id} className={styles["sd-img-item"]}>
+                    <div
+                      key={item.id}
+                      className={styles["sd-img-item"]}
+                      data-sd-task-id={item.id}
+                    >
                       <div className={styles["sd-img-preview"]}>
                         {item.status === "success" ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -331,10 +346,7 @@ export function Sd() {
                                     ? removeImage(item.img_data)
                                     : Promise.resolve();
                                 cleanup.finally(() => {
-                                  sdStore.draw = sdImages.filter(
-                                    (i: any) => i.id !== item.id,
-                                  );
-                                  sdStore.getNextId();
+                                  sdStore.deleteDraw(item.id);
                                 });
                               }
                             }}

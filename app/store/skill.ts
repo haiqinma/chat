@@ -25,6 +25,9 @@ export type Skill = {
   plugin?: string[];
   enableArtifacts?: boolean;
   enableCodeFold?: boolean;
+  launch?: {
+    type: "chat" | "sd";
+  };
 };
 
 export const DEFAULT_SKILL_STATE = {

@@ -53,7 +53,12 @@ import {
 import { Updater } from "../typing";
 import { ModelConfigList } from "./model-config";
 import { FileName, Path } from "../constant";
-import { BUILTIN_SKILL_STORE } from "../skills";
+import {
+  BUILTIN_SKILL_STORE,
+  type SkillPackage,
+  resolveLocalizedText,
+  skillToSkillPackage,
+} from "../skills";
 import {
   DragDropContext,
   Droppable,
@@ -70,6 +75,193 @@ import {
   getModelProvider,
   normalizeModelCandidates,
 } from "../utils/model";
+
+type SkillPackageCatalog = Partial<Record<Lang, SkillPackage[]>>;
+
+function getSkillPackageId(skill: Skill) {
+  return skill.builtin ? `builtin.${skill.lang}.${skill.createdAt}` : skill.id;
+}
+
+function useSkillPackageCatalog() {
+  const [catalog, setCatalog] = useState<SkillPackageCatalog>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/skill-packages.json")
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) setCatalog(data);
+      })
+      .catch((error) => {
+        console.warn("[Skill] failed to load skill package catalog", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return catalog;
+}
+
+function useSkillPackage(skill: Skill) {
+  const catalog = useSkillPackageCatalog();
+  return useMemo(() => {
+    const packageId = getSkillPackageId(skill);
+    const fromCatalog = catalog[skill.lang]?.find((item) => {
+      return item.id === packageId;
+    });
+    return fromCatalog ?? skillToSkillPackage(skill);
+  }, [catalog, skill]);
+}
+
+function getSkillPackageLabels(lang: Lang) {
+  if (lang === "cn") {
+    return {
+      runtime: "运行方式",
+      model: "模型",
+      permissions: "权限",
+      tools: "工具 / MCP",
+      visibility: "可见范围",
+      version: "版本",
+      chat: "会话",
+      sd: "图片创作",
+      external: "外部入口",
+      globalModel: "跟随全局模型",
+      none: "无",
+      noExtraPermissions: "无需额外权限",
+      public: "公开",
+      organization: "组织",
+      private: "私有",
+    };
+  }
+
+  return {
+    runtime: "Runtime",
+    model: "Model",
+    permissions: "Permissions",
+    tools: "Tools / MCP",
+    visibility: "Visibility",
+    version: "Version",
+    chat: "Session",
+    sd: "Image Creation",
+    external: "External",
+    globalModel: "Use global model",
+    none: "None",
+    noExtraPermissions: "No extra permissions",
+    public: "Public",
+    organization: "Organization",
+    private: "Private",
+  };
+}
+
+function getSkillRuntimeText(
+  skillPackage: SkillPackage,
+  labels: ReturnType<typeof getSkillPackageLabels>,
+) {
+  const launch = skillPackage.launch;
+  if (!launch || launch.type === "chat") return labels.chat;
+  if (launch.type === "external") return labels.external;
+  if (launch.target === "sd") return labels.sd;
+  if (launch.target === "chat") return labels.chat;
+  return launch.target;
+}
+
+function getSkillModelText(
+  skillPackage: SkillPackage,
+  labels: ReturnType<typeof getSkillPackageLabels>,
+) {
+  const provider = skillPackage.model?.default?.provider;
+  const model = skillPackage.model?.default?.model;
+  if (!provider && !model) return labels.globalModel;
+  return [provider, model].filter(Boolean).join(" / ");
+}
+
+function getSkillPermissionsText(
+  skillPackage: SkillPackage,
+  labels: ReturnType<typeof getSkillPackageLabels>,
+) {
+  const permissions = skillPackage.permissions;
+  if (!permissions) return labels.noExtraPermissions;
+
+  const enabled = [
+    permissions.network ? "network" : undefined,
+    permissions.filesystem ? "filesystem" : undefined,
+    permissions.wallet ? "wallet" : undefined,
+    ...(permissions.externalTools ?? []),
+    ...(permissions.dataScopes ?? []),
+  ].filter(Boolean);
+
+  return enabled.length ? enabled.join(", ") : labels.noExtraPermissions;
+}
+
+function getSkillToolsText(
+  skillPackage: SkillPackage,
+  labels: ReturnType<typeof getSkillPackageLabels>,
+) {
+  const tools = skillPackage.tools?.map((tool) => tool.name || tool.id) ?? [];
+  const servers =
+    skillPackage.mcp?.servers?.map((server) => server.name || server.id) ?? [];
+  const items = [...tools, ...servers];
+  return items.length ? items.join(", ") : labels.none;
+}
+
+function getSkillVisibilityText(
+  skillPackage: SkillPackage,
+  labels: ReturnType<typeof getSkillPackageLabels>,
+) {
+  const scope = skillPackage.visibility?.scope;
+  if (scope === "organization") return labels.organization;
+  if (scope === "private") return labels.private;
+  return labels.public;
+}
+
+function SkillPackageSummary(props: { skill: Skill }) {
+  const skillPackage = useSkillPackage(props.skill);
+  const labels = getSkillPackageLabels(props.skill.lang);
+  const packageName = resolveLocalizedText(
+    skillPackage.name,
+    props.skill.lang,
+    props.skill.name,
+  );
+  const items = [
+    {
+      label: labels.runtime,
+      value: getSkillRuntimeText(skillPackage, labels),
+    },
+    {
+      label: labels.model,
+      value: getSkillModelText(skillPackage, labels),
+    },
+    {
+      label: labels.permissions,
+      value: getSkillPermissionsText(skillPackage, labels),
+    },
+    {
+      label: labels.tools,
+      value: getSkillToolsText(skillPackage, labels),
+    },
+    {
+      label: labels.visibility,
+      value: getSkillVisibilityText(skillPackage, labels),
+    },
+    {
+      label: labels.version,
+      value: `${skillPackage.version} · ${packageName}`,
+    },
+  ];
+
+  return (
+    <div className={styles["skill-package-summary"]}>
+      {items.map((item) => (
+        <div className={styles["skill-package-item"]} key={item.label}>
+          <div className={styles["skill-package-label"]}>{item.label}</div>
+          <div className={styles["skill-package-value"]}>{item.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // drag and drop helper function
 function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
@@ -183,6 +375,14 @@ export function SkillConfig(props: {
     <>
       {props.readonly ? (
         <List>
+          <ListItem
+            title={
+              skill.lang === "cn" ? "技能包配置" : "Skill Package Configuration"
+            }
+            vertical
+          >
+            <SkillPackageSummary skill={skill} />
+          </ListItem>
           {skill.category && (
             <ListItem title="Category" subTitle={skill.category} vertical />
           )}

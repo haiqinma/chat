@@ -224,3 +224,41 @@
   padding: 12px 14px;
   box-sizing: border-box;
 }
+
+.skill-package-summary {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.skill-package-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: var(--border-in-light);
+  border-radius: 12px;
+  background: var(--white);
+  box-sizing: border-box;
+}
+
+.skill-package-label {
+  margin-bottom: 6px;
+  color: var(--black);
+  opacity: 0.55;
+  font-size: 12px;
+}
+
+.skill-package-value {
+  color: var(--black);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 600px) {
+  .skill-package-summary {
+    grid-template-columns: 1fr;
+  }
+}

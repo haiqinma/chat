@@ -229,6 +229,7 @@ function resolveRuntimeModelRouting(
   );
   const endpointPath = selectPreferredRequestEndpoint(supportedEndpoints, {
     preferResponses: options?.preferResponses,
+    modelName,
   });
 
   let requestProvider = normalizedProviderName;

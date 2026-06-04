@@ -133,6 +133,7 @@ export const useSdStore = createPersistStore<
     setEditMaskImage: (image: string, name?: string) => void;
     setCurrentModel: (model: any) => void;
     setCurrentParams: (data: any) => void;
+    deleteDraw: (id: string) => void;
   }
 >(
   DEFAULT_SD_STATE,
@@ -266,6 +267,10 @@ export const useSdStore = createPersistStore<
             return true;
           }
         });
+      },
+      deleteDraw(id: string) {
+        set({ draw: (_get().draw || []).filter((item) => item.id !== id) });
+        this.getNextId();
       },
       setCurrentMode(mode: ImageFormMode) {
         set({ currentMode: mode });
