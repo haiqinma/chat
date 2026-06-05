@@ -738,7 +738,7 @@ const cn = {
       tags.length > 0
         ? `${available}/${total} 个模型可用 · ${tags.join(" / ")}`
         : `${available}/${total} 个模型可用`,
-    ToolMcpTitle: "工具连接器",
+    ToolMcpTitle: "MCP",
     ToolMcpDesc: "连接搜索、抓取、文件、Git、时间等 MCP 工具。",
     ToolApiTitle: "API 工具",
     ToolApiDesc: "通过 API 集成为模型提供外部操作能力。",

@@ -750,7 +750,7 @@ const en: LocaleType = {
       tags.length > 0
         ? `${available}/${total} models available · ${tags.join(" / ")}`
         : `${available}/${total} models available`,
-    ToolMcpTitle: "Tool Connectors",
+    ToolMcpTitle: "MCP",
     ToolMcpDesc:
       "Connect MCP tools such as search, fetch, filesystem, git, and time.",
     ToolApiTitle: "API Tools",

@@ -21,8 +21,40 @@ import { getServerSideConfig } from "../config/server";
 const logger = new MCPClientLogger("MCP Actions");
 const CONFIG_PATH = path.join(process.cwd(), "app/mcp/mcp_config.json");
 const DEFAULT_CONFIG_CONTENT = JSON.stringify(DEFAULT_MCP_CONFIG, null, 2);
+const MCP_INIT_MAX_ATTEMPTS = 2;
+const MCP_INIT_RETRY_DELAY_MS = 1500;
 
 const clientsMap = new Map<string, McpClientData>();
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function syncServerStatus(
+  clientId: string,
+  status: ServerConfig["status"],
+): Promise<void> {
+  const currentConfig = await getMcpConfigFromFile();
+  const serverConfig = currentConfig.mcpServers[clientId];
+  if (!serverConfig || serverConfig.status === status) {
+    return;
+  }
+
+  await updateMcpConfig({
+    ...currentConfig,
+    mcpServers: {
+      ...currentConfig.mcpServers,
+      [clientId]: {
+        ...serverConfig,
+        status,
+      },
+    },
+  });
+}
 
 // 获取客户端状态
 export async function getClientsStatus(): Promise<
@@ -119,24 +151,61 @@ async function initializeSingleClient(
     errorMsg: null, // null 表示正在初始化
   });
 
-  // 异步初始化
-  createClient(clientId, serverConfig)
-    .then(async (client) => {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MCP_INIT_MAX_ATTEMPTS; attempt++) {
+    let client = null;
+    try {
+      logger.info(
+        `Connecting client [${clientId}] (attempt ${attempt}/${MCP_INIT_MAX_ATTEMPTS})...`,
+      );
+      client = await createClient(clientId, serverConfig);
       const tools = await listTools(client);
       logger.info(
         `Supported tools for [${clientId}]: ${JSON.stringify(tools, null, 2)}`,
       );
       clientsMap.set(clientId, { client, tools, errorMsg: null });
+      await syncServerStatus(clientId, "active");
       logger.success(`Client [${clientId}] initialized successfully`);
-    })
-    .catch((error) => {
-      clientsMap.set(clientId, {
-        client: null,
-        tools: null,
-        errorMsg: error instanceof Error ? error.message : String(error),
-      });
-      logger.error(`Failed to initialize client [${clientId}]: ${error}`);
-    });
+      return;
+    } catch (error) {
+      lastError = error;
+      const message = getErrorMessage(error);
+
+      if (client) {
+        try {
+          await removeClient(client);
+        } catch (removeError) {
+          logger.warn(
+            `Failed to clean up client [${clientId}] after init error: ${removeError}`,
+          );
+        }
+      }
+
+      if (attempt < MCP_INIT_MAX_ATTEMPTS) {
+        logger.warn(
+          `Failed to initialize client [${clientId}] on attempt ${attempt}: ${message}. Retrying in ${MCP_INIT_RETRY_DELAY_MS}ms...`,
+        );
+        await sleep(MCP_INIT_RETRY_DELAY_MS);
+        clientsMap.set(clientId, {
+          client: null,
+          tools: null,
+          errorMsg: null,
+        });
+        continue;
+      }
+    }
+  }
+
+  const errorMsg = getErrorMessage(lastError);
+  clientsMap.set(clientId, {
+    client: null,
+    tools: null,
+    errorMsg,
+  });
+  await syncServerStatus(clientId, "error");
+  logger.error(`Failed to initialize client [${clientId}]: ${errorMsg}`);
+  throw new Error(errorMsg);
 }
 
 // 初始化系统
@@ -152,7 +221,13 @@ export async function initializeMcpSystem() {
     const config = await getMcpConfigFromFile();
     // 初始化所有客户端
     for (const [clientId, serverConfig] of Object.entries(config.mcpServers)) {
-      await initializeSingleClient(clientId, serverConfig);
+      try {
+        await initializeSingleClient(clientId, serverConfig);
+      } catch (error) {
+        logger.error(
+          `Client [${clientId}] failed during MCP bootstrap: ${getErrorMessage(error)}`,
+        );
+      }
     }
     return config;
   } catch (error) {
@@ -241,23 +316,7 @@ export async function resumeMcpServer(clientId: string): Promise<void> {
     // 先尝试初始化客户端
     logger.info(`Trying to initialize client [${clientId}]...`);
     try {
-      const client = await createClient(clientId, serverConfig);
-      const tools = await listTools(client);
-      clientsMap.set(clientId, { client, tools, errorMsg: null });
-      logger.success(`Client [${clientId}] initialized successfully`);
-
-      // 初始化成功后更新配置
-      const newConfig: McpConfigData = {
-        ...currentConfig,
-        mcpServers: {
-          ...currentConfig.mcpServers,
-          [clientId]: {
-            ...serverConfig,
-            status: "active" as const,
-          },
-        },
-      };
-      await updateMcpConfig(newConfig);
+      await initializeSingleClient(clientId, serverConfig);
     } catch (error) {
       const currentConfig = await getMcpConfigFromFile();
       const serverConfig = currentConfig.mcpServers[clientId];
@@ -272,7 +331,7 @@ export async function resumeMcpServer(clientId: string): Promise<void> {
       clientsMap.set(clientId, {
         client: null,
         tools: null,
-        errorMsg: error instanceof Error ? error.message : String(error),
+        errorMsg: getErrorMessage(error),
       });
       logger.error(`Failed to initialize client [${clientId}]: ${error}`);
       throw error;

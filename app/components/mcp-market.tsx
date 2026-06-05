@@ -521,10 +521,6 @@ export function McpMarketPage() {
             return operationType === "default" ? status : operationType;
           }
 
-          if (status === "initializing" && !loading) {
-            return "active";
-          }
-
           return status;
         };
 
@@ -659,7 +655,7 @@ export function McpMarketPage() {
         <div className="window-header">
           <div className="window-header-title">
             <div className="window-header-main-title">
-              工具连接器
+              MCP
               {loadingStates["all"] && (
                 <span className={styles["loading-indicator"]}>
                   {loadingStates["all"]}
@@ -697,7 +693,7 @@ export function McpMarketPage() {
             <input
               type="text"
               className={styles["search-bar"]}
-              placeholder={"搜索工具连接器"}
+              placeholder={"搜索 MCP"}
               autoFocus
               onInput={(e) => setSearchText(e.currentTarget.value)}
             />
