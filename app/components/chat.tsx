@@ -123,7 +123,7 @@ import {
 } from "../constant";
 import { Avatar } from "./emoji";
 import { ContextPrompts, SkillAvatar, SkillConfig } from "./mask";
-import { useSkillStore } from "../store/skill";
+import { syncSkillLegacyPlugin, useSkillStore } from "../store/skill";
 import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
@@ -908,7 +908,11 @@ export function ChatActions(props: {
             onClose={() => setShowPluginSelector(false)}
             onSelection={(s) => {
               chatStore.updateTargetSession(session, (session) => {
-                session.mask.plugin = s as string[];
+                session.mask.tools = {
+                  ...session.mask.tools,
+                  apiTools: s as string[],
+                };
+                syncSkillLegacyPlugin(session.mask);
               });
             }}
           />

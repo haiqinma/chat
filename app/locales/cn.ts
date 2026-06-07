@@ -841,6 +841,18 @@ const cn = {
         SummaryNone: "不限制",
         SummarySelected: (count: number) => `已选择 ${count} 个模型`,
       },
+      Tools: {
+        SummaryNone: "未选择",
+        SummarySelected: (count: number) => `已选择 ${count} 个`,
+        BuiltIn: {
+          Title: "内置工具",
+          SubTitle: "模型平台提供的能力，例如 Web Search",
+        },
+        Mcp: {
+          Title: "MCP",
+          SubTitle: "选择这个技能可以调用的 MCP 服务",
+        },
+      },
       Sync: {
         Title: "使用全局设置",
         SubTitle: "当前对话是否使用全局模型设置",

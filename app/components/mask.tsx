@@ -16,7 +16,10 @@ import DragIcon from "../icons/drag.svg";
 import {
   DEFAULT_SKILL_AVATAR,
   Skill,
+  getSkillBuiltInTools,
+  getSkillMcpTools,
   getLaunchableSkills,
+  syncSkillLegacyPlugin,
   useSkillStore,
 } from "../store/skill";
 import {
@@ -75,8 +78,17 @@ import {
   getModelProvider,
   normalizeModelCandidates,
 } from "../utils/model";
+import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
 
 type SkillPackageCatalog = Partial<Record<Lang, SkillPackage[]>>;
+
+const BUILT_IN_SKILL_TOOL_ITEMS = [
+  {
+    id: "web_search" as const,
+    name: "Web Search",
+    description: "OpenAI Responses built-in web search",
+  },
+];
 
 function getSkillPackageId(skill: Skill) {
   return skill.builtin ? `builtin.${skill.lang}.${skill.createdAt}` : skill.id;
@@ -302,7 +314,11 @@ export function SkillConfig(props: {
   const [showPicker, setShowPicker] = useState(false);
   const [showCandidateModelSelector, setShowCandidateModelSelector] =
     useState(false);
+  const [showBuiltInToolSelector, setShowBuiltInToolSelector] = useState(false);
+  const [showMcpToolSelector, setShowMcpToolSelector] = useState(false);
   const skillProviderModels = useMaskProviderModels();
+  const selectedBuiltInTools = getSkillBuiltInTools(skill);
+  const selectedMcpTools = getSkillMcpTools(skill);
   const selectedCandidateModels = useMemo(
     () => normalizeModelCandidates(skill.candidateModels),
     [skill.candidateModels],
@@ -344,6 +360,24 @@ export function SkillConfig(props: {
       })),
     [skillProviderModels],
   );
+  const builtInToolSummary =
+    selectedBuiltInTools.length === 0
+      ? Locale.Mask.Config.Tools.SummaryNone
+      : Locale.Mask.Config.Tools.SummarySelected(selectedBuiltInTools.length);
+  const mcpToolSummary =
+    selectedMcpTools.length === 0
+      ? Locale.Mask.Config.Tools.SummaryNone
+      : Locale.Mask.Config.Tools.SummarySelected(selectedMcpTools.length);
+  const builtInToolSelectorItems = BUILT_IN_SKILL_TOOL_ITEMS.map((item) => ({
+    title: item.name,
+    subTitle: item.description,
+    value: item.id,
+  }));
+  const mcpToolSelectorItems = OFFICIAL_MCP_PRESET_SERVERS.map((server) => ({
+    title: server.name,
+    subTitle: server.description,
+    value: server.id,
+  }));
 
   const readonlyContextMarkdown = skill.context
     .map((message, index) => {
@@ -473,6 +507,30 @@ export function SkillConfig(props: {
           ></input>
         </ListItem>
         <ListItem
+          title={Locale.Mask.Config.Tools.BuiltIn.Title}
+          subTitle={Locale.Mask.Config.Tools.BuiltIn.SubTitle}
+        >
+          <input
+            aria-label={Locale.Mask.Config.Tools.BuiltIn.Title}
+            type="text"
+            readOnly
+            value={builtInToolSummary}
+            onClick={() => setShowBuiltInToolSelector(true)}
+          ></input>
+        </ListItem>
+        <ListItem
+          title={Locale.Mask.Config.Tools.Mcp.Title}
+          subTitle={Locale.Mask.Config.Tools.Mcp.SubTitle}
+        >
+          <input
+            aria-label={Locale.Mask.Config.Tools.Mcp.Title}
+            type="text"
+            readOnly
+            value={mcpToolSummary}
+            onClick={() => setShowMcpToolSelector(true)}
+          ></input>
+        </ListItem>
+        <ListItem
           title={Locale.Mask.Config.HideContext.Title}
           subTitle={Locale.Mask.Config.HideContext.SubTitle}
         >
@@ -595,6 +653,40 @@ export function SkillConfig(props: {
             props.updateMask((mask) => {
               mask.candidateModels = candidates;
               mask.syncGlobalConfig = false;
+            });
+          }}
+        />
+      )}
+      {showBuiltInToolSelector && (
+        <Selector
+          multiple
+          defaultSelectedValue={selectedBuiltInTools}
+          items={builtInToolSelectorItems}
+          onClose={() => setShowBuiltInToolSelector(false)}
+          onSelection={(selection) => {
+            props.updateMask((mask) => {
+              mask.tools = {
+                ...mask.tools,
+                builtInTools: selection,
+              };
+              syncSkillLegacyPlugin(mask);
+            });
+          }}
+        />
+      )}
+      {showMcpToolSelector && (
+        <Selector
+          multiple
+          defaultSelectedValue={selectedMcpTools}
+          items={mcpToolSelectorItems}
+          onClose={() => setShowMcpToolSelector(false)}
+          onSelection={(selection) => {
+            props.updateMask((mask) => {
+              mask.tools = {
+                ...mask.tools,
+                mcpTools: selection,
+              };
+              syncSkillLegacyPlugin(mask);
             });
           }}
         />

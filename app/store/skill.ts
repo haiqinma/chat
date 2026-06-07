@@ -7,6 +7,14 @@ import { StoreKey } from "../constant";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
 
+export type BuiltInSkillToolType = "web_search";
+
+export type SkillToolsConfig = {
+  builtInTools?: BuiltInSkillToolType[];
+  mcpTools?: string[];
+  apiTools?: string[];
+};
+
 export type Skill = {
   id: string;
   createdAt: number;
@@ -23,6 +31,7 @@ export type Skill = {
   lang: Lang;
   builtin: boolean;
   plugin?: string[];
+  tools?: SkillToolsConfig;
   enableArtifacts?: boolean;
   enableCodeFold?: boolean;
   launch?: {
@@ -56,6 +65,11 @@ export const createEmptySkill = () =>
     builtin: false,
     createdAt: Date.now(),
     plugin: [],
+    tools: {
+      builtInTools: [],
+      mcpTools: [],
+      apiTools: [],
+    },
   }) as Skill;
 
 function withBuiltinSkillConfig(skill: BuiltinSkill, modelConfig: ModelConfig) {
@@ -87,12 +101,37 @@ export function isLaunchableSkill(skill: Skill) {
     skill.description ||
     skill.category ||
     skill.starters?.length ||
-    skill.plugin?.length,
+    skill.plugin?.length ||
+    skill.tools?.builtInTools?.length ||
+    skill.tools?.mcpTools?.length ||
+    skill.tools?.apiTools?.length,
   );
 }
 
 export function getLaunchableSkills(skills: Skill[]) {
   return skills.filter(isLaunchableSkill);
+}
+
+export function getSkillBuiltInTools(skill: Skill) {
+  return skill.tools?.builtInTools ?? [];
+}
+
+export function getSkillMcpTools(skill: Skill) {
+  return skill.tools?.mcpTools ?? [];
+}
+
+export function getSkillApiTools(skill: Skill) {
+  return skill.tools?.apiTools ?? skill.plugin ?? [];
+}
+
+export function syncSkillLegacyPlugin(skill: Skill) {
+  const apiTools = skill.tools?.apiTools ?? skill.plugin ?? [];
+  skill.plugin = apiTools;
+  skill.tools = {
+    builtInTools: skill.tools?.builtInTools ?? [],
+    mcpTools: skill.tools?.mcpTools ?? [],
+    apiTools,
+  };
 }
 
 export const useSkillStore = createPersistStore(
@@ -165,7 +204,7 @@ export const useSkillStore = createPersistStore(
   }),
   {
     name: StoreKey.Skill,
-    version: 4.1,
+    version: 4.2,
 
     migrate(state, version) {
       const legacyState = JSON.parse(JSON.stringify(state)) as SkillState & {
@@ -194,6 +233,12 @@ export const useSkillStore = createPersistStore(
           if (LEGACY_REMOVED_SKILL_NAMES.has(skill.name)) {
             delete newState.skills[id];
           }
+        });
+      }
+
+      if (version < 4.2) {
+        Object.values(newState.skills).forEach((skill) => {
+          syncSkillLegacyPlugin(skill);
         });
       }
 

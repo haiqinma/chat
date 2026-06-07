@@ -3,6 +3,11 @@ import type { Lang } from "../locales";
 import type { ChatMessage } from "../store/chat";
 import type { ModelConfig } from "../store/config";
 import type { Skill } from "../store/skill";
+import {
+  getSkillApiTools,
+  getSkillMcpTools,
+  syncSkillLegacyPlugin,
+} from "../store/skill";
 import type { BuiltinSkill } from "./typing";
 
 export type LocalizedText = string | Partial<Record<Lang, string>>;
@@ -147,7 +152,8 @@ export function skillPackageToSkill(
   lang: Lang,
   baseModelConfig: ModelConfig,
 ): Skill {
-  return {
+  const apiTools = skillPackage.tools?.map((tool) => tool.id) ?? [];
+  const skill = {
     id: skillPackage.id,
     createdAt: Date.now(),
     avatar: resolveSkillAvatar(skillPackage.icon),
@@ -168,9 +174,16 @@ export function skillPackageToSkill(
     candidateModels: skillPackage.model?.candidates,
     lang,
     builtin: false,
-    plugin: skillPackage.tools?.map((tool) => tool.id) ?? [],
+    plugin: apiTools,
+    tools: {
+      builtInTools: [],
+      mcpTools: skillPackage.mcp?.servers?.map((server) => server.id) ?? [],
+      apiTools,
+    },
     launch: resolveLegacyLaunch(skillPackage.launch),
   };
+  syncSkillLegacyPlugin(skill);
+  return skill;
 }
 
 function resolvePackageLaunch(skill: Pick<Skill, "launch">): SkillLaunch {
@@ -231,19 +244,27 @@ export function skillToSkillPackage(skill: Skill | BuiltinSkill): SkillPackage {
       candidates: skill.candidateModels,
       params: modelConfig,
     },
-    tools: skill.plugin?.map((plugin) => ({
+    tools: getSkillApiTools(skill as Skill).map((plugin) => ({
       id: plugin,
       name: plugin,
       required: false,
     })),
     mcp: {
-      servers: [],
+      servers: getSkillMcpTools(skill as Skill).map((id) => ({
+        id,
+        name: id,
+        transport: "stdio",
+        required: false,
+      })),
     },
     permissions: {
       network: false,
       filesystem: false,
       wallet: false,
-      externalTools: skill.plugin ?? [],
+      externalTools: [
+        ...getSkillApiTools(skill as Skill),
+        ...getSkillMcpTools(skill as Skill),
+      ],
     },
     compatibility: {
       appVersion: ">=0.1.0",

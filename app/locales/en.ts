@@ -856,6 +856,18 @@ const en: LocaleType = {
         SummaryNone: "No restriction",
         SummarySelected: (count: number) => `${count} models selected`,
       },
+      Tools: {
+        SummaryNone: "None selected",
+        SummarySelected: (count: number) => `${count} selected`,
+        BuiltIn: {
+          Title: "Built-in Tools",
+          SubTitle: "Model platform capabilities such as Web Search",
+        },
+        Mcp: {
+          Title: "MCP",
+          SubTitle: "MCP services this skill can call",
+        },
+      },
       Sync: {
         Title: "Use Global Config",
         SubTitle: "Use global config in this chat",

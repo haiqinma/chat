@@ -227,6 +227,14 @@
       font-size: 13px;
       font-weight: 600;
     }
+
+    .mask-status {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.2;
+      color: var(--black);
+      opacity: 0.55;
+    }
   }
 
   .mask-delete {

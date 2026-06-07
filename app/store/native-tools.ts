@@ -35,6 +35,7 @@ export async function getNativeToolBundle(
   pluginIds: string[],
   options?: {
     includeMcp?: boolean;
+    mcpClientIds?: string[];
   },
 ): Promise<NativeToolBundle> {
   const pluginPair = usePluginStore.getState().getAsTools(pluginIds) as [
@@ -54,7 +55,12 @@ export async function getNativeToolBundle(
     return [tools, funcs];
   }
 
-  const mcpClients = await getAllTools();
+  const selectedMcpClientIds = new Set(options.mcpClientIds ?? []);
+  const mcpClients = (await getAllTools()).filter(
+    (client) =>
+      selectedMcpClientIds.size === 0 ||
+      selectedMcpClientIds.has(client.clientId),
+  );
 
   mcpClients.forEach((client) => {
     const clientTools = client.tools?.tools;
