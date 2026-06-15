@@ -24,6 +24,7 @@ import {
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
 import { preProcessImageContent } from "@/app/utils/chat";
+import { applyZhipuReasoning } from "../reasoning";
 
 interface BasePayload {
   model: string;
@@ -36,6 +37,9 @@ interface ChatPayload extends BasePayload {
   presence_penalty?: number;
   frequency_penalty?: number;
   top_p?: number;
+  thinking?: {
+    type: string;
+  };
 }
 
 interface ImageGenerationPayload extends BasePayload {
@@ -96,7 +100,7 @@ export class ChatGLMApi implements LLMApi {
           size: options.config.size,
         } as ImageGenerationPayload;
       default:
-        return {
+        const payload = {
           messages,
           stream: options.config.stream,
           model: modelConfig.model,
@@ -105,6 +109,11 @@ export class ChatGLMApi implements LLMApi {
           frequency_penalty: modelConfig.frequency_penalty,
           top_p: modelConfig.top_p,
         } as ChatPayload;
+        applyZhipuReasoning(payload as Record<string, any>, {
+          ...options.config,
+          ...modelConfig,
+        });
+        return payload;
     }
   }
 

@@ -146,6 +146,24 @@ export function applyQwenReasoning(
   parameters.enable_thinking = intent.enabled;
 }
 
+export function applyVolcengineReasoning(
+  payload: Record<string, any>,
+  config: LLMConfig,
+) {
+  const intent = resolveReasoningIntent(config);
+  if (!intent.capable) return;
+  payload.thinking = { type: intent.enabled ? "enabled" : "disabled" };
+}
+
+export function applyZhipuReasoning(
+  payload: Record<string, any>,
+  config: LLMConfig,
+) {
+  const intent = resolveReasoningIntent(config);
+  if (!intent.capable) return;
+  payload.thinking = { type: intent.enabled ? "enabled" : "disabled" };
+}
+
 export function applyOpenAICompatibleReasoning(
   payload: Record<string, any>,
   config: LLMConfig,
@@ -157,6 +175,18 @@ export function applyOpenAICompatibleReasoning(
   }
   if (provider.includes("qwen") || provider.includes("alibaba")) {
     applyQwenReasoning(payload, config);
+    return;
+  }
+  if (provider.includes("volcengine") || provider.includes("doubao")) {
+    applyVolcengineReasoning(payload, config);
+    return;
+  }
+  if (
+    provider.includes("zhipu") ||
+    provider.includes("chatglm") ||
+    provider.includes("glm")
+  ) {
+    applyZhipuReasoning(payload, config);
     return;
   }
   applyOpenAIReasoning(payload, config);

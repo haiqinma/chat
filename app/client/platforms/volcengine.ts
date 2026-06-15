@@ -25,6 +25,7 @@ import {
   getTimeoutMSByModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
+import { applyVolcengineReasoning } from "../reasoning";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -47,6 +48,9 @@ interface RequestPayloadForVolcengine {
   frequency_penalty: number;
   top_p: number;
   max_tokens?: number;
+  thinking?: {
+    type: string;
+  };
 }
 
 export class VolcengineApi implements LLMApi {
@@ -115,6 +119,10 @@ export class VolcengineApi implements LLMApi {
       frequency_penalty: modelConfig.frequency_penalty,
       top_p: modelConfig.top_p,
     };
+    applyVolcengineReasoning(requestPayload as Record<string, any>, {
+      ...options.config,
+      ...modelConfig,
+    });
 
     const controller = new AbortController();
     options.onController?.(controller);

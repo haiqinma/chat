@@ -80,10 +80,7 @@ import {
   getTimeoutMSByModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
-import {
-  applyOpenAICompatibleReasoning,
-  applyOpenAIReasoning,
-} from "../reasoning";
+import { applyOpenAICompatibleReasoning } from "../reasoning";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -110,6 +107,10 @@ export interface RequestPayload {
   reasoning?: {
     effort: string;
   };
+  thinking?: {
+    type: string;
+  };
+  enable_thinking?: boolean;
 }
 
 export interface DalleRequestPayload {
@@ -604,6 +605,7 @@ const RESPONSES_ALLOWED_FIELDS = new Set([
   "background",
   "context_management",
   "conversation",
+  "enable_thinking",
   "include",
   "input",
   "instructions",
@@ -689,6 +691,9 @@ function toResponsesPayload(payload: Record<string, any>) {
     isReasoningModel(String(source.model ?? ""))
   ) {
     assign("reasoning", source.reasoning);
+  }
+  if (source.enable_thinking !== undefined) {
+    assign("enable_thinking", source.enable_thinking);
   }
 
   const normalizedTools = Array.isArray(source.tools) ? source.tools : [];
@@ -1088,7 +1093,7 @@ export class ChatGPTApi implements LLMApi {
             responsesPayload.temperature = modelConfig.temperature;
             responsesPayload.top_p = modelConfig.top_p;
           }
-          applyOpenAIReasoning(responsesPayload, {
+          applyOpenAICompatibleReasoning(responsesPayload, {
             ...options.config,
             model: resolvedModel,
           });
