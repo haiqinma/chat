@@ -126,10 +126,11 @@ export function ChatList(props: { narrow?: boolean }) {
   );
   const deleteSession = useChatStore((state) => state.deleteSession);
   const sdDraw = useSdStore((state) => state.draw);
-  const deleteSdDraw = useSdStore((state) => state.deleteDraw);
+  const deleteSdSession = useSdStore((state) => state.deleteSession);
   const navigate = useNavigate();
   const { pathname: currentPath, search } = useLocation();
-  const selectedSdTaskId = new URLSearchParams(search).get("task");
+  const searchParams = new URLSearchParams(search);
+  const selectedSdSessionId = searchParams.get("session");
   const isMobileScreen = useMobileScreen();
 
   // 权限认证
@@ -137,6 +138,38 @@ export function ChatList(props: { narrow?: boolean }) {
   if (!isAuthenticated) {
     return;
   }
+
+  const sdSessions = Array.from(
+    (sdDraw || [])
+      .reduce((map: Map<string, any[]>, item: any) => {
+        const sessionId = item.session_id || item.id;
+        if (!map.has(sessionId)) {
+          map.set(sessionId, []);
+        }
+        map.get(sessionId)!.push(item);
+        return map;
+      }, new Map<string, any[]>())
+      .entries(),
+  ).map(([sessionId, items]) => {
+    const sortedItems = items.slice().sort((a, b) => {
+      const aTime = new Date(a.created_at || 0).getTime();
+      const bTime = new Date(b.created_at || 0).getTime();
+      return (
+        (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime)
+      );
+    });
+    const latestItem = sortedItems[0];
+    const prompt = latestItem?.params?.prompt || Locale.Sd.Title;
+    const lastUpdate = new Date(latestItem?.created_at || 0).getTime();
+
+    return {
+      sessionId,
+      items: sortedItems,
+      latestItem,
+      prompt,
+      lastUpdate: Number.isNaN(lastUpdate) ? 0 : lastUpdate,
+    };
+  });
 
   const workspaceItems = [
     ...sessions.map((session, index) => ({
@@ -162,35 +195,33 @@ export function ChatList(props: { narrow?: boolean }) {
         }
       },
     })),
-    ...sdDraw.slice(0, 12).map((item: any, index: number) => {
-      const prompt = item.params?.prompt || Locale.Sd.Title;
-      const date = item.created_at ? new Date(item.created_at) : undefined;
-      const parsedTime = date?.getTime();
-      const lastUpdate =
-        parsedTime === undefined || Number.isNaN(parsedTime) ? 0 : parsedTime;
+    ...sdSessions.slice(0, 12).map((session, index: number) => {
       return {
         type: "sd" as const,
-        id: item.id,
-        title: prompt || Locale.Sd.Title,
-        meta: `${Locale.Sd.Title} · ${item.status || ""}`,
-        narrowLabel: "AI",
-        time: item.created_at || "",
-        lastUpdate,
+        id: session.sessionId,
+        title: session.prompt || Locale.Sd.Title,
+        meta: `${Locale.Sd.Title} · ${session.items.length}`,
+        narrowLabel: String(session.items.length),
+        time: session.latestItem?.created_at || "",
+        lastUpdate: session.lastUpdate,
         selected:
           currentPath === Path.Sd
-            ? selectedSdTaskId
-              ? selectedSdTaskId === item.id
+            ? selectedSdSessionId
+              ? selectedSdSessionId === session.sessionId
               : index === 0
             : false,
-        onClick: () => navigate(`${Path.Sd}?task=${item.id}`),
+        onClick: () => navigate(`${Path.Sd}?session=${session.sessionId}`),
         onDelete: async () => {
           if (await showConfirm(Locale.Sd.Danger.Delete)) {
-            const cleanup =
-              typeof item.img_data === "string" &&
-              item.img_data.includes(CACHE_URL_PREFIX)
-                ? removeImage(item.img_data)
-                : Promise.resolve();
-            cleanup.finally(() => deleteSdDraw(item.id));
+            const cleanup = Promise.all(
+              session.items.map((item: any) =>
+                typeof item.img_data === "string" &&
+                item.img_data.includes(CACHE_URL_PREFIX)
+                  ? removeImage(item.img_data)
+                  : Promise.resolve(),
+              ),
+            );
+            cleanup.finally(() => deleteSdSession(session.sessionId));
           }
         },
       };

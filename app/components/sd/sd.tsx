@@ -101,16 +101,9 @@ export function Sd() {
   const currentSessionId = sdStore.currentSessionId;
   const setCurrentSessionId = sdStore.setCurrentSessionId;
   const isSd = location.pathname === Path.Sd;
-  const selectedTaskId = new URLSearchParams(location.search).get("task");
-  const selectedTask = useMemo(
-    () => sdStore.draw.find((item: any) => item.id === selectedTaskId),
-    [sdStore.draw, selectedTaskId],
-  );
-  const activeSessionId =
-    selectedTaskId && selectedTask
-      ? selectedTask.session_id || ""
-      : currentSessionId || "";
-  const selectedTaskSessionId = selectedTask?.session_id || "";
+  const searchParams = new URLSearchParams(location.search);
+  const selectedSessionId = searchParams.get("session");
+  const activeSessionId = selectedSessionId || currentSessionId || "";
   const sdImages = useMemo(() => {
     if (!activeSessionId) {
       return sdStore.draw.filter((item: any) => !item.session_id);
@@ -121,20 +114,10 @@ export function Sd() {
   }, [activeSessionId, sdStore.draw]);
 
   useEffect(() => {
-    if (selectedTaskSessionId && currentSessionId !== selectedTaskSessionId) {
-      setCurrentSessionId(selectedTaskSessionId);
+    if (selectedSessionId && currentSessionId !== selectedSessionId) {
+      setCurrentSessionId(selectedSessionId);
     }
-  }, [currentSessionId, selectedTaskSessionId, setCurrentSessionId]);
-
-  useEffect(() => {
-    if (!selectedTaskId) return;
-    const timer = window.setTimeout(() => {
-      scrollRef.current
-        ?.querySelector(`[data-sd-task-id="${CSS.escape(selectedTaskId)}"]`)
-        ?.scrollIntoView({ block: "center" });
-    });
-    return () => window.clearTimeout(timer);
-  }, [selectedTaskId, sdImages]);
+  }, [currentSessionId, selectedSessionId, setCurrentSessionId]);
 
   return (
     <>
@@ -192,11 +175,7 @@ export function Sd() {
                 sdImages.map((item: any) => {
                   const prompt = item.params?.prompt || "";
                   return (
-                    <div
-                      key={item.id}
-                      className={styles["sd-img-item"]}
-                      data-sd-task-id={item.id}
-                    >
+                    <div key={item.id} className={styles["sd-img-item"]}>
                       <div className={styles["sd-img-preview"]}>
                         {item.status === "success" ? (
                           // eslint-disable-next-line @next/next/no-img-element

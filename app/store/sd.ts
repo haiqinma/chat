@@ -138,6 +138,7 @@ export const useSdStore = createPersistStore<
     setCurrentSessionId: (sessionId: string) => void;
     startBlankCreation: (prompt?: string) => void;
     deleteDraw: (id: string) => void;
+    deleteSession: (sessionId: string) => void;
   }
 >(
   DEFAULT_SD_STATE,
@@ -278,6 +279,19 @@ export const useSdStore = createPersistStore<
       },
       deleteDraw(id: string) {
         set({ draw: (_get().draw || []).filter((item) => item.id !== id) });
+        get().getNextId();
+      },
+      deleteSession(sessionId: string) {
+        set({
+          draw: (_get().draw || []).filter((item) => {
+            const itemSessionId = item.session_id || item.id;
+            return itemSessionId !== sessionId;
+          }),
+          currentSessionId:
+            _get().currentSessionId === sessionId
+              ? ""
+              : _get().currentSessionId,
+        });
         get().getNextId();
       },
       setCurrentMode(mode: ImageFormMode) {
