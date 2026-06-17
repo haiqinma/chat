@@ -77,6 +77,15 @@
                     "realtime": false
                 }
             },
+            "tools": {
+                "mcpTools": [
+                    "brave-search",
+                    "fetch"
+                ]
+            },
+            "toolStrategy": {
+                "nativeMcpTools": "auto"
+            },
             "context": [
                 {
                     "id": "cn-web-research-0",
@@ -390,6 +399,15 @@
                     "shortcutKeys": true,
                     "realtime": false
                 }
+            },
+            "tools": {
+                "mcpTools": [
+                    "brave-search",
+                    "fetch"
+                ]
+            },
+            "toolStrategy": {
+                "nativeMcpTools": "auto"
             },
             "context": [
                 {

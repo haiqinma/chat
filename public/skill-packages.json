@@ -120,7 +120,20 @@
             },
             "tools": [],
             "mcp": {
-                "servers": []
+                "servers": [
+                    {
+                        "id": "brave-search",
+                        "name": "brave-search",
+                        "transport": "stdio",
+                        "required": false
+                    },
+                    {
+                        "id": "fetch",
+                        "name": "fetch",
+                        "transport": "stdio",
+                        "required": false
+                    }
+                ]
             },
             "ui": {
                 "sessionToolbar": {
@@ -142,7 +155,10 @@
                 "network": false,
                 "filesystem": false,
                 "wallet": false,
-                "externalTools": []
+                "externalTools": [
+                    "brave-search",
+                    "fetch"
+                ]
             },
             "compatibility": {
                 "appVersion": ">=0.1.0"
@@ -595,7 +611,20 @@
             },
             "tools": [],
             "mcp": {
-                "servers": []
+                "servers": [
+                    {
+                        "id": "brave-search",
+                        "name": "brave-search",
+                        "transport": "stdio",
+                        "required": false
+                    },
+                    {
+                        "id": "fetch",
+                        "name": "fetch",
+                        "transport": "stdio",
+                        "required": false
+                    }
+                ]
             },
             "ui": {
                 "sessionToolbar": {
@@ -617,7 +646,10 @@
                 "network": false,
                 "filesystem": false,
                 "wallet": false,
-                "externalTools": []
+                "externalTools": [
+                    "brave-search",
+                    "fetch"
+                ]
             },
             "compatibility": {
                 "appVersion": ">=0.1.0"

@@ -47,6 +47,12 @@ export const CN_SKILLS: BuiltinSkill[] = [
     ui: {
       sessionToolbar: CHAT_TOOLBAR_PRESETS.research,
     },
+    tools: {
+      mcpTools: ["brave-search", "fetch"],
+    },
+    toolStrategy: {
+      nativeMcpTools: "auto",
+    },
     context: [
       {
         id: "cn-web-research-0",
