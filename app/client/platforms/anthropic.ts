@@ -45,9 +45,11 @@ import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
 import { applyMessagesReasoning } from "../reasoning";
 import {
-  createInvocationUcan,
+  decodeUcanPayload,
   getCapabilityAction,
   getCapabilityResource,
+  getOrCreateInvocationUcan,
+  isUcanTokenFresh,
   normalizeUcanCapabilities,
   type UcanCapability,
 } from "@yeying-community/web3-bs";
@@ -145,7 +147,6 @@ const ClaudeMapper = {
 
 const keys = ["claude-2, claude-instant-1"];
 const ROUTER_HOST = "llm.yeying.pub";
-const INVOCATION_TOKEN_SKEW_MS = 5 * 1000;
 
 type CachedInvocationToken = {
   key: string;
@@ -199,31 +200,6 @@ function isUcanMetaValid(): boolean {
   }
 }
 
-function decodeBase64Url(input: string): string | null {
-  if (!input) return null;
-  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  try {
-    return atob(padded);
-  } catch {
-    return null;
-  }
-}
-
-function decodeUcanPayload(
-  token: string,
-): { exp?: number; nbf?: number } | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  const decoded = decodeBase64Url(parts[1]);
-  if (!decoded) return null;
-  try {
-    return JSON.parse(decoded) as { exp?: number; nbf?: number };
-  } catch {
-    return null;
-  }
-}
-
 function buildCapsKey(caps: UcanCapability[]) {
   return normalizeUcanCapabilities(caps || [], { includeLegacyAliases: false })
     .map((cap) => {
@@ -253,13 +229,6 @@ function getValidCachedRouterInvocationToken(
   const cacheKey = buildRouterInvocationCacheKey(audience, capabilities);
   const cached = cachedRouterInvocationToken;
   if (!cached || !cacheKey || cached.key !== cacheKey) {
-    return null;
-  }
-  const now = Date.now();
-  if (cached.nbf && now < cached.nbf) {
-    return null;
-  }
-  if (cached.exp <= now + INVOCATION_TOKEN_SKEW_MS) {
     return null;
   }
   return cached.token;
@@ -304,7 +273,10 @@ function toAnthropicTools(tools: any[]) {
     .filter(Boolean);
 }
 
-async function getHeadersWithRouterUcan(url: string) {
+async function getHeadersWithRouterUcan(
+  url: string,
+  options: { forceRefresh?: boolean } = {},
+) {
   const headers = getBaseGatewayHeaders();
   const hasFallbackAuthorization = Boolean(headers["Authorization"]);
   if (isCentralModeEnabled()) {
@@ -336,11 +308,10 @@ async function getHeadersWithRouterUcan(url: string) {
   const capabilities = getRouterCapabilities();
   if (!audience || !capabilities.length) return headers;
 
-  const cachedToken = getValidCachedRouterInvocationToken(
-    audience,
-    capabilities,
-  );
-  if (cachedToken) {
+  const cachedToken = options.forceRefresh
+    ? null
+    : getValidCachedRouterInvocationToken(audience, capabilities);
+  if (cachedToken && isUcanTokenFresh(cachedToken)) {
     headers["Authorization"] = `Bearer ${cachedToken}`;
     return headers;
   }
@@ -356,7 +327,8 @@ async function getHeadersWithRouterUcan(url: string) {
   }
 
   try {
-    const ucan = await createInvocationUcan({
+    const ucan = await getOrCreateInvocationUcan({
+      ucan: cachedToken || undefined,
       audience,
       capabilities,
       sessionId: UCAN_SESSION_ID,
@@ -651,7 +623,11 @@ export class ClaudeApi implements LLMApi {
             );
           }
         },
-        options,
+        {
+          ...options,
+          getRefreshedHeaders: () =>
+            getHeadersWithRouterUcan(path, { forceRefresh: true }),
+        },
       );
     } else {
       const payload = {

@@ -326,6 +326,18 @@ function buildStreamTimeoutError(timeoutMS: number): Error {
   );
 }
 
+async function refreshHeadersForUnauthorized(
+  options: any,
+  res: Response,
+  extraInfo: string,
+) {
+  const refreshHeaders = options?.getRefreshedHeaders;
+  if (res.status !== 401 || typeof refreshHeaders !== "function") {
+    return null;
+  }
+  return await refreshHeaders({ response: res, bodyText: extraInfo });
+}
+
 export function stream(
   chatPath: string,
   requestPayload: any,
@@ -348,6 +360,7 @@ export function stream(
   let running = false;
   let runTools: any[] = [];
   let responseRes: Response;
+  let unauthorizedRetryCount = 0;
   const streamTimeoutMS = resolveStreamTimeoutMS(requestPayload);
   const reportError = (error: unknown) => {
     if (hasStreamError) return;
@@ -540,6 +553,23 @@ export function stream(
             extraInfo = prettyObject(resJson);
           } catch {}
 
+          if (unauthorizedRetryCount < 1) {
+            const refreshedHeaders = await refreshHeadersForUnauthorized(
+              options,
+              res,
+              extraInfo,
+            ).catch((error) => {
+              console.warn("[UCAN] failed to refresh stream headers", error);
+              return null;
+            });
+            if (refreshedHeaders) {
+              unauthorizedRetryCount += 1;
+              console.warn("[UCAN] retry stream request with refreshed token");
+              chatApi(chatPath, refreshedHeaders, requestPayload, tools);
+              return;
+            }
+          }
+
           if (res.status === 401) {
             responseTexts.push(Locale.Error.Unauthorized);
           }
@@ -625,6 +655,7 @@ export function streamWithThink(
   let running = false;
   let runTools: any[] = [];
   let responseRes: Response;
+  let unauthorizedRetryCount = 0;
   const streamTimeoutMS = resolveStreamTimeoutMS(requestPayload);
   const reportError = (error: unknown) => {
     if (hasStreamError) return;
@@ -819,6 +850,23 @@ export function streamWithThink(
             const resJson = await res.clone().json();
             extraInfo = prettyObject(resJson);
           } catch {}
+
+          if (unauthorizedRetryCount < 1) {
+            const refreshedHeaders = await refreshHeadersForUnauthorized(
+              options,
+              res,
+              extraInfo,
+            ).catch((error) => {
+              console.warn("[UCAN] failed to refresh stream headers", error);
+              return null;
+            });
+            if (refreshedHeaders) {
+              unauthorizedRetryCount += 1;
+              console.warn("[UCAN] retry stream request with refreshed token");
+              chatApi(chatPath, refreshedHeaders, requestPayload, tools);
+              return;
+            }
+          }
 
           if (res.status === 401) {
             responseTexts.push(Locale.Error.Unauthorized);
