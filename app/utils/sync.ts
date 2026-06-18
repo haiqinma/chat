@@ -4,7 +4,7 @@ import {
   useAppConfig,
   useChatStore,
 } from "../store";
-import { useSkillStore } from "../store/skill";
+import { removeLegacySkills, useSkillStore } from "../store/skill";
 import { usePromptStore } from "../store/prompt";
 import { StoreKey } from "../constant";
 import { merge } from "./merge";
@@ -144,6 +144,10 @@ function normalizeLegacyAppState<T extends Partial<LegacyAppState>>(state: T) {
       skills: legacySkillState.skills ?? legacySkillState.masks ?? {},
     };
   }
+  const skillState = state[StoreKey.Skill];
+  if (skillState?.skills) {
+    removeLegacySkills(skillState.skills);
+  }
   return state;
 }
 
@@ -278,6 +282,7 @@ const MergeStates: StateMerger = {
       ...(remoteSkillState.skills ?? remoteSkillState.masks ?? {}),
       ...(localSkillState.skills ?? localSkillState.masks ?? {}),
     };
+    removeLegacySkills(localState.skills);
     return localState;
   },
   [StoreKey.Config]: (localState, remoteState) =>

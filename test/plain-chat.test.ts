@@ -60,6 +60,19 @@ describe("plain chat reasoning isolation", () => {
     expect(isLegacyPlainChatSkill(plainSkill)).toBe(true);
   });
 
+  test("detects legacy chat skill with old web search tool", () => {
+    expect(
+      isLegacyPlainChatSkill({
+        ...plainSkill,
+        tools: {
+          builtInTools: ["web_search"],
+          mcpTools: [],
+          apiTools: [],
+        },
+      }),
+    ).toBe(true);
+  });
+
   test("does not treat prompted skill as ordinary chat", () => {
     expect(
       isPlainChatSkill({
@@ -76,15 +89,16 @@ describe("plain chat reasoning isolation", () => {
     ).toBe(false);
   });
 
-  test("does not treat built-in general chat as legacy plain chat", () => {
-    const generalSkill = {
-      ...plainSkill,
-      id: "general",
-      name: "通用问答",
-      builtin: true,
-      description: "日常问答、写作、分析和轻量任务处理。",
-    } as Skill;
-
-    expect(isLegacyPlainChatSkill(generalSkill)).toBe(false);
+  test("does not treat installed general chat as legacy chat", () => {
+    expect(
+      isLegacyPlainChatSkill({
+        ...plainSkill,
+        id: "general",
+        name: "通用问答",
+        packageId: "builtin.cn.1700000001001",
+        category: "基础",
+        description: "日常问答、写作、分析和轻量任务处理。",
+      }),
+    ).toBe(false);
   });
 });

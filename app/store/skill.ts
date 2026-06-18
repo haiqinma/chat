@@ -104,6 +104,20 @@ export type SkillState = typeof DEFAULT_SKILL_STATE & {
   language?: Lang | undefined;
 };
 
+export function removeLegacySkills(skills: Record<string, Skill>) {
+  let removed = false;
+  Object.entries(skills).forEach(([id, skill]) => {
+    if (
+      LEGACY_REMOVED_SKILL_NAMES.has(skill.name) ||
+      isLegacyPlainChatSkill(skill)
+    ) {
+      delete skills[id];
+      removed = true;
+    }
+  });
+  return removed;
+}
+
 export const DEFAULT_SKILL_AVATAR = "gpt-bot";
 export const createEmptySkill = () =>
   ({
@@ -154,7 +168,6 @@ export function getBuiltinSkillsForLang(
 }
 
 export function isLaunchableSkill(skill: Skill) {
-  if (isLegacyPlainChatSkill(skill)) return false;
   if (skill.builtin) return true;
 
   return Boolean(
@@ -275,7 +288,19 @@ export const useSkillStore = createPersistStore(
   }),
   {
     name: StoreKey.Skill,
-    version: 4.3,
+    version: 4.6,
+
+    onRehydrateStorage() {
+      return (state) => {
+        if (!state?.skills) return;
+        const skills = { ...state.skills };
+        if (!removeLegacySkills(skills)) return;
+        useSkillStore.setState({
+          skills,
+          lastUpdateTime: Date.now(),
+        });
+      };
+    },
 
     migrate(state, version) {
       const legacyState = JSON.parse(JSON.stringify(state)) as SkillState & {
@@ -300,11 +325,7 @@ export const useSkillStore = createPersistStore(
       }
 
       if (version < 4.1) {
-        Object.entries(newState.skills).forEach(([id, skill]) => {
-          if (LEGACY_REMOVED_SKILL_NAMES.has(skill.name)) {
-            delete newState.skills[id];
-          }
-        });
+        removeLegacySkills(newState.skills);
       }
 
       if (version < 4.2) {
@@ -313,12 +334,8 @@ export const useSkillStore = createPersistStore(
         });
       }
 
-      if (version < 4.3) {
-        Object.entries(newState.skills).forEach(([id, skill]) => {
-          if (isLegacyPlainChatSkill(skill)) {
-            delete newState.skills[id];
-          }
-        });
+      if (version < 4.6) {
+        removeLegacySkills(newState.skills);
       }
 
       return newState as any;

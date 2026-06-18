@@ -30,7 +30,20 @@ export const LEGACY_PLAIN_CHAT_SKILL_NAMES = new Set([
 ]);
 
 export function isLegacyPlainChatSkill(skill: Skill) {
+  const builtInTools = skill.tools?.builtInTools ?? [];
+
   return (
-    LEGACY_PLAIN_CHAT_SKILL_NAMES.has(skill.name) && isPlainChatSkill(skill)
+    LEGACY_PLAIN_CHAT_SKILL_NAMES.has(skill.name) &&
+    !skill.builtin &&
+    !skill.packageId &&
+    !skill.description &&
+    !skill.category &&
+    !skill.starters?.length &&
+    !skill.context?.length &&
+    !skill.plugin?.length &&
+    !skill.tools?.mcpTools?.length &&
+    !skill.tools?.apiTools?.length &&
+    !skill.launch &&
+    builtInTools.every((tool) => tool === "web_search")
   );
 }
