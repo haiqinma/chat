@@ -1079,22 +1079,12 @@ const en: LocaleType = {
         Remain: "remaining space",
       },
     },
-    Tab3: {
-      Title: "Model usage",
-      Info: {
-        Moneys: "Total consumption amount",
-        Tokens: "token consumption",
-      },
-    },
     Tab4: {
       Title: "account service",
       Info: {
         StorageExpansion: "Storage expansion",
         Desc1: "Increase your disk quota limit",
         ImmediatelyExpandCapacity: "Immediately expand capacity",
-        Desc2: "Recharge your account to continue using the service",
-        TopUpBalance: "Top-up balance",
-        GotoRecharge: "Go to recharge",
       },
     },
   },

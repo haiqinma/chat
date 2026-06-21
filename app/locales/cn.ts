@@ -1056,22 +1056,12 @@ const cn = {
         Remain: "剩余空间",
       },
     },
-    Tab3: {
-      Title: "模型使用情况",
-      Info: {
-        Moneys: "总消费金额",
-        Tokens: "tokens消耗",
-      },
-    },
     Tab4: {
       Title: "账户服务",
       Info: {
         StorageExpansion: "存储扩容",
         Desc1: "提升您的磁盘配额上限",
         ImmediatelyExpandCapacity: "立即扩容",
-        Desc2: "为您的账户充值以继续使用服务",
-        TopUpBalance: "充值余额",
-        GotoRecharge: "去充值",
       },
     },
   },

@@ -9,11 +9,6 @@ import Locale from "../locales";
 import { fetchQuota, WebDAVQuota } from "../plugins/webdav";
 import { getClientConfig } from "../config/client";
 
-const mockUsage = {
-  totalCost: "¥128.50",
-  totalTokens: "2,450,000",
-};
-
 function formatBytes(bytes?: number): string {
   if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) {
     return "-";
@@ -50,15 +45,8 @@ function openExternalUrl(url: string) {
 
 export function Centers() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"storage" | "usage">("storage");
   const clientConfig = getClientConfig();
   const webdavPortalUrl = resolveConfigUrl(clientConfig?.webdavBackendBaseUrl);
-  const routerPortalUrl = resolveConfigUrl(clientConfig?.routerBackendUrl);
-
-  const tabs = [
-    { key: "storage", label: Locale.MyCenter.Tab1.Title },
-    { key: "usage", label: Locale.MyCenter.Tab3.Title },
-  ];
 
   const [storageQuota, setStorageQuota] = useState<WebDAVQuota | null>(null);
 
@@ -98,96 +86,48 @@ export function Centers() {
       </div>
 
       <div className={styles["profile"]}>
-        {/* Tab 导航 */}
-        <div className={styles["tabs"]}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              className={`${styles["tab"]} ${
-                activeTab === tab.key ? styles["active"] : ""
-              }`}
-              onClick={() => setActiveTab(tab.key as any)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className={styles["section-title"]}>
+          {Locale.MyCenter.Tab1.Title}
         </div>
-
-        {/* Tab 内容 */}
         <div className={styles["tab-content"]}>
-          {activeTab === "storage" && (
-            <List>
-              <ListItem
-                title={Locale.MyCenter.Tab1.Info.Total}
-                subTitle={
-                  storageQuota?.unlimited
-                    ? "∞"
-                    : formatBytes(storageQuota?.quota)
-                }
+          <List>
+            <ListItem
+              title={Locale.MyCenter.Tab1.Info.Total}
+              subTitle={
+                storageQuota?.unlimited ? "∞" : formatBytes(storageQuota?.quota)
+              }
+            />
+            <ListItem
+              title={Locale.MyCenter.Tab1.Info.Used}
+              subTitle={formatBytes(storageQuota?.used)}
+            />
+            <ListItem
+              title={Locale.MyCenter.Tab1.Info.Remain}
+              subTitle={
+                storageQuota?.unlimited
+                  ? "∞"
+                  : formatBytes(storageQuota?.available)
+              }
+            />
+            <ListItem
+              title={Locale.MyCenter.Tab4.Info.StorageExpansion}
+              subTitle={Locale.MyCenter.Tab4.Info.Desc1}
+            >
+              <IconButton
+                text={Locale.MyCenter.Tab4.Info.ImmediatelyExpandCapacity}
+                type="primary"
+                onClick={() => {
+                  if (!webdavPortalUrl) {
+                    console.warn(
+                      "[MyCenter] missing webdavBackendBaseUrl in client config",
+                    );
+                    return;
+                  }
+                  openExternalUrl(webdavPortalUrl);
+                }}
               />
-              <ListItem
-                title={Locale.MyCenter.Tab1.Info.Used}
-                subTitle={formatBytes(storageQuota?.used)}
-              />
-              <ListItem
-                title={Locale.MyCenter.Tab1.Info.Remain}
-                subTitle={
-                  storageQuota?.unlimited
-                    ? "∞"
-                    : formatBytes(storageQuota?.available)
-                }
-              />
-              <ListItem
-                title={Locale.MyCenter.Tab4.Info.StorageExpansion}
-                subTitle={Locale.MyCenter.Tab4.Info.Desc1}
-              >
-                <IconButton
-                  text={Locale.MyCenter.Tab4.Info.ImmediatelyExpandCapacity}
-                  type="primary"
-                  onClick={() => {
-                    if (!webdavPortalUrl) {
-                      console.warn(
-                        "[MyCenter] missing webdavBackendBaseUrl in client config",
-                      );
-                      return;
-                    }
-                    openExternalUrl(webdavPortalUrl);
-                  }}
-                />
-              </ListItem>
-            </List>
-          )}
-
-          {activeTab === "usage" && (
-            <List>
-              <ListItem
-                title={Locale.MyCenter.Tab3.Info.Moneys}
-                subTitle={mockUsage.totalCost}
-              />
-              <ListItem
-                title={Locale.MyCenter.Tab3.Info.Tokens}
-                subTitle={mockUsage.totalTokens}
-              />
-              <ListItem
-                title={Locale.MyCenter.Tab4.Info.TopUpBalance}
-                subTitle={Locale.MyCenter.Tab4.Info.Desc2}
-              >
-                <IconButton
-                  text={Locale.MyCenter.Tab4.Info.GotoRecharge}
-                  type="primary"
-                  onClick={() => {
-                    if (!routerPortalUrl) {
-                      console.warn(
-                        "[MyCenter] missing routerBackendUrl in client config",
-                      );
-                      return;
-                    }
-                    openExternalUrl(routerPortalUrl);
-                  }}
-                />
-              </ListItem>
-            </List>
-          )}
+            </ListItem>
+          </List>
         </div>
       </div>
     </div>
