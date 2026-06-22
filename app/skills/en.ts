@@ -55,6 +55,12 @@ export const EN_SKILLS: BuiltinSkill[] = [
     toolStrategy: {
       nativeMcpTools: "auto",
     },
+    modelConfig: {
+      responsesMode: "stateful",
+      temperature: 0.25,
+      max_tokens: 6000,
+      historyMessageCount: 10,
+    },
     context: [
       {
         id: "en-web-research-0",
@@ -64,11 +70,6 @@ export const EN_SKILLS: BuiltinSkill[] = [
         date: "",
       },
     ],
-    modelConfig: {
-      temperature: 0.25,
-      max_tokens: 6000,
-      historyMessageCount: 10,
-    },
   }),
   createBuiltinSkill({
     avatar: "1f4c4",

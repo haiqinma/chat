@@ -1941,11 +1941,9 @@ function ChatView() {
                   const isUser = message.role === "user";
                   const isContext = i < context.length;
                   const showActions =
-                    i > 0 &&
                     !(
                       message.preview || getMessageContentLength(message) === 0
-                    ) &&
-                    !isContext;
+                    ) && !isContext;
                   const showTyping = message.preview || message.streaming;
                   const messageImages = getMessageImages(message);
 
