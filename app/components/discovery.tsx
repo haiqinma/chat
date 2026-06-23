@@ -18,11 +18,15 @@ import {
   getMarketplaceSourceUrls,
 } from "../marketplace/sources";
 import {
+  getMarketplaceCategoryLabel,
+  getMarketplaceTagLabel,
+} from "../marketplace/display";
+import {
   getMissingMcpConfigKeys,
   readMcpConfigBoolean,
   stringifyMcpConfigValue,
 } from "../mcp/config-schema";
-import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
+import { getOfficialMcpPresetServers } from "../mcp/preset-servers";
 import {
   McpConfigData,
   PresetServer,
@@ -203,6 +207,10 @@ export function DiscoveryPage() {
   const view = getInitialView(location.search);
   const activeType = getInitialType(location.search);
   const currentLang = getLang();
+  const officialMcpPresetServers = useMemo(
+    () => getOfficialMcpPresetServers(currentLang),
+    [currentLang],
+  );
   const [searchText, setSearchText] = useState("");
   const deferredSearchText = useDeferredValue(searchText);
   const skillRecords = useSkillStore((state) => state.skills);
@@ -459,7 +467,7 @@ export function DiscoveryPage() {
     const installedPluginIds = plugins.map((plugin) => plugin.id);
     const installedMcpServerIds = Object.keys(mcpConfig?.mcpServers ?? {});
     const mcpPresetServers = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     );
     const installedPackageIds = new Set(
@@ -492,7 +500,7 @@ export function DiscoveryPage() {
           title: skill.name,
           description: skill.description || Locale.Discovery.DefaultSkillDesc,
           highlights: [
-            skill.category,
+            getMarketplaceCategoryLabel(skill.category, currentLang),
             skill.starters?.length
               ? Locale.Discovery.SkillStarters(skill.starters.length)
               : undefined,
@@ -568,7 +576,7 @@ export function DiscoveryPage() {
             Locale.Discovery.DefaultSkillDesc,
           ),
           highlights: [
-            skillPackage.category,
+            getMarketplaceCategoryLabel(skillPackage.category, currentLang),
             skillPackage.starters?.length
               ? Locale.Discovery.SkillStarters(skillPackage.starters.length)
               : undefined,
@@ -603,7 +611,7 @@ export function DiscoveryPage() {
       });
 
     const officialMcpIds = new Set(
-      OFFICIAL_MCP_PRESET_SERVERS.map((server) => server.id),
+      officialMcpPresetServers.map((server) => server.id),
     );
     const mcpToolItems: Capability[] = mcpPresetServers.map((server) => {
       const serverConfig = mcpConfig?.mcpServers[server.id];
@@ -625,7 +633,9 @@ export function DiscoveryPage() {
         type: "mcp",
         title: server.name,
         description: server.description,
-        highlights: server.tags.slice(0, 3),
+        highlights: server.tags
+          .slice(0, 3)
+          .map((tag) => getMarketplaceTagLabel(tag, currentLang)),
         status,
         pricing: "free",
         runtime: server.tags.includes("local") ? "local" : "both",
@@ -706,6 +716,7 @@ export function DiscoveryPage() {
     mcpStatuses,
     modelConfig,
     models,
+    officialMcpPresetServers,
     plugins,
     skillRecords,
     skills,
@@ -784,7 +795,7 @@ export function DiscoveryPage() {
   useEffect(() => {
     if (!editingMcpServerId) return;
     const preset = communityMcpServers
-      .concat(OFFICIAL_MCP_PRESET_SERVERS)
+      .concat(officialMcpPresetServers)
       .find((server) => server.id === editingMcpServerId);
     if (!preset?.configSchema) return;
 
@@ -806,7 +817,12 @@ export function DiscoveryPage() {
       }
     });
     setMcpUserConfig(nextUserConfig);
-  }, [communityMcpServers, editingMcpServerId, mcpConfig?.mcpServers]);
+  }, [
+    communityMcpServers,
+    editingMcpServerId,
+    mcpConfig?.mcpServers,
+    officialMcpPresetServers,
+  ]);
 
   const renderMcpPropertyDescription = (prop: DiscoveryConfigProperty) => {
     if (!prop.description && !prop.helpUrl) return undefined;
@@ -827,7 +843,7 @@ export function DiscoveryPage() {
 
   const renderMcpConfigForm = () => {
     const preset = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     ).find((server) => server.id === editingMcpServerId);
     if (!preset?.configSchema) return null;
@@ -944,7 +960,7 @@ export function DiscoveryPage() {
 
   const saveMcpServerConfig = async () => {
     const preset = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     ).find((server) => server.id === editingMcpServerId);
     if (!preset || !preset.configSchema || !editingMcpServerId) return;
