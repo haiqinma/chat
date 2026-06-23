@@ -1,7 +1,11 @@
 import { LLMModel } from "../client/api";
 import { ModelConfig } from "../store/config";
 import { ServerStatusResponse } from "../mcp/types";
-import type { Skill } from "../store/skill";
+import {
+  getRequiredSkillMcpTools,
+  getSkillSessionToolbar,
+  type Skill,
+} from "../store/skill";
 import {
   collectModelsWithDefaultModel,
   filterModelsByCandidates,
@@ -15,7 +19,8 @@ export type SkillRuntimeIssueType =
   | "model"
   | "api_tool"
   | "mcp_missing"
-  | "mcp_inactive";
+  | "mcp_inactive"
+  | "realtime";
 
 export type SkillRuntimeIssue = {
   type: SkillRuntimeIssueType;
@@ -54,10 +59,6 @@ export function hasSkillMcpRuntimeIssue(result?: SkillRuntimeResult) {
 
 function getSkillApiTools(skill: Skill) {
   return skill.tools?.apiTools ?? skill.plugin ?? [];
-}
-
-function getSkillMcpTools(skill: Skill) {
-  return skill.tools?.mcpTools ?? [];
 }
 
 export function resolveSkillRuntimeStatus(params: {
@@ -100,7 +101,9 @@ export function resolveSkillRuntimeStatus(params: {
         ...globalModelConfig,
         ...skill.modelConfig,
       };
-  const usesWorkspaceRuntime = skill.launch?.type === "sd";
+  const realtimeEnabled =
+    Boolean(skill.realtimeConfig) && getSkillSessionToolbar(skill).realtime;
+  const usesWorkspaceRuntime = skill.launch?.type === "sd" || realtimeEnabled;
   const hasCandidateModelRestriction = candidateModels.length > 0;
   const hasCurrentModel = sessionModels.some((model) =>
     matchesModelCandidate(model, {
@@ -113,15 +116,16 @@ export function resolveSkillRuntimeStatus(params: {
     (id) => !pluginIdSet.has(id),
   ).length;
   const mcpServerIdSet = new Set(installedMcpServerIds ?? []);
-  const mcpTools = getSkillMcpTools(skill);
-  const missingMcpServerCount = mcpTools.filter(
+  const requiredMcpTools = getRequiredSkillMcpTools(skill);
+  const missingMcpServerCount = requiredMcpTools.filter(
     (id) => !mcpServerIdSet.has(id),
   ).length;
-  const inactiveMcpServerCount = mcpTools.filter((id) => {
+  const inactiveMcpServerCount = requiredMcpTools.filter((id) => {
     if (!mcpServerIdSet.has(id)) return false;
     if (!mcpStatuses) return false;
     return mcpStatuses[id]?.status !== "active";
   }).length;
+  const realtimeConfig = skill.realtimeConfig;
 
   const issues: SkillRuntimeIssue[] = [];
 
@@ -190,6 +194,29 @@ export function resolveSkillRuntimeStatus(params: {
           ? "1 个 MCP 未正常运行"
           : `${inactiveMcpServerCount} 个 MCP 未正常运行`,
     });
+  }
+
+  if (realtimeEnabled) {
+    if (!realtimeConfig?.enabled) {
+      issues.push({
+        type: "realtime",
+        message: "实时聊天未启用",
+      });
+    } else if (!realtimeConfig.apiKey?.trim()) {
+      issues.push({
+        type: "realtime",
+        message: "缺少实时聊天 API Key",
+      });
+    } else if (
+      realtimeConfig.provider === "Azure" &&
+      (!realtimeConfig.azure.endpoint?.trim() ||
+        !realtimeConfig.azure.deployment?.trim())
+    ) {
+      issues.push({
+        type: "realtime",
+        message: "缺少 Azure 实时聊天配置",
+      });
+    }
   }
 
   return {

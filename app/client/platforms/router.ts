@@ -10,15 +10,8 @@ import {
 import { getClientConfig } from "@/app/config/client";
 import { getCachedUcanSession } from "@/app/plugins/ucan-session";
 import {
-  getErrorMessage,
-  invalidateUcan,
-  invalidateUcanAndThrow,
-  shouldInvalidateUcanByError,
-} from "@/app/plugins/ucan-auth";
-import {
   getRouterAudience,
   getRouterCapabilities,
-  getUcanRootCapsKey,
   UCAN_SESSION_ID,
 } from "@/app/plugins/ucan";
 import {
@@ -28,15 +21,7 @@ import {
 import { useAccessStore } from "@/app/store";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
 import { fetch } from "@/app/utils/stream";
-import {
-  decodeUcanPayload,
-  getCapabilityAction,
-  getCapabilityResource,
-  getOrCreateInvocationUcan,
-  isUcanTokenFresh,
-  normalizeUcanCapabilities,
-  type UcanCapability,
-} from "@yeying-community/web3-bs";
+import { authUcanFetch } from "@yeying-community/web3-bs";
 import {
   ChatOptions,
   LLMApi,
@@ -82,16 +67,50 @@ type RouterProviderModelsResponse = {
   data?: RouterProviderModelsItem[];
 };
 
-const ROUTER_HOST = "llm.yeying.pub";
-
-type CachedInvocationToken = {
-  key: string;
-  token: string;
-  exp: number;
-  nbf?: number;
+export type RouterPublicToken = {
+  id?: string;
+  key?: string;
+  status?: number | string;
+  name?: string;
+  created_time?: number;
+  updated_time?: number;
+  expired_time?: number;
+  remain_quota?: number;
+  unlimited_quota?: boolean;
+  remaining_amount?: number;
+  used_amount?: number;
+  models?: string | null;
 };
 
-let cachedRouterInvocationToken: CachedInvocationToken | null = null;
+type RouterPublicTokenListResponse = {
+  success?: boolean;
+  data?: RouterPublicToken[];
+};
+
+export type RouterTokenStatus = {
+  object?: string;
+  token_id?: string;
+  token_name?: string;
+  status?: number | string;
+  unlimited_quota?: boolean;
+  total_granted?: number;
+  total_used?: number;
+  total_available?: number;
+  remaining_amount?: number;
+  used_amount?: number;
+  created_at?: number;
+  updated_at?: number;
+  accessed_at?: number;
+  expires_at?: number;
+};
+
+type RouterTokenStatusResponse = {
+  success?: boolean;
+  message?: string;
+  data?: RouterTokenStatus;
+};
+
+const ROUTER_HOST = "llm.yeying.pub";
 
 const getRouterBackendHost = () => {
   try {
@@ -119,63 +138,18 @@ function isRouterUrl(url: string): boolean {
   }
 }
 
-function isUcanMetaValid(): boolean {
-  try {
-    if (typeof localStorage === "undefined") return false;
-    const expRaw = localStorage.getItem("ucanRootExp");
-    const iss = localStorage.getItem("ucanRootIss");
-    const caps = localStorage.getItem("ucanRootCaps");
-    const account = localStorage.getItem("currentAccount") || "";
-    if (!expRaw || !iss || !account) return false;
-    const exp = Number(expRaw);
-    if (!Number.isFinite(exp) || exp <= Date.now()) return false;
-    if (!caps || caps !== getUcanRootCapsKey()) return false;
-    return iss === `did:pkh:eth:${account.toLowerCase()}`;
-  } catch {
-    return false;
-  }
-}
-
-function buildCapsKey(caps: UcanCapability[]) {
-  return normalizeUcanCapabilities(caps || [], { includeLegacyAliases: false })
-    .map((cap) => {
-      const resource = getCapabilityResource(cap);
-      const action = getCapabilityAction(cap);
-      return `${resource}:${action}`;
-    })
-    .filter((entry) => entry !== ":")
-    .sort()
-    .join("|");
-}
-
-function buildRouterInvocationCacheKey(
-  audience: string,
-  capabilities: UcanCapability[],
-) {
-  if (typeof localStorage === "undefined") return "";
-  const account = localStorage.getItem("currentAccount") || "";
-  const rootCaps = localStorage.getItem("ucanRootCaps") || "";
-  return `${account}|${rootCaps}|${audience}|${buildCapsKey(capabilities)}`;
-}
-
-function getValidCachedRouterInvocationToken(
-  audience: string,
-  capabilities: UcanCapability[],
-) {
-  const cacheKey = buildRouterInvocationCacheKey(audience, capabilities);
-  const cached = cachedRouterInvocationToken;
-  if (!cached || !cacheKey || cached.key !== cacheKey) {
-    return null;
-  }
-  return cached.token;
-}
-
 function getBaseRouterHeaders() {
   const accessStore = useAccessStore.getState();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
   };
+
+  const selectedToken = accessStore.selectedRouterToken?.trim();
+  if (selectedToken) {
+    headers["Authorization"] = `Bearer ${selectedToken}`;
+    return headers;
+  }
 
   const apiKey = accessStore.openaiApiKey.trim();
   if (apiKey) {
@@ -191,90 +165,64 @@ function getBaseRouterHeaders() {
   return headers;
 }
 
-async function getHeadersWithRouterUcan(url: string) {
-  const headers = getBaseRouterHeaders();
-  const hasFallbackAuthorization = Boolean(headers["Authorization"]);
-  if (isCentralModeEnabled()) {
-    if (!isRouterUrl(url)) return headers;
-    const audience = getRouterAudience();
-    const capabilities = getRouterCapabilities();
-    if (!audience || !capabilities.length) return headers;
-    try {
-      const centralAuthorization =
-        await getCentralUcanAuthorizationHeaderForAudience({
-          audience,
-          capabilities,
-        });
-      if (centralAuthorization) {
-        headers["Authorization"] = centralAuthorization;
-      }
-    } catch (error) {
-      if (!hasFallbackAuthorization) {
-        throw error;
-      }
-      console.warn("[Router Models] failed to issue central UCAN", error);
-    }
-    return headers;
-  }
-  if (!isRouterUrl(url)) return headers;
-  if (!isUcanMetaValid()) return headers;
-
+async function fetchRouterTokensWithUcan(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
   const audience = getRouterAudience();
   const capabilities = getRouterCapabilities();
-  if (!audience || !capabilities.length) return headers;
 
-  const cachedToken = getValidCachedRouterInvocationToken(
-    audience,
-    capabilities,
-  );
-  if (cachedToken && isUcanTokenFresh(cachedToken)) {
-    headers["Authorization"] = `Bearer ${cachedToken}`;
-    return headers;
+  if (isCentralModeEnabled()) {
+    const authorization = await getCentralUcanAuthorizationHeaderForAudience({
+      audience,
+      capabilities,
+    });
+    if (!authorization) {
+      throw new Error("UCAN authorization is not available");
+    }
+    return fetch(url, {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(init.headers || {}),
+        Authorization: authorization,
+      },
+    });
   }
 
   const issuer = await getCachedUcanSession();
-  if (!issuer) {
-    cachedRouterInvocationToken = null;
-    if (!hasFallbackAuthorization) {
-      return await invalidateUcanAndThrow("UCAN session is not available");
-    }
-    await invalidateUcan("UCAN session is not available");
-    return headers;
+  if (!issuer || !audience) {
+    throw new Error("UCAN session is not available");
   }
 
-  try {
-    const ucan = await getOrCreateInvocationUcan({
-      ucan: cachedToken || undefined,
+  return authUcanFetch(
+    url,
+    {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(init.headers || {}),
+      },
+    },
+    {
+      sessionId: UCAN_SESSION_ID,
       audience,
       capabilities,
-      sessionId: UCAN_SESSION_ID,
       issuer,
-    });
-    const payload = decodeUcanPayload(ucan);
-    const key = buildRouterInvocationCacheKey(audience, capabilities);
-    if (payload && typeof payload.exp === "number" && key) {
-      cachedRouterInvocationToken = {
-        key,
-        token: ucan,
-        exp: payload.exp,
-        nbf: payload.nbf,
-      };
-    }
-    headers["Authorization"] = `Bearer ${ucan}`;
-  } catch (error) {
-    cachedRouterInvocationToken = null;
-    if (shouldInvalidateUcanByError(error)) {
-      if (!hasFallbackAuthorization) {
-        return await invalidateUcanAndThrow(
-          getErrorMessage(error) || "UCAN invocation failed",
-        );
-      }
-      await invalidateUcan(getErrorMessage(error) || "UCAN invocation failed");
-      return headers;
-    }
-    console.warn("[Router Models] failed to create invocation token", error);
-  }
+    },
+  );
+}
+
+function getHeadersForRouterModelAccess(url: string) {
+  const headers = getBaseRouterHeaders();
+  if (!isRouterUrl(url)) return headers;
   return headers;
+}
+
+function getRouterBackendBaseUrl() {
+  const routerBackendUrl =
+    getClientConfig()?.routerBackendUrl?.trim() || "http://127.0.0.1:3011";
+  return routerBackendUrl.replace(/\/+$/, "");
 }
 
 function resolveProviderNameFromOwnedBy(
@@ -474,6 +422,68 @@ export class RouterApi implements LLMApi {
     };
   }
 
+  async publicTokens(): Promise<RouterPublicToken[]> {
+    const tokenListPath = `${getRouterBackendBaseUrl()}/api/v1/public/token/`;
+
+    try {
+      const res = await fetchRouterTokensWithUcan(`${tokenListPath}?page=1`, {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        throw new Error(`[Router Tokens] failed to fetch: ${res.status}`);
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.toLowerCase().includes("application/json")) {
+        const bodyPreview = (await res.text()).slice(0, 120);
+        throw new Error(
+          `[Router Tokens] expected JSON but got ${contentType || "unknown"}: ${bodyPreview}`,
+        );
+      }
+
+      const resJson = (await res.json()) as RouterPublicTokenListResponse;
+      return Array.isArray(resJson.data) ? resJson.data : [];
+    } catch (error) {
+      console.warn("[Router Tokens] failed to fetch", error);
+      return [];
+    }
+  }
+
+  async publicTokenStatus(): Promise<RouterTokenStatus | null> {
+    const statusPath = `${getRouterBackendBaseUrl()}/api/v1/public/token/status`;
+
+    try {
+      const headers = getHeadersForRouterModelAccess(statusPath);
+      if (!headers.Authorization) {
+        return null;
+      }
+
+      const res = await fetch(statusPath, {
+        method: "GET",
+        headers,
+      });
+
+      if (!res.ok) {
+        throw new Error(`[Router Token Status] failed to fetch: ${res.status}`);
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.toLowerCase().includes("application/json")) {
+        const bodyPreview = (await res.text()).slice(0, 120);
+        throw new Error(
+          `[Router Token Status] expected JSON but got ${contentType || "unknown"}: ${bodyPreview}`,
+        );
+      }
+
+      const resJson = (await res.json()) as RouterTokenStatusResponse;
+      return resJson.success && resJson.data ? resJson.data : null;
+    } catch (error) {
+      console.warn("[Router Token Status] failed to fetch", error);
+      return null;
+    }
+  }
+
   private path(path: string): string {
     const accessStore = useAccessStore.getState();
     let baseUrl = "";
@@ -506,9 +516,10 @@ export class RouterApi implements LLMApi {
       accessStore.enabledAccessControl() &&
       accessStore.accessCode.trim() !== "";
     const hasApiKey = accessStore.openaiApiKey.trim() !== "";
+    const hasSelectedToken = accessStore.selectedRouterToken.trim() !== "";
     const shouldSkipRouterFetch =
       isRouterUrl(providerModelsPath) &&
-      !isUcanMetaValid() &&
+      !hasSelectedToken &&
       !hasApiKey &&
       !hasAccessCode;
 
@@ -517,7 +528,7 @@ export class RouterApi implements LLMApi {
     }
 
     try {
-      const headers = await getHeadersWithRouterUcan(providerModelsPath);
+      const headers = getHeadersForRouterModelAccess(providerModelsPath);
       const res = await fetch(providerModelsPath, {
         method: "GET",
         headers,
@@ -544,9 +555,10 @@ export class RouterApi implements LLMApi {
       accessStore.enabledAccessControl() &&
       accessStore.accessCode.trim() !== "";
     const hasApiKey = accessStore.openaiApiKey.trim() !== "";
+    const hasSelectedToken = accessStore.selectedRouterToken.trim() !== "";
     const shouldSkipRouterFetch =
       isRouterUrl(listPath) &&
-      !isUcanMetaValid() &&
+      !hasSelectedToken &&
       !hasApiKey &&
       !hasAccessCode;
 
@@ -555,7 +567,7 @@ export class RouterApi implements LLMApi {
     }
 
     try {
-      const headers = await getHeadersWithRouterUcan(listPath);
+      const headers = getHeadersForRouterModelAccess(listPath);
       const res = await fetch(listPath, {
         method: "GET",
         headers,

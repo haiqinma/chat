@@ -55,6 +55,12 @@ export const EN_SKILLS: BuiltinSkill[] = [
     toolStrategy: {
       nativeMcpTools: "auto",
     },
+    modelConfig: {
+      responsesMode: "stateful",
+      temperature: 0.25,
+      max_tokens: 6000,
+      historyMessageCount: 10,
+    },
     context: [
       {
         id: "en-web-research-0",
@@ -64,11 +70,6 @@ export const EN_SKILLS: BuiltinSkill[] = [
         date: "",
       },
     ],
-    modelConfig: {
-      temperature: 0.25,
-      max_tokens: 6000,
-      historyMessageCount: 10,
-    },
   }),
   createBuiltinSkill({
     avatar: "1f4c4",
@@ -205,6 +206,40 @@ export const EN_SKILLS: BuiltinSkill[] = [
       size: "1024x1024",
       quality: "auto",
       style: "vivid",
+    },
+  }),
+  createBuiltinSkill({
+    avatar: "1f3a7",
+    name: "Realtime Chat",
+    description:
+      "Use realtime voice conversation for spoken interaction, quick feedback, and natural back-and-forth.",
+    category: "Voice",
+    starters: [
+      "Start a realtime voice chat.",
+      "I want to discuss this by voice.",
+      "Open realtime conversation and talk with me.",
+    ],
+    lang: "en",
+    createdAt: 1700000002007,
+    syncGlobalConfig: false,
+    ui: {
+      sessionToolbar: CHAT_TOOLBAR_PRESETS.realtime,
+    },
+    context: [
+      {
+        id: "en-realtime-0",
+        role: "system",
+        content:
+          "You are in a realtime voice chat. Keep responses natural, concise, and suitable for spoken conversation. If the user pauses or speaks incompletely, confirm the intent and keep the conversation moving.",
+        date: "",
+      },
+    ],
+    modelConfig: {
+      temperature: 0.5,
+      historyMessageCount: 6,
+    },
+    realtimeConfig: {
+      enabled: false,
     },
   }),
 ];

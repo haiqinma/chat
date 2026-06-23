@@ -40,6 +40,7 @@ import {
   LLMModel,
   LLMUsage,
   MultimodalContent,
+  type ResponsesConversationMode,
   normalizeModelEndpointPath,
   normalizeSupportedEndpoints,
   SupportedEndpoint,
@@ -230,6 +231,36 @@ function getValidCachedRouterInvocationToken(
   return cached.token;
 }
 
+function applySelectedRouterTokenAuthorization(
+  headers: Record<string, string>,
+  url: string,
+) {
+  if (!isRouterUrl(url)) return headers;
+  const selectedToken =
+    useAccessStore.getState().selectedRouterToken?.trim() || "";
+  if (selectedToken) {
+    headers["Authorization"] = `Bearer ${selectedToken}`;
+  }
+  return headers;
+}
+
+function getHeadersForRouterModelAccess(
+  url: string,
+  providerNameOverride?: string,
+) {
+  const headers = getHeaders(false, providerNameOverride);
+  return applySelectedRouterTokenAuthorization(headers, url);
+}
+
+function ensureRouterModelAuthorization(
+  url: string,
+  headers: Record<string, string>,
+) {
+  if (isRouterUrl(url) && !headers["Authorization"]) {
+    throw new Error("请先在 Router 页面选择可用令牌");
+  }
+}
+
 export async function getHeadersWithRouterUcan(
   url: string,
   providerNameOverride?: string,
@@ -241,7 +272,9 @@ export async function getHeadersWithRouterUcan(
     if (!isRouterUrl(url)) return headers;
     const audience = getRouterAudience();
     const capabilities = getRouterCapabilities();
-    if (!audience || !capabilities.length) return headers;
+    if (!audience || !capabilities.length) {
+      return applySelectedRouterTokenAuthorization(headers, url);
+    }
     try {
       const centralAuthorization =
         await getCentralUcanAuthorizationHeaderForAudience({
@@ -257,21 +290,30 @@ export async function getHeadersWithRouterUcan(
       }
       console.warn("[UCAN] Failed to issue central invocation", error);
     }
-    return headers;
+    return applySelectedRouterTokenAuthorization(headers, url);
   }
   if (!isRouterUrl(url)) return headers;
-  if (!isUcanMetaValid()) return headers;
+  const selectedToken = useAccessStore.getState().selectedRouterToken?.trim();
+  if (selectedToken) {
+    headers["Authorization"] = `Bearer ${selectedToken}`;
+    return headers;
+  }
+  if (!isUcanMetaValid()) {
+    return applySelectedRouterTokenAuthorization(headers, url);
+  }
 
   const audience = getRouterAudience();
   const capabilities = getRouterCapabilities();
-  if (!audience || !capabilities.length) return headers;
+  if (!audience || !capabilities.length) {
+    return applySelectedRouterTokenAuthorization(headers, url);
+  }
 
   const cachedToken = options.forceRefresh
     ? null
     : getValidCachedRouterInvocationToken(audience, capabilities);
   if (cachedToken && isUcanTokenFresh(cachedToken)) {
     headers["Authorization"] = `Bearer ${cachedToken}`;
-    return headers;
+    return applySelectedRouterTokenAuthorization(headers, url);
   }
 
   try {
@@ -284,7 +326,7 @@ export async function getHeadersWithRouterUcan(
         return await invalidateUcanAndThrow("UCAN session is not available");
       }
       await invalidateUcan("UCAN session is not available");
-      return headers;
+      return applySelectedRouterTokenAuthorization(headers, url);
     }
 
     const ucan = await getOrCreateInvocationUcan({
@@ -314,11 +356,11 @@ export async function getHeadersWithRouterUcan(
         );
       }
       await invalidateUcan(getErrorMessage(error) || "UCAN invocation failed");
-      return headers;
+      return applySelectedRouterTokenAuthorization(headers, url);
     }
     console.warn("[UCAN] Failed to create invocation", error);
   }
-  return headers;
+  return applySelectedRouterTokenAuthorization(headers, url);
 }
 
 function isResponsesPath(path: string) {
@@ -568,6 +610,97 @@ function toResponsesFunctionOutputs(toolCallResult: any[]) {
       };
     })
     .filter(Boolean);
+}
+
+function toResponsesFunctionCallInputs(toolCallMessage: any) {
+  const toolCalls = Array.isArray(toolCallMessage?.tool_calls)
+    ? toolCallMessage.tool_calls
+    : [];
+  return toolCalls
+    .map((tool: any) => {
+      const callId = typeof tool?.id === "string" ? tool.id : "";
+      const name =
+        typeof tool?.function?.name === "string" ? tool.function.name : "";
+      if (!callId || !name) return null;
+
+      let args = tool?.function?.arguments;
+      if (typeof args !== "string") {
+        try {
+          args = JSON.stringify(args ?? {});
+        } catch {
+          args = String(args ?? "{}");
+        }
+      }
+
+      const item: Record<string, any> = {
+        type: "function_call",
+        call_id: callId,
+        name,
+        arguments: args,
+      };
+      const itemId =
+        typeof tool?.responses_item_id === "string"
+          ? tool.responses_item_id
+          : "";
+      if (itemId) {
+        item.id = itemId;
+      }
+      return item;
+    })
+    .filter(Boolean);
+}
+
+function resolveResponsesConversationMode(
+  configuredMode: unknown,
+  chatPath: string,
+): ResponsesConversationMode {
+  if (configuredMode === "stateful" || configuredMode === "stateless") {
+    return configuredMode;
+  }
+
+  // Official Responses supports both modes. Router/OpenAI-compatible gateways
+  // default to stateless because they may not persist response objects.
+  return isRouterUrl(chatPath) ? "stateless" : "stateful";
+}
+
+function extractResponsesResponseId(payload: any): string {
+  if (!payload || typeof payload !== "object") return "";
+  const responseId =
+    typeof payload?.response?.id === "string" ? payload.response.id : "";
+  if (responseId) return responseId;
+  const id = typeof payload?.id === "string" ? payload.id : "";
+  return id.startsWith("resp_") ? id : "";
+}
+
+function appendResponsesToolContinuation(
+  requestPayload: Record<string, any>,
+  toolCallMessage: any,
+  toolCallResult: any[],
+  options: {
+    mode: ResponsesConversationMode;
+    previousResponseId?: string;
+  },
+) {
+  const outputs = toResponsesFunctionOutputs(toolCallResult);
+  if (options.mode === "stateful") {
+    if (!options.previousResponseId) {
+      throw new Error("Responses stateful mode requires previous response id");
+    }
+    requestPayload.input = outputs;
+    requestPayload.previous_response_id = options.previousResponseId;
+    requestPayload.store = true;
+    delete requestPayload.messages;
+    return;
+  }
+
+  const previousInput = Array.isArray(requestPayload.input)
+    ? requestPayload.input
+    : [];
+  const functionCalls = toResponsesFunctionCallInputs(toolCallMessage);
+  requestPayload.input = [...previousInput, ...functionCalls, ...outputs];
+  requestPayload.store = false;
+  delete requestPayload.previous_response_id;
+  delete requestPayload.messages;
 }
 
 const RESPONSES_ALLOWED_FIELDS = new Set([
@@ -868,7 +1001,8 @@ export class ChatGPTApi implements LLMApi {
 
     try {
       const speechPath = this.path(OpenaiPath.SpeechPath);
-      const speechHeaders = await getHeadersWithRouterUcan(speechPath);
+      const speechHeaders = getHeadersForRouterModelAccess(speechPath);
+      ensureRouterModelAuthorization(speechPath, speechHeaders);
       const speechPayload = {
         method: "POST",
         body: JSON.stringify(requestPayload),
@@ -1000,6 +1134,10 @@ export class ChatGPTApi implements LLMApi {
         );
       }
 
+      const responsesConversationMode = useResponsesEndpoint
+        ? resolveResponsesConversationMode(modelConfig.responsesMode, chatPath)
+        : undefined;
+
       const requestTools = useResponsesEndpoint
         ? [
             ...getBuiltInResponsesTools(skillBuiltInTools),
@@ -1057,6 +1195,7 @@ export class ChatGPTApi implements LLMApi {
             input,
             stream: options.config.stream,
             max_output_tokens: modelConfig.max_tokens,
+            store: responsesConversationMode === "stateful",
           };
           if (!isO1OrO3 && !hasNonTextInput) {
             responsesPayload.temperature = modelConfig.temperature;
@@ -1111,6 +1250,7 @@ export class ChatGPTApi implements LLMApi {
       console.log("[Request] openai endpoint:", chatPath, {
         stream: shouldStream,
         responses: isResponsesPath(chatPath),
+        responsesMode: responsesConversationMode,
         tools: requestTools.length,
         fallbackToChatCompletions: shouldFallbackToChatCompletions,
       });
@@ -1164,16 +1304,20 @@ export class ChatGPTApi implements LLMApi {
           if (callId) {
             current.id = callId;
           }
+          if (itemId) {
+            (current as any).responses_item_id = itemId;
+          }
           if (name) {
             current.function.name = name;
           }
           return toolIndex;
         };
 
-        const chatHeaders = await getHeadersWithRouterUcan(
+        const chatHeaders = getHeadersForRouterModelAccess(
           chatPath,
           modelConfig.providerName,
         );
+        ensureRouterModelAuthorization(chatPath, chatHeaders);
         streamWithThink(
           chatPath,
           requestPayload,
@@ -1189,9 +1333,7 @@ export class ChatGPTApi implements LLMApi {
               if (!eventType.startsWith("response.")) {
                 return { isThinking: false, content: "" };
               }
-
-              const responseId =
-                typeof json?.response?.id === "string" ? json.response.id : "";
+              const responseId = extractResponsesResponseId(json);
               if (responseId) {
                 latestResponsesId = responseId;
               }
@@ -1378,13 +1520,15 @@ export class ChatGPTApi implements LLMApi {
             if (useResponsesEndpoint) {
               responsesToolIndexByItemId.clear();
               responsesToolIndexByOutput.clear();
-              const outputs = toResponsesFunctionOutputs(toolCallResult);
-              (requestPayload as any).input = outputs;
-              if (latestResponsesId) {
-                (requestPayload as any).previous_response_id =
-                  latestResponsesId;
-              }
-              delete (requestPayload as any).messages;
+              appendResponsesToolContinuation(
+                requestPayload as Record<string, any>,
+                toolCallMessage,
+                toolCallResult,
+                {
+                  mode: responsesConversationMode ?? "stateless",
+                  previousResponseId: latestResponsesId,
+                },
+              );
               return;
             }
             if (Array.isArray((requestPayload as any)?.messages)) {
@@ -1413,16 +1557,20 @@ export class ChatGPTApi implements LLMApi {
           {
             ...options,
             getRefreshedHeaders: () =>
-              getHeadersWithRouterUcan(chatPath, modelConfig.providerName, {
-                forceRefresh: true,
-              }),
+              Promise.resolve(
+                getHeadersForRouterModelAccess(
+                  chatPath,
+                  modelConfig.providerName,
+                ),
+              ),
           },
         );
       } else {
-        const chatHeaders = await getHeadersWithRouterUcan(
+        const chatHeaders = getHeadersForRouterModelAccess(
           chatPath,
           modelConfig.providerName,
         );
+        ensureRouterModelAuthorization(chatPath, chatHeaders);
         const chatPayload = {
           method: "POST",
           body: JSON.stringify(requestPayload),
@@ -1525,17 +1673,18 @@ export class ChatGPTApi implements LLMApi {
 
   async models(): Promise<LLMModel[]> {
     const listPath = this.path(OpenaiPath.ListModelPath);
-    const shouldSkipRouterFetch = isRouterUrl(listPath) && !isUcanMetaValid();
+    const listHeaders = getHeadersForRouterModelAccess(listPath);
+    const shouldSkipRouterFetch =
+      isRouterUrl(listPath) && !listHeaders["Authorization"];
 
     if (shouldSkipRouterFetch || this.disableListModels) {
       if (shouldSkipRouterFetch) {
-        console.info("[Models] skip router fetch before UCAN login");
+        console.info("[Models] skip router fetch before token selection");
       }
       return [];
     }
 
     const fetchFromApi = async () => {
-      const listHeaders = await getHeadersWithRouterUcan(listPath);
       const res = await fetch(listPath, {
         method: "GET",
         headers: {

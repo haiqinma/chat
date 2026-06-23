@@ -138,6 +138,9 @@ export function normalizeModel(model: LLMModel): LLMModel {
     displayName: model.displayName ?? model.name,
     available: model.available !== false,
     provider,
+    tags: Array.isArray(model.tags)
+      ? model.tags.map((tag) => String(tag).trim()).filter(Boolean)
+      : [],
     sorted,
   };
 }

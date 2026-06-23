@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
-import { COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL, Path } from "../constant";
+import { Path } from "../constant";
 import Locale, { getLang, type Lang } from "../locales";
 import {
   addMcpServer,
@@ -13,7 +13,20 @@ import {
   fetchCommunityMcpPresetServers,
   mergeMcpPresetServers,
 } from "../mcp/marketplace";
-import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
+import {
+  fetchMarketplaceJson,
+  getMarketplaceSourceUrls,
+} from "../marketplace/sources";
+import {
+  getMarketplaceCategoryLabel,
+  getMarketplaceTagLabel,
+} from "../marketplace/display";
+import {
+  getMissingMcpConfigKeys,
+  readMcpConfigBoolean,
+  stringifyMcpConfigValue,
+} from "../mcp/config-schema";
+import { getOfficialMcpPresetServers } from "../mcp/preset-servers";
 import {
   McpConfigData,
   PresetServer,
@@ -44,11 +57,16 @@ import CloseIcon from "../icons/close.svg";
 import DeleteIcon from "../icons/delete.svg";
 import EditIcon from "../icons/edit.svg";
 import EyeIcon from "../icons/eye.svg";
+import ReloadIcon from "../icons/reload.svg";
 import ModelServiceIcon from "../icons/llm-icons/default.svg";
+import CloudStorageIcon from "../icons/cloud-success.svg";
 import ToolIcon from "../icons/tool.svg";
 import styles from "./discovery.module.scss";
 import { useAccessStore } from "../store/access";
 import { useSdStore } from "../store/sd";
+import { useSyncStore } from "../store/sync";
+import { fetchQuota, WebDAVQuota } from "../plugins/webdav";
+import { formatBytes } from "../utils/format";
 import {
   getSkillRuntimeIssueSummary,
   getSkillRuntimeStatusOrder,
@@ -58,11 +76,27 @@ import {
   SkillRuntimeStatus,
 } from "../skills/runtime";
 
-type CapabilityType = "all" | "skill" | "mcp" | "provider";
+type CapabilityType = "all" | "skill" | "mcp" | "provider" | "storage";
 type PricingType = "free" | "subscription" | "usage";
 type RuntimeType = "cloud" | "local" | "both";
 type DiscoveryView = "market" | "mine";
 type SkillPackageList = Partial<Record<Lang, SkillPackage[]>>;
+type MarketplaceLoadStatus = "idle" | "loading" | "ready" | "error";
+type MarketplaceLoadState = {
+  skill: {
+    status: MarketplaceLoadStatus;
+    count: number;
+    total: number;
+    url: string;
+    error?: string;
+  };
+  mcp: {
+    status: MarketplaceLoadStatus;
+    count: number;
+    url: string;
+    error?: string;
+  };
+};
 type DiscoveryConfigProperty = {
   type: string;
   description?: string;
@@ -94,13 +128,26 @@ type Capability = {
   presetServer?: PresetServer;
 };
 
-const typeOrder: CapabilityType[] = ["all", "skill", "mcp", "provider"];
+const typeOrder: CapabilityType[] = [
+  "all",
+  "skill",
+  "mcp",
+  "provider",
+  "storage",
+];
 
 function getInitialType(search: string): CapabilityType {
   const type = new URLSearchParams(search).get("type");
   if (type === "model") return "provider";
   if (type === "tool") return "mcp";
-  if (type === "skill" || type === "mcp" || type === "provider") return type;
+  if (
+    type === "skill" ||
+    type === "mcp" ||
+    type === "provider" ||
+    type === "storage"
+  ) {
+    return type;
+  }
   return "all";
 }
 
@@ -127,7 +174,25 @@ function getSkillPackageId(skill: Skill) {
 function getCapabilityIcon(type: Capability["type"]) {
   if (type === "skill") return <BrainIcon />;
   if (type === "mcp") return <ToolIcon />;
+  if (type === "storage") return <CloudStorageIcon />;
   return <ModelServiceIcon />;
+}
+
+function getMarketplaceUrls() {
+  return {
+    skillUrl: getMarketplaceSourceUrls("skill")[0],
+    mcpUrl: getMarketplaceSourceUrls("mcp")[0],
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function countSkillPackages(packages: SkillPackageList) {
+  return Object.values(packages).reduce((sum, items) => {
+    return sum + (items?.length ?? 0);
+  }, 0);
 }
 
 export function DiscoveryPage() {
@@ -135,9 +200,17 @@ export function DiscoveryPage() {
   const chatStore = useChatStore();
   const skillStore = useSkillStore();
   const sdStore = useSdStore();
+  const storageConfigured = useSyncStore((state) => state.cloudSync());
+  const storageProvider = useSyncStore((state) => state.provider);
+  const storageWebdav = useSyncStore((state) => state.webdav);
   const location = useLocation();
   const view = getInitialView(location.search);
   const activeType = getInitialType(location.search);
+  const currentLang = getLang();
+  const officialMcpPresetServers = useMemo(
+    () => getOfficialMcpPresetServers(currentLang),
+    [currentLang],
+  );
   const [searchText, setSearchText] = useState("");
   const deferredSearchText = useDeferredValue(searchText);
   const skillRecords = useSkillStore((state) => state.skills);
@@ -157,12 +230,34 @@ export function DiscoveryPage() {
   const [communityMcpServers, setCommunityMcpServers] = useState<
     PresetServer[]
   >([]);
+  const [marketplaceReloadKey, setMarketplaceReloadKey] = useState(0);
+  const [marketplaceLoadState, setMarketplaceLoadState] =
+    useState<MarketplaceLoadState>(() => {
+      const { skillUrl, mcpUrl } = getMarketplaceUrls();
+      return {
+        skill: {
+          status: "idle",
+          count: 0,
+          total: 0,
+          url: skillUrl,
+        },
+        mcp: {
+          status: "idle",
+          count: 0,
+          url: mcpUrl,
+        },
+      };
+    });
   const [editingMcpServerId, setEditingMcpServerId] = useState<string>();
   const [viewingMcpCapability, setViewingMcpCapability] =
     useState<Capability>();
   const [editingSkillId, setEditingSkillId] = useState<string>();
   const [mcpUserConfig, setMcpUserConfig] = useState<Record<string, any>>({});
   const [savingMcpConfig, setSavingMcpConfig] = useState(false);
+  const [storageQuota, setStorageQuota] = useState<WebDAVQuota>();
+  const [storageQuotaStatus, setStorageQuotaStatus] = useState<
+    "idle" | "checking" | "ready" | "error"
+  >("idle");
 
   useEffect(() => {
     let cancelled = false;
@@ -187,15 +282,45 @@ export function DiscoveryPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const { mcpUrl } = getMarketplaceUrls();
+
+    setMarketplaceLoadState((state) => ({
+      ...state,
+      mcp: {
+        ...state.mcp,
+        status: "loading",
+        url: mcpUrl,
+        error: undefined,
+      },
+    }));
 
     fetchCommunityMcpPresetServers(controller.signal)
-      .then((servers) => {
+      .then((result) => {
         if (!controller.signal.aborted) {
+          const servers = result.data;
           setCommunityMcpServers(servers);
+          setMarketplaceLoadState((state) => ({
+            ...state,
+            mcp: {
+              status: "ready",
+              count: servers.length,
+              url: result.url,
+            },
+          }));
         }
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
+          setCommunityMcpServers([]);
+          setMarketplaceLoadState((state) => ({
+            ...state,
+            mcp: {
+              status: "error",
+              count: 0,
+              url: mcpUrl,
+              error: getErrorMessage(error),
+            },
+          }));
           console.warn(
             "[Discovery] failed to load community MCP package list",
             error,
@@ -204,28 +329,89 @@ export function DiscoveryPage() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [marketplaceReloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!storageConfigured) {
+      setStorageQuota(undefined);
+      setStorageQuotaStatus("idle");
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setStorageQuotaStatus("checking");
+    fetchQuota()
+      .then((quota) => {
+        if (cancelled) return;
+        setStorageQuota(quota);
+        setStorageQuotaStatus(quota ? "ready" : "error");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.warn("[Discovery] failed to load storage quota", error);
+        setStorageQuota(undefined);
+        setStorageQuotaStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    storageConfigured,
+    storageProvider,
+    storageWebdav.authType,
+    storageWebdav.baseUrl,
+    storageWebdav.prefix,
+    storageWebdav.username,
+    storageWebdav.password,
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();
+    const { skillUrl } = getMarketplaceUrls();
 
-    fetch(COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL, {
-      signal: controller.signal,
-      cache: "no-store",
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        return res.json() as Promise<SkillPackageList>;
-      })
-      .then((packages) => {
+    setMarketplaceLoadState((state) => ({
+      ...state,
+      skill: {
+        ...state.skill,
+        status: "loading",
+        url: skillUrl,
+        error: undefined,
+      },
+    }));
+
+    fetchMarketplaceJson<SkillPackageList>("skill", controller.signal)
+      .then((result) => {
         if (!controller.signal.aborted) {
+          const packages = result.data;
           setCommunitySkillPackages(packages);
+          setMarketplaceLoadState((state) => ({
+            ...state,
+            skill: {
+              status: "ready",
+              count: packages[currentLang]?.length ?? 0,
+              total: countSkillPackages(packages),
+              url: result.url,
+            },
+          }));
         }
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
+          setCommunitySkillPackages({});
+          setMarketplaceLoadState((state) => ({
+            ...state,
+            skill: {
+              status: "error",
+              count: 0,
+              total: 0,
+              url: skillUrl,
+              error: getErrorMessage(error),
+            },
+          }));
           console.warn(
             "[Discovery] failed to load community skill package list",
             error,
@@ -234,7 +420,7 @@ export function DiscoveryPage() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [currentLang, marketplaceReloadKey]);
 
   const skills = useMemo<Skill[]>(() => {
     const userSkills = Object.values(skillRecords).sort(
@@ -281,10 +467,9 @@ export function DiscoveryPage() {
     const installedPluginIds = plugins.map((plugin) => plugin.id);
     const installedMcpServerIds = Object.keys(mcpConfig?.mcpServers ?? {});
     const mcpPresetServers = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     );
-    const currentLang = getLang();
     const installedPackageIds = new Set(
       Object.values(skillRecords)
         .map((skill) => skill.packageId)
@@ -315,7 +500,7 @@ export function DiscoveryPage() {
           title: skill.name,
           description: skill.description || Locale.Discovery.DefaultSkillDesc,
           highlights: [
-            skill.category,
+            getMarketplaceCategoryLabel(skill.category, currentLang),
             skill.starters?.length
               ? Locale.Discovery.SkillStarters(skill.starters.length)
               : undefined,
@@ -391,7 +576,7 @@ export function DiscoveryPage() {
             Locale.Discovery.DefaultSkillDesc,
           ),
           highlights: [
-            skillPackage.category,
+            getMarketplaceCategoryLabel(skillPackage.category, currentLang),
             skillPackage.starters?.length
               ? Locale.Discovery.SkillStarters(skillPackage.starters.length)
               : undefined,
@@ -426,7 +611,7 @@ export function DiscoveryPage() {
       });
 
     const officialMcpIds = new Set(
-      OFFICIAL_MCP_PRESET_SERVERS.map((server) => server.id),
+      officialMcpPresetServers.map((server) => server.id),
     );
     const mcpToolItems: Capability[] = mcpPresetServers.map((server) => {
       const serverConfig = mcpConfig?.mcpServers[server.id];
@@ -448,7 +633,9 @@ export function DiscoveryPage() {
         type: "mcp",
         title: server.name,
         description: server.description,
-        highlights: server.tags.slice(0, 3),
+        highlights: server.tags
+          .slice(0, 3)
+          .map((tag) => getMarketplaceTagLabel(tag, currentLang)),
         status,
         pricing: "free",
         runtime: server.tags.includes("local") ? "local" : "both",
@@ -463,95 +650,96 @@ export function DiscoveryPage() {
 
     const mcpItems: Capability[] = [...mcpToolItems];
 
-    const providerMap = new Map<
-      string,
+    const providerItems: Capability[] = [
       {
-        title: string;
-        total: number;
-        available: number;
-        tags: Set<string>;
-      }
-    >();
-    providerMap.set("router", {
-      title: Locale.Discovery.RouterProviderTitle,
-      total: 0,
-      available: 0,
-      tags: new Set(["router"]),
-    });
-
-    models.forEach((model) => {
-      const providerName =
-        model.provider?.providerName?.trim() ||
-        model.ownedBy?.trim() ||
-        Locale.Discovery.Source.Provider;
-      const key = providerName.toLowerCase();
-      const provider = providerMap.get(key) ?? {
-        title: providerName,
-        total: 0,
-        available: 0,
-        tags: new Set<string>(),
-      };
-      provider.total += 1;
-      if (model.available) provider.available += 1;
-      model.tags?.forEach((tag) => provider.tags.add(tag));
-      providerMap.set(key, provider);
-    });
-
-    const providerItems: Capability[] = Array.from(providerMap.entries()).map(
-      ([key, provider]) => ({
-        id: `provider:${key}`,
+        id: "provider:router",
         type: "provider",
-        title: provider.title,
-        description:
-          provider.total > 0
-            ? Locale.Discovery.ProviderDesc(
-                provider.available,
-                provider.total,
-                Array.from(provider.tags).slice(0, 4),
-              )
-            : Locale.Discovery.RouterProviderDesc,
-        highlights: Array.from(provider.tags).slice(0, 4),
-        status:
-          provider.available > 0 || key === "router"
-            ? Locale.Discovery.Status.Enabled
-            : Locale.Discovery.Status.Unavailable,
+        title: Locale.Discovery.RouterProviderTitle,
+        description: Locale.Discovery.RouterProviderDesc,
+        highlights: ["router"],
+        status: Locale.Discovery.Status.Enabled,
         pricing: "usage",
         runtime: "cloud",
-        source:
-          key === "router"
-            ? Locale.Discovery.Source.Official
-            : Locale.Discovery.Source.Provider,
-        path: Path.Settings,
-        installed: provider.available > 0 || key === "router",
-      }),
-    );
+        source: Locale.Discovery.Source.Official,
+        path: Path.Router,
+        installed: true,
+      },
+    ];
 
-    const sortedProviderItems = providerItems.sort((a, b) => {
-      if (a.id === "provider:router") return -1;
-      if (b.id === "provider:router") return 1;
-      return a.title.localeCompare(b.title);
-    });
+    const storageQuotaText = storageQuota
+      ? storageQuota.unlimited
+        ? Locale.Discovery.StorageQuotaUnlimited(formatBytes(storageQuota.used))
+        : Locale.Discovery.StorageQuotaUsage(
+            formatBytes(storageQuota.used),
+            formatBytes(storageQuota.quota),
+          )
+      : undefined;
+    const storageItems: Capability[] = [
+      {
+        id: "storage:cloud",
+        type: "storage",
+        title: Locale.Discovery.CloudStorageTitle,
+        description: Locale.Discovery.CloudStorageDesc,
+        highlights: [
+          Locale.Discovery.StorageAppSync,
+          Locale.Discovery.StorageFutureMcp,
+          storageQuotaText,
+        ].filter(Boolean) as string[],
+        status: !storageConfigured
+          ? Locale.Discovery.Status.Configurable
+          : storageQuotaStatus === "error"
+            ? Locale.Discovery.Status.Error
+            : Locale.Discovery.Status.Enabled,
+        pricing: "free",
+        runtime: "cloud",
+        source: Locale.Discovery.Source.Official,
+        path: Path.Storage,
+        installed: storageConfigured,
+      },
+    ];
 
     return [
       ...skillItems,
       ...communitySkillItems,
       ...mcpItems,
-      ...sortedProviderItems,
+      ...providerItems,
+      ...storageItems,
     ];
   }, [
     accessCustomModels,
     communityMcpServers,
     communitySkillPackages,
+    currentLang,
     customModels,
     defaultModel,
     mcpConfig?.mcpServers,
     mcpStatuses,
     modelConfig,
     models,
+    officialMcpPresetServers,
     plugins,
     skillRecords,
     skills,
+    storageConfigured,
+    storageQuota,
+    storageQuotaStatus,
   ]);
+
+  const marketplaceStatusText = useMemo(() => {
+    const skillState = marketplaceLoadState.skill;
+    const mcpState = marketplaceLoadState.mcp;
+    const error = skillState.error || mcpState.error;
+
+    if (error) return Locale.Discovery.MarketplaceError(error);
+    if (skillState.status === "loading" || mcpState.status === "loading") {
+      return Locale.Discovery.MarketplaceLoading;
+    }
+    return Locale.Discovery.MarketplaceLoaded(
+      skillState.count,
+      skillState.total,
+      mcpState.count,
+    );
+  }, [marketplaceLoadState]);
 
   const visibleCapabilities = capabilities.filter((item) => {
     const keyword = deferredSearchText.trim().toLowerCase();
@@ -607,7 +795,7 @@ export function DiscoveryPage() {
   useEffect(() => {
     if (!editingMcpServerId) return;
     const preset = communityMcpServers
-      .concat(OFFICIAL_MCP_PRESET_SERVERS)
+      .concat(officialMcpPresetServers)
       .find((server) => server.id === editingMcpServerId);
     if (!preset?.configSchema) return;
 
@@ -629,7 +817,12 @@ export function DiscoveryPage() {
       }
     });
     setMcpUserConfig(nextUserConfig);
-  }, [communityMcpServers, editingMcpServerId, mcpConfig?.mcpServers]);
+  }, [
+    communityMcpServers,
+    editingMcpServerId,
+    mcpConfig?.mcpServers,
+    officialMcpPresetServers,
+  ]);
 
   const renderMcpPropertyDescription = (prop: DiscoveryConfigProperty) => {
     if (!prop.description && !prop.helpUrl) return undefined;
@@ -650,7 +843,7 @@ export function DiscoveryPage() {
 
   const renderMcpConfigForm = () => {
     const preset = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     ).find((server) => server.id === editingMcpServerId);
     if (!preset?.configSchema) return null;
@@ -717,6 +910,29 @@ export function DiscoveryPage() {
           );
         }
 
+        if (prop.type === "boolean") {
+          const currentValue = readMcpConfigBoolean(mcpUserConfig[key]);
+          return (
+            <ListItem
+              key={key}
+              title={key}
+              subTitle={renderMcpPropertyDescription(prop)}
+            >
+              <input
+                aria-label={key}
+                type="checkbox"
+                checked={currentValue}
+                onChange={(e) =>
+                  setMcpUserConfig({
+                    ...mcpUserConfig,
+                    [key]: e.currentTarget.checked,
+                  })
+                }
+              />
+            </ListItem>
+          );
+        }
+
         const currentValue = mcpUserConfig[key] || "";
         return (
           <ListItem
@@ -744,13 +960,22 @@ export function DiscoveryPage() {
 
   const saveMcpServerConfig = async () => {
     const preset = mergeMcpPresetServers(
-      OFFICIAL_MCP_PRESET_SERVERS,
+      officialMcpPresetServers,
       communityMcpServers,
     ).find((server) => server.id === editingMcpServerId);
     if (!preset || !preset.configSchema || !editingMcpServerId) return;
 
     try {
       setSavingMcpConfig(true);
+      const missingKeys = getMissingMcpConfigKeys(
+        preset.configSchema.properties,
+        mcpUserConfig,
+      );
+      if (missingKeys.length > 0) {
+        showToast(`缺少必填 MCP 配置：${missingKeys.join(", ")}`);
+        return;
+      }
+
       const args = [...preset.baseArgs];
       const env: Record<string, string> = {};
 
@@ -765,12 +990,11 @@ export function DiscoveryPage() {
           typeof value === "string"
         ) {
           args[mapping.position] = value;
-        } else if (
-          mapping.type === "env" &&
-          mapping.key &&
-          typeof value === "string"
-        ) {
-          env[mapping.key] = value;
+        } else if (mapping.type === "env" && mapping.key) {
+          const envValue = stringifyMcpConfigValue(value);
+          if (envValue !== undefined) {
+            env[mapping.key] = envValue;
+          }
         }
       });
 
@@ -872,6 +1096,10 @@ export function DiscoveryPage() {
       startSkill(enabledSkill);
       return;
     }
+    if (item.type === "storage") {
+      navigate(Path.Storage);
+      return;
+    }
     navigate(item.path);
   };
 
@@ -898,6 +1126,11 @@ export function DiscoveryPage() {
       }
       if (view === "market" && !item.installed) return Locale.Discovery.Enable;
       return Locale.Discovery.Manage;
+    }
+    if (item.type === "storage") {
+      return item.installed
+        ? Locale.Discovery.Manage
+        : Locale.Discovery.Configure;
     }
     if (view === "market" && !item.installed) return Locale.Discovery.Enable;
     return Locale.Discovery.Manage;
@@ -971,6 +1204,30 @@ export function DiscoveryPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div
+            className={clsx(
+              styles["marketplace-status"],
+              (marketplaceLoadState.skill.status === "error" ||
+                marketplaceLoadState.mcp.status === "error") &&
+                styles["marketplace-status-error"],
+            )}
+            title={`${Locale.Discovery.MarketplaceSkillSource}: ${marketplaceLoadState.skill.url}\n${Locale.Discovery.MarketplaceMcpSource}: ${marketplaceLoadState.mcp.url}`}
+          >
+            <div className={styles["marketplace-status-main"]}>
+              <span>{marketplaceStatusText}</span>
+              <span className={styles["marketplace-source"]}>
+                {Locale.Discovery.MarketplaceSource}:{" "}
+                {marketplaceLoadState.skill.url}
+              </span>
+            </div>
+            <IconButton
+              icon={<ReloadIcon />}
+              text={Locale.Discovery.ReloadMarketplace}
+              bordered
+              onClick={() => setMarketplaceReloadKey(Date.now())}
+            />
           </div>
 
           <div className={styles.grid}>

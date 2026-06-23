@@ -1,4 +1,8 @@
-import { DEFAULT_INPUT_TEMPLATE } from "../constant";
+import {
+  COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
+  COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL,
+  DEFAULT_INPUT_TEMPLATE,
+} from "../constant";
 import { getBuildConfig, type BuildConfig } from "./build";
 import { getServerSideConfig } from "./server";
 
@@ -62,6 +66,8 @@ export type RuntimePublicConfig = BuildConfig & {
   centralUcanAuthBaseUrl: string;
   centralUcanAppId: string;
   ucanLoginForceMode: UcanLoginForceMode;
+  marketplaceSkillPackagesUrl: string;
+  marketplaceMcpPackagesUrl: string;
 };
 
 export function getRuntimePublicConfig(): RuntimePublicConfig {
@@ -129,5 +135,11 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     ucanLoginForceMode: normalizeUcanLoginForceMode(
       process.env.UCAN_LOGIN_FORCE_MODE,
     ),
+    marketplaceSkillPackagesUrl:
+      process.env.MARKETPLACE_SKILL_PACKAGES_URL?.trim() ||
+      COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL,
+    marketplaceMcpPackagesUrl:
+      process.env.MARKETPLACE_MCP_PACKAGES_URL?.trim() ||
+      COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
   };
 }

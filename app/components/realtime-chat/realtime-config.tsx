@@ -1,4 +1,7 @@
-import { RealtimeConfig } from "@/app/store";
+import {
+  type RealtimeConfig,
+  type RealtimeProvider,
+} from "@/app/store/realtime";
 
 import Locale from "@/app/locales";
 import { ListItem, Select, PasswordInput } from "@/app/components/ui-lib";
@@ -16,6 +19,7 @@ const voice = ["alloy", "shimmer", "echo"];
 export function RealtimeConfigList(props: {
   realtimeConfig: RealtimeConfig;
   updateConfig: (updater: (config: RealtimeConfig) => void) => void;
+  showEnable?: boolean;
 }) {
   const azureConfigComponent = props.realtimeConfig.provider ===
     ServiceProvider.Azure && (
@@ -55,22 +59,24 @@ export function RealtimeConfigList(props: {
 
   return (
     <>
-      <ListItem
-        title={Locale.Settings.Realtime.Enable.Title}
-        subTitle={Locale.Settings.Realtime.Enable.SubTitle}
-      >
-        <input
-          type="checkbox"
-          checked={props.realtimeConfig.enable}
-          onChange={(e) =>
-            props.updateConfig(
-              (config) => (config.enable = e.currentTarget.checked),
-            )
-          }
-        ></input>
-      </ListItem>
+      {props.showEnable !== false && (
+        <ListItem
+          title={Locale.Settings.Realtime.Enable.Title}
+          subTitle={Locale.Settings.Realtime.Enable.SubTitle}
+        >
+          <input
+            type="checkbox"
+            checked={props.realtimeConfig.enabled}
+            onChange={(e) =>
+              props.updateConfig(
+                (config) => (config.enabled = e.currentTarget.checked),
+              )
+            }
+          ></input>
+        </ListItem>
+      )}
 
-      {props.realtimeConfig.enable && (
+      {props.realtimeConfig.enabled && (
         <>
           <ListItem
             title={Locale.Settings.Realtime.Provider.Title}
@@ -82,7 +88,7 @@ export function RealtimeConfigList(props: {
               onChange={(e) => {
                 props.updateConfig(
                   (config) =>
-                    (config.provider = e.target.value as ServiceProvider),
+                    (config.provider = e.target.value as RealtimeProvider),
                 );
               }}
             >

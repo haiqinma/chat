@@ -25,7 +25,7 @@
                     "plugins": true,
                     "mcp": true,
                     "shortcutKeys": true,
-                    "realtime": true
+                    "realtime": false
                 }
             },
             "context": [
@@ -86,6 +86,16 @@
             "toolStrategy": {
                 "nativeMcpTools": "auto"
             },
+            "modelConfig": {
+                "temperature": 0.25,
+                "max_tokens": 6000,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "sendMemory": true,
+                "historyMessageCount": 10,
+                "compressMessageLengthThreshold": 2000,
+                "responsesMode": "stateful"
+            },
             "context": [
                 {
                     "id": "cn-web-research-0",
@@ -94,15 +104,6 @@
                     "date": ""
                 }
             ],
-            "modelConfig": {
-                "temperature": 0.25,
-                "max_tokens": 6000,
-                "presence_penalty": 0,
-                "frequency_penalty": 0,
-                "sendMemory": true,
-                "historyMessageCount": 10,
-                "compressMessageLengthThreshold": 2000
-            },
             "builtin": true,
             "hideContext": true,
             "syncGlobalConfig": true
@@ -320,6 +321,67 @@
             },
             "builtin": true,
             "hideContext": true
+        },
+        {
+            "avatar": "1f3a7",
+            "name": "实时聊天",
+            "description": "使用实时语音对话能力，适合语音交流、即时反馈和口语互动。",
+            "category": "语音",
+            "starters": [
+                "开始一次实时语音聊天。",
+                "我想用语音和你讨论一个问题。",
+                "开启实时对话，边说边聊。"
+            ],
+            "lang": "cn",
+            "createdAt": 1700000001007,
+            "syncGlobalConfig": false,
+            "ui": {
+                "sessionToolbar": {
+                    "settings": true,
+                    "theme": false,
+                    "promptHints": false,
+                    "skillSwitcher": true,
+                    "clearContext": false,
+                    "modelSelector": false,
+                    "imageUpload": false,
+                    "imageParams": false,
+                    "plugins": false,
+                    "mcp": false,
+                    "shortcutKeys": false,
+                    "realtime": true
+                }
+            },
+            "context": [
+                {
+                    "id": "cn-realtime-0",
+                    "role": "system",
+                    "content": "你正在进行实时语音聊天。回答要自然、简洁，适合口语交流；用户停顿或表达不完整时，优先确认意图并继续推进。",
+                    "date": ""
+                }
+            ],
+            "modelConfig": {
+                "temperature": 0.5,
+                "max_tokens": 4000,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "sendMemory": true,
+                "historyMessageCount": 6,
+                "compressMessageLengthThreshold": 2000
+            },
+            "builtin": true,
+            "hideContext": true,
+            "realtimeConfig": {
+                "enabled": false,
+                "provider": "OpenAI",
+                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "apiKey": "",
+                "azure": {
+                    "endpoint": "",
+                    "deployment": ""
+                },
+                "temperature": 0.9,
+                "voice": "alloy"
+            }
         }
     ],
     "en": [
@@ -348,7 +410,7 @@
                     "plugins": true,
                     "mcp": true,
                     "shortcutKeys": true,
-                    "realtime": true
+                    "realtime": false
                 }
             },
             "context": [
@@ -409,6 +471,16 @@
             "toolStrategy": {
                 "nativeMcpTools": "auto"
             },
+            "modelConfig": {
+                "temperature": 0.25,
+                "max_tokens": 6000,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "sendMemory": true,
+                "historyMessageCount": 10,
+                "compressMessageLengthThreshold": 2000,
+                "responsesMode": "stateful"
+            },
             "context": [
                 {
                     "id": "en-web-research-0",
@@ -417,15 +489,6 @@
                     "date": ""
                 }
             ],
-            "modelConfig": {
-                "temperature": 0.25,
-                "max_tokens": 6000,
-                "presence_penalty": 0,
-                "frequency_penalty": 0,
-                "sendMemory": true,
-                "historyMessageCount": 10,
-                "compressMessageLengthThreshold": 2000
-            },
             "builtin": true,
             "hideContext": true,
             "syncGlobalConfig": true
@@ -643,6 +706,67 @@
             },
             "builtin": true,
             "hideContext": true
+        },
+        {
+            "avatar": "1f3a7",
+            "name": "Realtime Chat",
+            "description": "Use realtime voice conversation for spoken interaction, quick feedback, and natural back-and-forth.",
+            "category": "Voice",
+            "starters": [
+                "Start a realtime voice chat.",
+                "I want to discuss this by voice.",
+                "Open realtime conversation and talk with me."
+            ],
+            "lang": "en",
+            "createdAt": 1700000002007,
+            "syncGlobalConfig": false,
+            "ui": {
+                "sessionToolbar": {
+                    "settings": true,
+                    "theme": false,
+                    "promptHints": false,
+                    "skillSwitcher": true,
+                    "clearContext": false,
+                    "modelSelector": false,
+                    "imageUpload": false,
+                    "imageParams": false,
+                    "plugins": false,
+                    "mcp": false,
+                    "shortcutKeys": false,
+                    "realtime": true
+                }
+            },
+            "context": [
+                {
+                    "id": "en-realtime-0",
+                    "role": "system",
+                    "content": "You are in a realtime voice chat. Keep responses natural, concise, and suitable for spoken conversation. If the user pauses or speaks incompletely, confirm the intent and keep the conversation moving.",
+                    "date": ""
+                }
+            ],
+            "modelConfig": {
+                "temperature": 0.5,
+                "max_tokens": 4000,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "sendMemory": true,
+                "historyMessageCount": 6,
+                "compressMessageLengthThreshold": 2000
+            },
+            "builtin": true,
+            "hideContext": true,
+            "realtimeConfig": {
+                "enabled": false,
+                "provider": "OpenAI",
+                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "apiKey": "",
+                "azure": {
+                    "endpoint": "",
+                    "deployment": ""
+                },
+                "temperature": 0.9,
+                "voice": "alloy"
+            }
         }
     ]
 }

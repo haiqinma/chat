@@ -3,6 +3,7 @@ import { getLang, Lang } from "../locales";
 import { ModelCandidate } from "../client/api";
 import { DEFAULT_TOPIC, ChatMessage } from "./chat";
 import { ModelConfig, useAppConfig } from "./config";
+import { createDefaultRealtimeConfig, type RealtimeConfig } from "./realtime";
 import { StoreKey } from "../constant";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
@@ -16,6 +17,7 @@ export type BuiltInSkillToolType = "web_search";
 export type SkillToolsConfig = {
   builtInTools?: BuiltInSkillToolType[];
   mcpTools?: string[];
+  mcpToolRequirements?: Record<string, boolean>;
   apiTools?: string[];
 };
 
@@ -66,6 +68,7 @@ export type Skill = {
   ui?: SkillUiConfig;
   enableArtifacts?: boolean;
   enableCodeFold?: boolean;
+  realtimeConfig?: RealtimeConfig;
   launch?: {
     type: "chat" | "sd";
   };
@@ -83,7 +86,7 @@ export const DEFAULT_SESSION_TOOLBAR: Required<SkillSessionToolbarConfig> = {
   plugins: true,
   mcp: true,
   shortcutKeys: true,
-  realtime: true,
+  realtime: false,
 };
 
 export function getSkillSessionToolbar(skill: Skill) {
@@ -135,6 +138,7 @@ export const createEmptySkill = () =>
     tools: {
       builtInTools: [],
       mcpTools: [],
+      mcpToolRequirements: {},
       apiTools: [],
     },
     toolStrategy: {
@@ -193,6 +197,12 @@ export function getSkillMcpTools(skill: Skill) {
   return skill.tools?.mcpTools ?? [];
 }
 
+export function getRequiredSkillMcpTools(skill: Skill) {
+  return getSkillMcpTools(skill).filter(
+    (id) => skill.tools?.mcpToolRequirements?.[id] !== false,
+  );
+}
+
 export function getSkillApiTools(skill: Skill) {
   return skill.tools?.apiTools ?? skill.plugin ?? [];
 }
@@ -207,15 +217,23 @@ export function allowSkillNativeMcpTools(skill: Skill) {
 
 export function syncSkillLegacyPlugin(skill: Skill) {
   const apiTools = skill.tools?.apiTools ?? skill.plugin ?? [];
+  const mcpTools = skill.tools?.mcpTools ?? [];
+  const existingMcpRequirements = skill.tools?.mcpToolRequirements ?? {};
   skill.plugin = apiTools;
   skill.tools = {
     builtInTools: skill.tools?.builtInTools ?? [],
-    mcpTools: skill.tools?.mcpTools ?? [],
+    mcpTools,
+    mcpToolRequirements: Object.fromEntries(
+      mcpTools.map((id) => [id, existingMcpRequirements[id] ?? true]),
+    ),
     apiTools,
   };
   skill.toolStrategy = {
     nativeMcpTools: skill.toolStrategy?.nativeMcpTools ?? "auto",
   };
+  if (skill.realtimeConfig) {
+    skill.realtimeConfig = createDefaultRealtimeConfig(skill.realtimeConfig);
+  }
 }
 
 export const useSkillStore = createPersistStore(

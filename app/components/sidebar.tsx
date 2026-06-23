@@ -4,7 +4,6 @@ import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
 import SettingsIcon from "../icons/settings.svg";
-import CenterIcon from "../icons/my-center.svg";
 import AddIcon from "../icons/add.svg";
 import DragIcon from "../icons/drag.svg";
 import DiscoveryIcon from "../icons/discovery.svg";
@@ -281,13 +280,6 @@ export function SideBar(props: { className?: string }) {
               <IconButton
                 aria={Locale.Settings.Title}
                 icon={<SettingsIcon />}
-                shadow
-              />
-            </Link>
-            <Link to={Path.Centers}>
-              <IconButton
-                aria={Locale.Export.MessageFromChatGPT}
-                icon={<CenterIcon />}
                 shadow
               />
             </Link>

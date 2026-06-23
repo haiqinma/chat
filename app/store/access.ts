@@ -103,6 +103,7 @@ const createDefaultAccessState = () => {
     // openai
     openaiUrl: defaultOpenAIUrl,
     openaiApiKey: "",
+    selectedRouterToken: "",
     routerBackendUrlSnapshot: defaultOpenAIUrl,
 
     // azure
@@ -355,7 +356,7 @@ export const useAccessStore = createPersistStore(
   }),
   {
     name: StoreKey.Access,
-    version: 6,
+    version: 8,
     migrate(persistedState, version) {
       if (version < 2) {
         const state = persistedState as {
@@ -406,6 +407,25 @@ export const useAccessStore = createPersistStore(
       if (version < 6) {
         const state = persistedState as typeof DEFAULT_ACCESS_STATE;
         state.routerBackendUrlSnapshot = "";
+      }
+
+      if (version < 7) {
+        const state = persistedState as typeof DEFAULT_ACCESS_STATE;
+        state.selectedRouterToken = "";
+      }
+
+      if (version < 8) {
+        const state = persistedState as typeof DEFAULT_ACCESS_STATE & {
+          selectedRouterTokenId?: string;
+        };
+        state.selectedRouterToken =
+          typeof state.selectedRouterToken === "string"
+            ? state.selectedRouterToken
+            : typeof state.selectedRouterTokenId === "string"
+              ? state.selectedRouterTokenId
+              : "";
+        delete (state as { selectedRouterTokenId?: string })
+          .selectedRouterTokenId;
       }
 
       return persistedState as any;

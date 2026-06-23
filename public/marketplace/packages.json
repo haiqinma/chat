@@ -1,0 +1,428 @@
+{
+  "cn": [
+    {
+      "schemaVersion": "1.0",
+      "id": "strategy-trading",
+      "version": "1.0.0",
+      "name": {
+        "cn": "策略交易",
+        "en": "Strategy Trading"
+      },
+      "description": {
+        "cn": "把交易想法转成可执行策略、风险约束和下单计划；连接真实券商 MCP 后可进行受控实盘执行。",
+        "en": "Turn a trading idea into an executable strategy, risk policy, and order plan; connect a live broker MCP for controlled production execution."
+      },
+      "author": {
+        "name": "community"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f4c8"
+      },
+      "tags": [
+        "trading",
+        "strategy",
+        "execution",
+        "risk",
+        "automation"
+      ],
+      "category": "finance",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你是策略交易助手。目标是把用户的交易想法转成可执行策略、风险约束和下单计划，并在真实券商 MCP 可用时进行受控实盘执行。先收集市场、标的、周期、资金规模、最大回撤、仓位上限、止损/止盈规则、数据源、券商连接器和执行模式。优先使用 ifind-data 获取同花顺 iFinD / QuantAPI 行情、基本面、公告和选股数据；使用 qmt-broker 执行 A 股/ETF/可转债实盘交易；paper-broker 只能作为测试/演练工具。输出固定为：策略摘要、入场/退出规则、仓位与风控、订单计划、执行前检查、需要的数据和券商连接器。没有真实券商连接器时，只生成待执行计划或模拟演练，不要伪造实盘下单结果。只有在用户明确确认实盘、真实券商连接器可用且风控检查通过时，才允许调用真实下单工具。信息不足时，只追问最关键的一项。"
+      },
+      "starters": [
+        "把这套交易想法整理成可执行策略。",
+        "基于这个标的和风险预算，生成实盘前检查清单。",
+        "把这个策略拆成入场、止损、止盈和 QMT 下单步骤。"
+      ],
+      "model": {
+        "syncGlobalConfig": false,
+        "params": {
+          "temperature": 0.2,
+          "max_tokens": 6000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 12,
+          "compressMessageLengthThreshold": 2500
+        }
+      },
+      "tools": [],
+      "mcp": {
+        "servers": [
+          {
+            "id": "ifind-data",
+            "name": {
+              "cn": "同花顺 iFinD 数据",
+              "en": "iFinD Data"
+            },
+            "transport": "stdio",
+            "required": true
+          },
+          {
+            "id": "qmt-broker",
+            "name": {
+              "cn": "QMT 实盘券商",
+              "en": "QMT Broker"
+            },
+            "transport": "stdio",
+            "required": false
+          },
+          {
+            "id": "paper-broker",
+            "name": {
+              "cn": "模拟券商",
+              "en": "Paper Broker"
+            },
+            "transport": "stdio",
+            "required": false
+          }
+        ]
+      },
+      "ui": {
+        "entryLabel": {
+          "cn": "策略交易",
+          "en": "Strategy Trading"
+        },
+        "emptyState": "guided"
+      },
+      "permissions": {
+        "network": true,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": [
+          "ifind-data",
+          "qmt-broker",
+          "paper-broker"
+        ],
+        "dataScopes": [
+          "market-data",
+          "portfolio",
+          "orders"
+        ]
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0",
+        "mcp": "optional"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "web-research",
+      "version": "1.0.0",
+      "name": {
+        "cn": "网页调研",
+        "en": "Web Research"
+      },
+      "description": {
+        "cn": "围绕一个问题搜索资料、提炼来源、输出结构化结论。",
+        "en": "Search sources, extract evidence, and produce structured findings."
+      },
+      "author": {
+        "name": "community"
+      },
+      "icon": {
+        "type": "builtin",
+        "value": "gpt-bot"
+      },
+      "tags": [
+        "research",
+        "web",
+        "search"
+      ],
+      "category": "research",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "你是网页调研助手。优先围绕用户问题形成检索计划，综合多个来源，明确区分事实、推断和不确定点。输出结论时保留来源线索，避免堆砌无关背景。"
+      },
+      "starters": [
+        "调研这个主题的最新进展。",
+        "帮我比较这几个方案的优缺点。",
+        "查找这个问题的可靠来源并总结。"
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "candidates": []
+      },
+      "tools": [
+        {
+          "id": "web_search",
+          "name": {
+            "cn": "网页搜索",
+            "en": "Web Search"
+          },
+          "description": {
+            "cn": "当模型服务商支持时，使用内置网页搜索能力。",
+            "en": "Use model-provider web search when available."
+          },
+          "required": false
+        }
+      ],
+      "mcp": {
+        "servers": [
+          {
+            "id": "fetch",
+            "name": {
+              "cn": "网页抓取",
+              "en": "Fetch"
+            },
+            "transport": "stdio",
+            "required": false
+          },
+          {
+            "id": "brave-search",
+            "name": {
+              "cn": "Brave 搜索",
+              "en": "Brave Search"
+            },
+            "transport": "stdio",
+            "required": false
+          }
+        ]
+      },
+      "permissions": {
+        "network": true,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": [
+          "web_search",
+          "fetch",
+          "brave-search"
+        ]
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0",
+        "mcp": "optional"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    }
+  ],
+  "en": [
+    {
+      "schemaVersion": "1.0",
+      "id": "reading-summary",
+      "version": "1.0.0",
+      "name": {
+        "cn": "阅读总结",
+        "en": "Reading Summary"
+      },
+      "description": {
+        "cn": "将文章、网页或长文本提炼为结构化摘要和行动要点。",
+        "en": "Summarize articles, web pages, or long text into structured takeaways."
+      },
+      "author": {
+        "name": "community"
+      },
+      "icon": {
+        "type": "builtin",
+        "value": "gpt-bot"
+      },
+      "tags": [
+        "reading",
+        "summary",
+        "web"
+      ],
+      "category": "productivity",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are a reading assistant. Extract the main argument, key evidence, assumptions, risks, and practical next steps. Keep the output concise and structured."
+      },
+      "starters": [
+        "Summarize this article.",
+        "Extract the key ideas from this page.",
+        "Turn this long text into action items."
+      ],
+      "model": {
+        "syncGlobalConfig": true,
+        "candidates": []
+      },
+      "tools": [
+        {
+          "id": "web_search",
+          "name": {
+            "cn": "网页搜索",
+            "en": "Web Search"
+          },
+          "description": {
+            "cn": "当模型服务商支持时，使用内置网页搜索能力。",
+            "en": "Use model-provider web search when available."
+          },
+          "required": false
+        }
+      ],
+      "mcp": {
+        "servers": [
+          {
+            "id": "fetch",
+            "name": {
+              "cn": "网页抓取",
+              "en": "Fetch"
+            },
+            "transport": "stdio",
+            "required": false
+          }
+        ]
+      },
+      "permissions": {
+        "network": true,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": [
+          "web_search",
+          "fetch"
+        ]
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0",
+        "mcp": "optional"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "strategy-trading",
+      "version": "1.0.0",
+      "name": {
+        "cn": "策略交易",
+        "en": "Strategy Trading"
+      },
+      "description": {
+        "cn": "把交易想法转成可执行策略、风险约束和下单计划；连接真实券商 MCP 后可进行受控实盘执行。",
+        "en": "Turn a trading idea into an executable strategy, risk policy, and order plan; connect a live broker MCP for controlled production execution."
+      },
+      "author": {
+        "name": "community"
+      },
+      "icon": {
+        "type": "emoji",
+        "value": "1f4c8"
+      },
+      "tags": [
+        "trading",
+        "strategy",
+        "execution",
+        "risk",
+        "automation"
+      ],
+      "category": "finance",
+      "visibility": {
+        "scope": "public"
+      },
+      "launch": {
+        "type": "chat"
+      },
+      "instructions": {
+        "type": "inline",
+        "content": "You are a strategy trading assistant. Turn the user's trading idea into an executable strategy, risk policy, and order plan, and use controlled live execution only when a real broker MCP is available. First collect the market, instruments, timeframe, capital size, max drawdown, position limits, stop-loss / take-profit rules, data source, broker connector, and execution mode. Prefer ifind-data for TongHuaShun iFinD / QuantAPI quotes, fundamentals, announcements, and stock-picking data; use qmt-broker for live A-share / ETF / convertible-bond trading; use paper-broker only as a testing/drill tool. Always output: strategy summary, entry/exit rules, position sizing and risk controls, order plan, pre-trade checks, and the required market data and broker connector. If no real broker connector is available, only generate a pending execution plan or simulation drill and do not fabricate live order results. Only call real order tools after explicit user confirmation, connector availability, and risk checks. If information is missing, ask for the single most important detail only."
+      },
+      "starters": [
+        "Turn this trading idea into an executable strategy.",
+        "Build a live pre-trade checklist with risk limits.",
+        "Break this strategy into entry, stop-loss, take-profit, and QMT order steps."
+      ],
+      "model": {
+        "syncGlobalConfig": false,
+        "params": {
+          "temperature": 0.2,
+          "max_tokens": 6000,
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "sendMemory": true,
+          "historyMessageCount": 12,
+          "compressMessageLengthThreshold": 2500
+        }
+      },
+      "tools": [],
+      "mcp": {
+        "servers": [
+          {
+            "id": "ifind-data",
+            "name": {
+              "cn": "同花顺 iFinD 数据",
+              "en": "iFinD Data"
+            },
+            "transport": "stdio",
+            "required": true
+          },
+          {
+            "id": "qmt-broker",
+            "name": {
+              "cn": "QMT 实盘券商",
+              "en": "QMT Broker"
+            },
+            "transport": "stdio",
+            "required": false
+          },
+          {
+            "id": "paper-broker",
+            "name": {
+              "cn": "模拟券商",
+              "en": "Paper Broker"
+            },
+            "transport": "stdio",
+            "required": false
+          }
+        ]
+      },
+      "ui": {
+        "entryLabel": {
+          "cn": "策略交易",
+          "en": "Strategy Trading"
+        },
+        "emptyState": "guided"
+      },
+      "permissions": {
+        "network": true,
+        "filesystem": false,
+        "wallet": false,
+        "externalTools": [
+          "ifind-data",
+          "qmt-broker",
+          "paper-broker"
+        ],
+        "dataScopes": [
+          "market-data",
+          "portfolio",
+          "orders"
+        ]
+      },
+      "compatibility": {
+        "appVersion": ">=0.1.0",
+        "mcp": "optional"
+      },
+      "release": {
+        "status": "published",
+        "review": "approved"
+      }
+    }
+  ]
+}

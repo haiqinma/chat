@@ -10,26 +10,15 @@ import ClearIcon from "../icons/clear.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import EditIcon from "../icons/edit.svg";
 import EyeIcon from "../icons/eye.svg";
-import DownloadIcon from "../icons/download.svg";
-import UploadIcon from "../icons/upload.svg";
-import ConfigIcon from "../icons/config.svg";
-import ConfirmIcon from "../icons/confirm.svg";
-
-import ConnectionIcon from "../icons/connection.svg";
-import CloudSuccessIcon from "../icons/cloud-success.svg";
-import CloudFailIcon from "../icons/cloud-fail.svg";
 import {
   Input,
   List,
   ListItem,
   Modal,
-  PasswordInput,
   Popover,
   Select,
   showConfirm,
-  showToast,
 } from "./ui-lib";
-import { ModelConfigList } from "./model-config";
 
 import { IconButton } from "./button";
 import {
@@ -37,7 +26,6 @@ import {
   useChatStore,
   Theme,
   useUpdateStore,
-  useAccessStore,
   useAppConfig,
 } from "../store";
 
@@ -49,40 +37,21 @@ import Locale, {
 } from "../locales";
 import { copyToClipboard, clientUpdate, semverCompare } from "../utils";
 import Link from "next/link";
-import {
-  OPENAI_BASE_URL,
-  ApiPath,
-  Path,
-  RELEASE_URL,
-  STORAGE_KEY,
-  ServiceProvider,
-  SlotID,
-  UPDATE_URL,
-} from "../constant";
+import { Path, RELEASE_URL, UPDATE_URL } from "../constant";
 import { SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
 import { InputRange } from "./input-range";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarPicker, WalletAccount } from "./emoji";
 import { getClientConfig } from "../config/client";
-import { useSyncStore } from "../store/sync";
 import { nanoid } from "nanoid";
-import { useSkillStore } from "../store/skill";
-import { ProviderType } from "../utils/cloud";
 import { TTSConfigList } from "./tts-config";
-import { RealtimeConfigList } from "./realtime-chat/realtime-config";
 import {
   getCurrentAccount,
   isValidUcanAuthorization,
   logoutWallet,
   UCAN_AUTH_EVENT,
 } from "../plugins/wallet";
-
-const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
-const ROUTER_BASE_URL =
-  getClientConfig()?.routerBackendUrl || "https://llm.yeying.pub/";
-const ROUTER_BASE_URL_NORMALIZED = normalizeUrl(ROUTER_BASE_URL);
-const ROUTER_PROVIDERS = [ServiceProvider.OpenAI];
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -316,402 +285,6 @@ function AccountItems() {
   );
 }
 
-function CheckButton() {
-  const syncStore = useSyncStore();
-  const webdavEnvBaseUrl =
-    getClientConfig()?.webdavBackendBaseUrl?.trim() || "";
-  const webdavEnvPrefix = getClientConfig()?.webdavBackendPrefix?.trim() || "";
-  const webdavBaseUrl = syncStore.webdav.baseUrl || webdavEnvBaseUrl;
-  const webdavPrefix = syncStore.webdav.baseUrl.trim()
-    ? syncStore.webdav.prefix
-    : syncStore.webdav.prefix || webdavEnvPrefix;
-
-  const couldCheck = useMemo(() => {
-    return syncStore.cloudSync();
-  }, [syncStore]);
-
-  const [checkState, setCheckState] = useState<
-    "none" | "checking" | "success" | "failed"
-  >("none");
-
-  async function check() {
-    setCheckState("checking");
-    const valid = await syncStore.check();
-    setCheckState(valid ? "success" : "failed");
-  }
-
-  if (!couldCheck) return null;
-
-  return (
-    <IconButton
-      text={Locale.Settings.Sync.Config.Modal.Check}
-      bordered
-      onClick={check}
-      icon={
-        checkState === "none" ? (
-          <ConnectionIcon />
-        ) : checkState === "checking" ? (
-          <LoadingIcon />
-        ) : checkState === "success" ? (
-          <CloudSuccessIcon />
-        ) : checkState === "failed" ? (
-          <CloudFailIcon />
-        ) : (
-          <ConnectionIcon />
-        )
-      }
-    ></IconButton>
-  );
-}
-
-function SyncConfigModal(props: { onClose?: () => void }) {
-  const syncStore = useSyncStore();
-  const webdavEnvBaseUrl =
-    getClientConfig()?.webdavBackendBaseUrl?.trim() || "";
-  const webdavEnvPrefix = getClientConfig()?.webdavBackendPrefix?.trim() || "";
-  const webdavBaseUrl = syncStore.webdav.baseUrl || webdavEnvBaseUrl;
-  const webdavPrefix = syncStore.webdav.baseUrl.trim()
-    ? syncStore.webdav.prefix
-    : syncStore.webdav.prefix || webdavEnvPrefix;
-
-  return (
-    <div className="modal-mask">
-      <Modal
-        title={Locale.Settings.Sync.Config.Modal.Title}
-        onClose={() => props.onClose?.()}
-        actions={[
-          <CheckButton key="check" />,
-          <IconButton
-            key="confirm"
-            onClick={props.onClose}
-            icon={<ConfirmIcon />}
-            bordered
-            text={Locale.UI.Confirm}
-          />,
-        ]}
-      >
-        <List>
-          <ListItem
-            title={Locale.Settings.Sync.Config.SyncType.Title}
-            subTitle={Locale.Settings.Sync.Config.SyncType.SubTitle}
-          >
-            <select
-              value={syncStore.provider}
-              onChange={(e) => {
-                syncStore.update(
-                  (config) =>
-                    (config.provider = e.target.value as ProviderType),
-                );
-              }}
-            >
-              {Object.entries(ProviderType).map(([k, v]) => (
-                <option value={v} key={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
-          </ListItem>
-
-          <ListItem title={Locale.Settings.Sync.Config.AutoSync.Title}>
-            <input
-              type="checkbox"
-              checked={syncStore.autoSync}
-              onChange={(e) => {
-                syncStore.update(
-                  (config) => (config.autoSync = e.currentTarget.checked),
-                );
-              }}
-            ></input>
-          </ListItem>
-
-          {syncStore.autoSync ? (
-            <ListItem
-              title={Locale.Settings.Sync.Config.AutoSyncInterval.Title}
-            >
-              <input
-                type="number"
-                min={1}
-                max={120}
-                value={Math.max(
-                  1,
-                  Math.round(syncStore.autoSyncIntervalMs / 60000),
-                )}
-                onChange={(e) => {
-                  const minutes = Number(e.currentTarget.value);
-                  if (!Number.isFinite(minutes)) return;
-                  syncStore.update(
-                    (config) =>
-                      (config.autoSyncIntervalMs =
-                        Math.max(1, minutes) * 60000),
-                  );
-                }}
-              ></input>
-            </ListItem>
-          ) : null}
-
-          <ListItem
-            title={Locale.Settings.Sync.Config.Proxy.Title}
-            subTitle={Locale.Settings.Sync.Config.Proxy.SubTitle}
-          >
-            <input
-              type="checkbox"
-              checked={syncStore.useProxy}
-              onChange={(e) => {
-                syncStore.update(
-                  (config) => (config.useProxy = e.currentTarget.checked),
-                );
-              }}
-            ></input>
-          </ListItem>
-          {syncStore.useProxy ? (
-            <ListItem
-              title={Locale.Settings.Sync.Config.ProxyUrl.Title}
-              subTitle={Locale.Settings.Sync.Config.ProxyUrl.SubTitle}
-            >
-              <input
-                type="text"
-                value={syncStore.proxyUrl}
-                onChange={(e) => {
-                  syncStore.update(
-                    (config) => (config.proxyUrl = e.currentTarget.value),
-                  );
-                }}
-              ></input>
-            </ListItem>
-          ) : null}
-        </List>
-
-        <List>
-          <ListItem title={Locale.Settings.Sync.Config.WebDav.AuthType}>
-            <select
-              value={syncStore.webdav.authType}
-              onChange={(e) => {
-                syncStore.update(
-                  (config) =>
-                    (config.webdav.authType = e.target
-                      .value as typeof config.webdav.authType),
-                );
-              }}
-            >
-              <option value="basic">Basic</option>
-              <option value="ucan">UCAN</option>
-            </select>
-          </ListItem>
-        </List>
-
-        {syncStore.provider === ProviderType.WebDAV && (
-          <>
-            <List>
-              <ListItem
-                title={
-                  syncStore.webdav.authType === "ucan"
-                    ? Locale.Settings.Sync.Config.WebDav.UcanBaseUrl
-                    : Locale.Settings.Sync.Config.WebDav.BaseUrl
-                }
-                subTitle={Locale.Settings.Sync.Config.WebDav.BaseUrlSubTitle}
-              >
-                <input
-                  type="text"
-                  value={webdavBaseUrl}
-                  onChange={(e) => {
-                    syncStore.update(
-                      (config) =>
-                        (config.webdav.baseUrl = e.currentTarget.value),
-                    );
-                  }}
-                ></input>
-              </ListItem>
-              <ListItem
-                title={
-                  syncStore.webdav.authType === "ucan"
-                    ? Locale.Settings.Sync.Config.WebDav.UcanPrefix
-                    : Locale.Settings.Sync.Config.WebDav.Prefix
-                }
-                subTitle={Locale.Settings.Sync.Config.WebDav.PrefixSubTitle}
-              >
-                <input
-                  type="text"
-                  placeholder="/dav"
-                  value={webdavPrefix}
-                  onChange={(e) => {
-                    syncStore.update(
-                      (config) =>
-                        (config.webdav.prefix = e.currentTarget.value),
-                    );
-                  }}
-                ></input>
-              </ListItem>
-              {syncStore.webdav.authType === "basic" ? (
-                <>
-                  <ListItem title={Locale.Settings.Sync.Config.WebDav.UserName}>
-                    <input
-                      type="text"
-                      value={syncStore.webdav.username}
-                      onChange={(e) => {
-                        syncStore.update(
-                          (config) =>
-                            (config.webdav.username = e.currentTarget.value),
-                        );
-                      }}
-                    ></input>
-                  </ListItem>
-                  <ListItem title={Locale.Settings.Sync.Config.WebDav.Password}>
-                    <PasswordInput
-                      value={syncStore.webdav.password}
-                      onChange={(e) => {
-                        syncStore.update(
-                          (config) =>
-                            (config.webdav.password = e.currentTarget.value),
-                        );
-                      }}
-                    ></PasswordInput>
-                  </ListItem>
-                </>
-              ) : null}
-            </List>
-          </>
-        )}
-
-        {syncStore.provider === ProviderType.UpStash && (
-          <List>
-            <ListItem title={Locale.Settings.Sync.Config.UpStash.Endpoint}>
-              <input
-                type="text"
-                value={syncStore.upstash.endpoint}
-                onChange={(e) => {
-                  syncStore.update(
-                    (config) =>
-                      (config.upstash.endpoint = e.currentTarget.value),
-                  );
-                }}
-              ></input>
-            </ListItem>
-
-            <ListItem title={Locale.Settings.Sync.Config.UpStash.UserName}>
-              <input
-                type="text"
-                value={syncStore.upstash.username}
-                placeholder={STORAGE_KEY}
-                onChange={(e) => {
-                  syncStore.update(
-                    (config) =>
-                      (config.upstash.username = e.currentTarget.value),
-                  );
-                }}
-              ></input>
-            </ListItem>
-            <ListItem title={Locale.Settings.Sync.Config.UpStash.Password}>
-              <PasswordInput
-                value={syncStore.upstash.apiKey}
-                onChange={(e) => {
-                  syncStore.update(
-                    (config) => (config.upstash.apiKey = e.currentTarget.value),
-                  );
-                }}
-              ></PasswordInput>
-            </ListItem>
-          </List>
-        )}
-      </Modal>
-    </div>
-  );
-}
-
-function SyncItems() {
-  const syncStore = useSyncStore();
-  const chatStore = useChatStore();
-  const promptStore = usePromptStore();
-  const skillStore = useSkillStore();
-  const couldSync = useMemo(() => {
-    return syncStore.cloudSync();
-  }, [syncStore]);
-
-  const [showSyncConfigModal, setShowSyncConfigModal] = useState(false);
-
-  const stateOverview = useMemo(() => {
-    const sessions = chatStore.sessions;
-    const messageCount = sessions.reduce((p, c) => p + c.messages.length, 0);
-
-    return {
-      chat: sessions.length,
-      message: messageCount,
-      prompt: Object.keys(promptStore.prompts).length,
-      skill: Object.keys(skillStore.skills).length,
-    };
-  }, [chatStore.sessions, skillStore.skills, promptStore.prompts]);
-
-  return (
-    <>
-      <List>
-        <ListItem
-          title={Locale.Settings.Sync.CloudState}
-          subTitle={
-            syncStore.lastProvider
-              ? `${new Date(syncStore.lastSyncTime).toLocaleString()} [${
-                  syncStore.lastProvider
-                }]`
-              : Locale.Settings.Sync.NotSyncYet
-          }
-        >
-          <div style={{ display: "flex" }}>
-            <IconButton
-              aria={Locale.Settings.Sync.CloudState + Locale.UI.Config}
-              icon={<ConfigIcon />}
-              text={Locale.UI.Config}
-              onClick={() => {
-                setShowSyncConfigModal(true);
-              }}
-            />
-            {couldSync && (
-              <IconButton
-                icon={<ResetIcon />}
-                text={Locale.UI.Sync}
-                onClick={async () => {
-                  try {
-                    await syncStore.sync({ interactive: true });
-                    showToast(Locale.Settings.Sync.Success);
-                  } catch (e) {
-                    showToast(Locale.Settings.Sync.Fail);
-                    console.error("[Sync]", e);
-                  }
-                }}
-              />
-            )}
-          </div>
-        </ListItem>
-
-        <ListItem
-          title={Locale.Settings.Sync.LocalState}
-          subTitle={Locale.Settings.Sync.Overview(stateOverview)}
-        >
-          <div style={{ display: "flex" }}>
-            <IconButton
-              aria={Locale.Settings.Sync.LocalState + Locale.UI.Export}
-              icon={<UploadIcon />}
-              text={Locale.UI.Export}
-              onClick={() => {
-                syncStore.export();
-              }}
-            />
-            <IconButton
-              aria={Locale.Settings.Sync.LocalState + Locale.UI.Import}
-              icon={<DownloadIcon />}
-              text={Locale.UI.Import}
-              onClick={() => {
-                syncStore.import();
-              }}
-            />
-          </div>
-        </ListItem>
-      </List>
-
-      {showSyncConfigModal && (
-        <SyncConfigModal onClose={() => setShowSyncConfigModal(false)} />
-      )}
-    </>
-  );
-}
-
 export function Settings() {
   const clientConfig = useMemo(() => getClientConfig(), []);
   const navigate = useNavigate();
@@ -736,58 +309,14 @@ export function Settings() {
     console.debug("[Update] remote version ", updateStore.remoteVersion);
   }
 
-  const accessStore = useAccessStore();
-  const shouldHideBalanceQuery = useMemo(() => {
-    const isOpenAiUrl = accessStore.openaiUrl.includes(OPENAI_BASE_URL);
-    const isRouterUrl = normalizeUrl(accessStore.openaiUrl).includes(
-      ROUTER_BASE_URL_NORMALIZED,
-    );
-
-    return (
-      accessStore.hideBalanceQuery ||
-      isOpenAiUrl ||
-      isRouterUrl ||
-      accessStore.provider === ServiceProvider.Azure
-    );
-  }, [
-    accessStore.hideBalanceQuery,
-    accessStore.openaiUrl,
-    accessStore.provider,
-  ]);
-
-  const usage = {
-    used: updateStore.used,
-    subscription: updateStore.subscription,
-  };
-  const [loadingUsage, setLoadingUsage] = useState(false);
-  function checkUsage(force = false) {
-    if (shouldHideBalanceQuery) {
-      return;
-    }
-
-    setLoadingUsage(true);
-    updateStore.updateUsage(force).finally(() => {
-      setLoadingUsage(false);
-    });
-  }
-
-  const enabledAccessControl = useMemo(
-    () => accessStore.enabledAccessControl(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
   const promptStore = usePromptStore();
   const builtinCount = SearchService.count.builtin;
   const customCount = promptStore.getUserPrompts().length ?? 0;
   const [shouldShowPromptModal, setShowPromptModal] = useState(false);
   const walletAddress = getCurrentAccount() || undefined;
 
-  const showUsage = accessStore.isAuthorized();
   useEffect(() => {
-    // checks per minutes
     checkUpdate();
-    showUsage && checkUsage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -797,85 +326,12 @@ export function Settings() {
         navigate(Path.Home);
       }
     };
-    accessStore.update((state) => {
-      state.useCustomConfig = true;
-      state.provider = ServiceProvider.OpenAI;
-
-      const normalizedOpenAIUrl = normalizeUrl(state.openaiUrl || "");
-      const shouldReplaceEndpoint =
-        normalizedOpenAIUrl.length === 0 ||
-        normalizedOpenAIUrl === normalizeUrl(ApiPath.OpenAI) ||
-        normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL);
-
-      if (shouldReplaceEndpoint || clientConfig?.isApp) {
-        state.openaiUrl = ROUTER_BASE_URL_NORMALIZED;
-      }
-    });
     document.addEventListener("keydown", keydownEvent);
     return () => {
       document.removeEventListener("keydown", keydownEvent);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const showAccessCode = enabledAccessControl && !clientConfig?.isApp;
-
-  const accessCodeComponent = showAccessCode && (
-    <ListItem
-      title={Locale.Settings.Access.AccessCode.Title}
-      subTitle={Locale.Settings.Access.AccessCode.SubTitle}
-    >
-      <PasswordInput
-        value={accessStore.accessCode}
-        type="text"
-        placeholder={Locale.Settings.Access.AccessCode.Placeholder}
-        onChange={(e) => {
-          accessStore.update(
-            (access) => (access.accessCode = e.currentTarget.value),
-          );
-        }}
-      />
-    </ListItem>
-  );
-
-  const openAIConfigComponent = accessStore.provider ===
-    ServiceProvider.OpenAI && (
-    <>
-      <ListItem
-        title={Locale.Settings.Access.OpenAI.Endpoint.Title}
-        subTitle={Locale.Settings.Access.OpenAI.Endpoint.SubTitle}
-      >
-        <input
-          aria-label={Locale.Settings.Access.OpenAI.Endpoint.Title}
-          type="text"
-          value={accessStore.openaiUrl}
-          placeholder={ROUTER_BASE_URL_NORMALIZED}
-          onChange={(e) =>
-            accessStore.update(
-              (access) => (access.openaiUrl = e.currentTarget.value),
-            )
-          }
-        ></input>
-      </ListItem>
-      <ListItem
-        title={Locale.Settings.Access.OpenAI.ApiKey.Title}
-        subTitle={Locale.Settings.Access.OpenAI.ApiKey.SubTitle}
-      >
-        <PasswordInput
-          aria={Locale.Settings.ShowPassword}
-          aria-label={Locale.Settings.Access.OpenAI.ApiKey.Title}
-          value={accessStore.openaiApiKey}
-          type="text"
-          placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-          onChange={(e) => {
-            accessStore.update(
-              (access) => (access.openaiApiKey = e.currentTarget.value),
-            );
-          }}
-        />
-      </ListItem>
-    </>
-  );
 
   return (
     <ErrorBoundary>
@@ -1130,8 +586,6 @@ export function Settings() {
             </ListItem>
           </List>
 
-          <SyncItems />
-
           <List>
             <ListItem
               title={Locale.Settings.Mask.Splash.Title}
@@ -1203,109 +657,10 @@ export function Settings() {
             </ListItem>
           </List>
 
-          <List id={SlotID.CustomModel}>
-            {accessCodeComponent}
-
-            {!accessStore.hideUserApiKey && accessStore.useCustomConfig && (
-              <>
-                <ListItem
-                  title={Locale.Settings.Access.Provider.Title}
-                  subTitle={Locale.Settings.Access.Provider.SubTitle}
-                >
-                  <Select
-                    aria-label={Locale.Settings.Access.Provider.Title}
-                    value={accessStore.provider}
-                    onChange={(e) => {
-                      accessStore.update(
-                        (access) =>
-                          (access.provider = e.target.value as ServiceProvider),
-                      );
-                    }}
-                  >
-                    {ROUTER_PROVIDERS.map((provider) => (
-                      <option value={provider} key={provider}>
-                        {provider}
-                      </option>
-                    ))}
-                  </Select>
-                </ListItem>
-
-                {openAIConfigComponent}
-              </>
-            )}
-
-            {!shouldHideBalanceQuery && !clientConfig?.isApp ? (
-              <ListItem
-                title={Locale.Settings.Usage.Title}
-                subTitle={
-                  showUsage
-                    ? loadingUsage
-                      ? Locale.Settings.Usage.IsChecking
-                      : Locale.Settings.Usage.SubTitle(
-                          usage?.used ?? "[?]",
-                          usage?.subscription ?? "[?]",
-                        )
-                    : Locale.Settings.Usage.NoAccess
-                }
-              >
-                {!showUsage || loadingUsage ? (
-                  <div />
-                ) : (
-                  <IconButton
-                    icon={<ResetIcon></ResetIcon>}
-                    text={Locale.Settings.Usage.Check}
-                    onClick={() => checkUsage(true)}
-                  />
-                )}
-              </ListItem>
-            ) : null}
-
-            <ListItem
-              title={Locale.Settings.Access.CustomModel.Title}
-              subTitle={Locale.Settings.Access.CustomModel.SubTitle}
-              vertical={true}
-            >
-              <input
-                aria-label={Locale.Settings.Access.CustomModel.Title}
-                style={{ width: "100%", maxWidth: "unset", textAlign: "left" }}
-                type="text"
-                value={config.customModels}
-                placeholder="model1,model2,model3"
-                onChange={(e) =>
-                  config.update(
-                    (config) => (config.customModels = e.currentTarget.value),
-                  )
-                }
-              ></input>
-            </ListItem>
-          </List>
-
-          <List>
-            <ModelConfigList
-              modelConfig={config.modelConfig}
-              updateConfig={(updater) => {
-                const modelConfig = { ...config.modelConfig };
-                updater(modelConfig);
-                config.update((config) => (config.modelConfig = modelConfig));
-              }}
-            />
-          </List>
-
           {shouldShowPromptModal && (
             <UserPromptModal onClose={() => setShowPromptModal(false)} />
           )}
-          <List>
-            <RealtimeConfigList
-              realtimeConfig={config.realtimeConfig}
-              updateConfig={(updater) => {
-                const realtimeConfig = { ...config.realtimeConfig };
-                updater(realtimeConfig);
-                config.update(
-                  (config) => (config.realtimeConfig = realtimeConfig),
-                );
-              }}
-            />
-          </List>
+
           <List>
             <TTSConfigList
               ttsConfig={config.ttsConfig}

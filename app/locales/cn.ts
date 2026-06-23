@@ -233,16 +233,11 @@ const cn = {
       SubTitle: "根据对话内容生成合适的标题",
     },
     Sync: {
-      CloudState: "云端数据",
       NotSyncYet: "还没有进行过同步",
       Success: "同步成功",
       Fail: "同步失败",
 
       Config: {
-        Modal: {
-          Title: "配置云同步",
-          Check: "检查可用性",
-        },
         SyncType: {
           Title: "同步类型",
           SubTitle: "选择喜爱的同步服务器",
@@ -282,7 +277,6 @@ const cn = {
         },
       },
 
-      LocalState: "本地数据",
       Overview: (overview: any) => {
         const skillCount = overview.skill ?? overview.mask ?? 0;
         return `${overview.chat} 次对话，${overview.message} 条消息，${overview.prompt} 条提示词，${skillCount} 个技能`;
@@ -688,13 +682,14 @@ const cn = {
     Name: "发现",
     Page: {
       Title: "发现",
-      SubTitle: "浏览和管理技能、MCP 与模型服务",
+      SubTitle: "浏览和管理技能、MCP、模型服务与存储",
     },
     Types: {
       all: "全部",
       skill: "技能",
       mcp: "MCP",
       provider: "模型服务商",
+      storage: "存储",
     },
     Status: {
       Enabled: "已启用",
@@ -732,15 +727,34 @@ const cn = {
     Use: "开始使用",
     MyCapabilities: "我的能力",
     BackToMarket: "返回市场",
-    SearchMarket: "搜索技能、MCP、模型服务商",
+    SearchMarket: "搜索技能、MCP、模型服务商、存储",
     SearchMine: "搜索我的能力",
     Empty: "没有找到匹配的能力",
     ResetFilters: "清空筛选",
+    ReloadMarketplace: "重新加载市场",
+    MarketplaceSource: "市场源",
+    MarketplaceSkillSource: "技能市场源",
+    MarketplaceMcpSource: "MCP 市场源",
+    MarketplaceLoading: "正在加载市场数据",
+    MarketplaceLoaded: (
+      currentLangSkills: number,
+      totalSkills: number,
+      mcps: number,
+    ) => `已加载 ${currentLangSkills}/${totalSkills} 个技能，${mcps} 个 MCP`,
+    MarketplaceError: (message: string) => `市场加载失败：${message}`,
     DefaultSkillDesc: "面向任务的工作方式，可绑定模型、提示词和工具。",
     SkillStarters: (count: number) => `${count} 个开场白`,
     SkillTools: (count: number) => `${count} 个绑定工具`,
     RouterProviderTitle: "社区 Router",
     RouterProviderDesc: "默认模型服务商，统一接入社区可用模型。",
+    CloudStorageTitle: "云端存储",
+    CloudStorageDesc:
+      "管理聊天、技能等本地数据的云端同步；后续可作为 MCP 文件能力提供给模型。",
+    StorageAppSync: "应用同步",
+    StorageFutureMcp: "后续 MCP 文件能力",
+    StorageQuotaUsage: (used: string, quota: string) =>
+      `已用 ${used} / ${quota}`,
+    StorageQuotaUnlimited: (used: string) => `已用 ${used} / 无限空间`,
     ProviderDesc: (available: number, total: number, tags: string[]) =>
       tags.length > 0
         ? `${available}/${total} 个模型可用 · ${tags.join(" / ")}`
@@ -1045,35 +1059,29 @@ const cn = {
     },
     SelectImageFirst: "请先选择一张要编辑的图片。",
   },
-  MyCenter: {
-    Title: "个人中心",
-    SubTitle: "管理您的账户与资源",
-    Tab1: {
-      Title: "存储使用情况",
-      Info: {
-        Total: "总磁盘配额",
-        Used: "已使用",
-        Remain: "剩余空间",
-      },
-    },
-    Tab3: {
-      Title: "模型使用情况",
-      Info: {
-        Moneys: "总消费金额",
-        Tokens: "tokens消耗",
-      },
-    },
-    Tab4: {
-      Title: "账户服务",
-      Info: {
-        StorageExpansion: "存储扩容",
-        Desc1: "提升您的磁盘配额上限",
-        ImmediatelyExpandCapacity: "立即扩容",
-        Desc2: "为您的账户充值以继续使用服务",
-        TopUpBalance: "充值余额",
-        GotoRecharge: "去充值",
-      },
-    },
+  Storage: {
+    Title: "云端存储",
+    SubTitle: "管理应用数据同步、空间配额与存储配置",
+    StatusReady: "存储可用",
+    StatusNeedsConfig: "需要配置",
+    StatusChecking: "检查中",
+    StatusError: "存储异常",
+    StatusDesc:
+      "当前阶段用于聊天、技能、提示词和本地缓存的云端同步；后续可扩展为模型可访问的 MCP 文件能力。",
+    Check: "检查连接",
+    CheckSuccess: "存储连接正常",
+    CheckFail: "存储连接失败",
+    SyncNow: "立即同步",
+    ConfigTitle: "存储配置",
+    QuotaTotal: "总配额",
+    QuotaUsed: "已使用",
+    QuotaAvailable: "剩余空间",
+    DataTitle: "数据管理",
+    LastSync: "最近同步",
+    LocalData: "本地数据",
+    Expansion: "存储扩容",
+    ExpansionDesc: "提升云端存储空间上限",
+    Expand: "立即扩容",
   },
 };
 

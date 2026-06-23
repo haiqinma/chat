@@ -67,7 +67,7 @@ export function ModelConfigList(props: {
         const runtimeModel = model as LLMModel;
         const endpoints = runtimeModel.supportedEndpoints ?? [];
         if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-        const tags = runtimeModel.tags ?? [];
+        const tags = Array.isArray(runtimeModel.tags) ? runtimeModel.tags : [];
         const imageOnly =
           tags.includes("image") ||
           runtimeModel.modelType === "image" ||

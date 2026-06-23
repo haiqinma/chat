@@ -2,6 +2,10 @@ import type { ModelCandidate } from "../client/api";
 import type { Lang } from "../locales";
 import type { ChatMessage } from "../store/chat";
 import type { ModelConfig } from "../store/config";
+import {
+  createDefaultRealtimeConfig,
+  type RealtimeConfig,
+} from "../store/realtime";
 import type {
   BuiltInSkillToolType,
   Skill,
@@ -37,14 +41,14 @@ export type SkillPackageModel = {
 
 export type SkillTool = {
   id: string;
-  name: string;
-  description?: string;
+  name: LocalizedText;
+  description?: LocalizedText;
   required: boolean;
 };
 
 export type SkillMcpServer = {
   id: string;
-  name: string;
+  name: LocalizedText;
   transport: "stdio" | "http" | "sse";
   required: boolean;
   configSchema?: Record<string, unknown>;
@@ -88,6 +92,7 @@ export type SkillPackage = {
   instructions?: SkillInstructions;
   starters?: string[];
   model?: SkillPackageModel;
+  realtime?: Partial<RealtimeConfig>;
   tools?: SkillTool[];
   mcp?: {
     servers?: SkillMcpServer[];
@@ -123,12 +128,21 @@ function getSkillMcpTools(skill: Skill | BuiltinSkill) {
   return skill.tools?.mcpTools ?? [];
 }
 
+function getSkillMcpToolRequired(skill: Skill | BuiltinSkill, id: string) {
+  return skill.tools?.mcpToolRequirements?.[id] !== false;
+}
+
 function syncSkillLegacyPlugin(skill: Skill) {
   const apiTools = skill.tools?.apiTools ?? skill.plugin ?? [];
+  const mcpTools = skill.tools?.mcpTools ?? [];
+  const existingMcpRequirements = skill.tools?.mcpToolRequirements ?? {};
   skill.plugin = apiTools;
   skill.tools = {
     builtInTools: skill.tools?.builtInTools ?? [],
-    mcpTools: skill.tools?.mcpTools ?? [],
+    mcpTools,
+    mcpToolRequirements: Object.fromEntries(
+      mcpTools.map((id) => [id, existingMcpRequirements[id] ?? true]),
+    ),
     apiTools,
   };
 }
@@ -180,6 +194,15 @@ export function skillPackageToSkill(
   lang: Lang,
   baseModelConfig: ModelConfig,
 ): Skill {
+  const ui = skillPackage.realtime
+    ? {
+        ...skillPackage.ui,
+        sessionToolbar: {
+          ...skillPackage.ui?.sessionToolbar,
+          realtime: true,
+        },
+      }
+    : skillPackage.ui;
   const packageTools = skillPackage.tools ?? [];
   const builtInTools = packageTools
     .map((tool) => tool.id)
@@ -187,6 +210,7 @@ export function skillPackageToSkill(
   const apiTools = packageTools
     .map((tool) => tool.id)
     .filter((id) => !isBuiltInTool(id));
+  const mcpServers = skillPackage.mcp?.servers ?? [];
   const skill = {
     id: skillPackage.id,
     createdAt: Date.now(),
@@ -205,16 +229,22 @@ export function skillPackageToSkill(
       providerName:
         skillPackage.model?.default?.provider ?? baseModelConfig.providerName,
     },
+    ...(skillPackage.realtime
+      ? { realtimeConfig: createDefaultRealtimeConfig(skillPackage.realtime) }
+      : {}),
     candidateModels: skillPackage.model?.candidates,
     lang,
     builtin: false,
     plugin: apiTools,
     tools: {
       builtInTools,
-      mcpTools: skillPackage.mcp?.servers?.map((server) => server.id) ?? [],
+      mcpTools: mcpServers.map((server) => server.id),
+      mcpToolRequirements: Object.fromEntries(
+        mcpServers.map((server) => [server.id, server.required]),
+      ),
       apiTools,
     },
-    ui: skillPackage.ui,
+    ui,
     launch: resolveLegacyLaunch(skillPackage.launch),
   };
   syncSkillLegacyPlugin(skill);
@@ -279,6 +309,7 @@ export function skillToSkillPackage(skill: Skill | BuiltinSkill): SkillPackage {
       candidates: skill.candidateModels,
       params: modelConfig,
     },
+    realtime: skill.realtimeConfig,
     tools: [
       ...getSkillBuiltInTools(skill as Skill).map((tool) => ({
         id: tool,
@@ -296,7 +327,7 @@ export function skillToSkillPackage(skill: Skill | BuiltinSkill): SkillPackage {
         id,
         name: id,
         transport: "stdio",
-        required: false,
+        required: getSkillMcpToolRequired(skill as Skill, id),
       })),
     },
     ui: skill.ui,

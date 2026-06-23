@@ -10,7 +10,7 @@ import EyeIcon from "../icons/eye.svg";
 import GithubIcon from "../icons/github.svg";
 import { List, ListItem, Modal, showToast } from "./ui-lib";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addMcpServer,
   getClientsStatus,
@@ -28,15 +28,21 @@ import {
   ServerConfig,
   ServerStatusResponse,
 } from "../mcp/types";
-import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
 import {
   fetchCommunityMcpPresetServers,
   mergeMcpPresetServers,
 } from "../mcp/marketplace";
+import {
+  getMissingMcpConfigKeys,
+  readMcpConfigBoolean,
+  stringifyMcpConfigValue,
+} from "../mcp/config-schema";
 import clsx from "clsx";
 import PlayIcon from "../icons/play.svg";
 import StopIcon from "../icons/pause.svg";
 import { Path } from "../constant";
+import { getLang } from "../locales";
+import { getOfficialMcpPresetServers } from "../mcp/preset-servers";
 
 interface ConfigProperty {
   type: string;
@@ -51,6 +57,11 @@ interface ConfigProperty {
 
 export function McpMarketPage() {
   const navigate = useNavigate();
+  const currentLang = getLang();
+  const officialPresetServers = useMemo(
+    () => getOfficialMcpPresetServers(currentLang),
+    [currentLang],
+  );
   const [mcpEnabled, setMcpEnabled] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [userConfig, setUserConfig] = useState<Record<string, any>>({});
@@ -110,12 +121,12 @@ export function McpMarketPage() {
         );
         if (controller.signal.aborted) return;
         setPresetServers(
-          mergeMcpPresetServers(OFFICIAL_MCP_PRESET_SERVERS, communityServers),
+          mergeMcpPresetServers(officialPresetServers, communityServers.data),
         );
       } catch (error) {
         if (controller.signal.aborted) return;
         console.error("Failed to load preset servers:", error);
-        setPresetServers(OFFICIAL_MCP_PRESET_SERVERS);
+        setPresetServers(officialPresetServers);
         showToast("Failed to load preset servers");
       } finally {
         if (!controller.signal.aborted) {
@@ -126,7 +137,7 @@ export function McpMarketPage() {
     loadPresetServers();
 
     return () => controller.abort();
-  }, [mcpEnabled]);
+  }, [mcpEnabled, officialPresetServers]);
 
   // 加载初始状态
   useEffect(() => {
@@ -197,6 +208,15 @@ export function McpMarketPage() {
     const preset = presetServers.find((s) => s.id === editingServerId);
     if (!preset || !preset.configSchema || !editingServerId) return;
 
+    const missingKeys = getMissingMcpConfigKeys(
+      preset.configSchema.properties,
+      userConfig,
+    );
+    if (missingKeys.length > 0) {
+      showToast(`缺少必填 MCP 配置：${missingKeys.join(", ")}`);
+      return;
+    }
+
     const savingServerId = editingServerId;
     setEditingServerId(undefined);
 
@@ -216,12 +236,11 @@ export function McpMarketPage() {
           mapping.position !== undefined
         ) {
           args[mapping.position] = value;
-        } else if (
-          mapping.type === "env" &&
-          mapping.key &&
-          typeof value === "string"
-        ) {
-          env[mapping.key] = value;
+        } else if (mapping.type === "env" && mapping.key) {
+          const envValue = stringifyMcpConfigValue(value);
+          if (envValue !== undefined) {
+            env[mapping.key] = envValue;
+          }
         }
       });
 
@@ -418,6 +437,26 @@ export function McpMarketPage() {
                   }}
                 />
               </div>
+            </ListItem>
+          );
+        } else if (prop.type === "boolean") {
+          const currentValue = readMcpConfigBoolean(
+            userConfig[key as keyof typeof userConfig],
+          );
+          return (
+            <ListItem
+              key={key}
+              title={key}
+              subTitle={renderPropertyDescription(prop)}
+            >
+              <input
+                aria-label={key}
+                type="checkbox"
+                checked={currentValue}
+                onChange={(e) => {
+                  setUserConfig({ ...userConfig, [key]: e.target.checked });
+                }}
+              />
             </ListItem>
           );
         } else if (prop.type === "string") {

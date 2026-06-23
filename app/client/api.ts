@@ -83,6 +83,8 @@ export interface RequestMessage {
   content: string | MultimodalContent[];
 }
 
+export type ResponsesConversationMode = "stateful" | "stateless";
+
 export interface LLMConfig {
   model: string;
   providerName?: string;
@@ -90,6 +92,7 @@ export interface LLMConfig {
   supportedEndpoints?: string[];
   ownedBy?: string;
   tags?: string[];
+  responsesMode?: ResponsesConversationMode;
   temperature?: number;
   top_p?: number;
   reasoningMode?: ReasoningMode;

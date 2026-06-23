@@ -961,7 +961,7 @@ export function ChatActions(props: {
         {!isMobileScreen && toolbar.mcp && <MCPAction />}
       </>
       <div className={styles["chat-input-actions-end"]}>
-        {toolbar.realtime && config.realtimeConfig.enable && (
+        {toolbar.realtime && sessionSkill.realtimeConfig?.enabled && (
           <ChatAction
             onClick={() => props.setShowChatSidePanel(true)}
             text={"Realtime Chat"}
@@ -1941,11 +1941,9 @@ function ChatView() {
                   const isUser = message.role === "user";
                   const isContext = i < context.length;
                   const showActions =
-                    i > 0 &&
                     !(
                       message.preview || getMessageContentLength(message) === 0
-                    ) &&
-                    !isContext;
+                    ) && !isContext;
                   const showTyping = message.preview || message.streaming;
                   const messageImages = getMessageImages(message);
 

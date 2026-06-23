@@ -1,0 +1,388 @@
+[
+  {
+    "schemaVersion": "1.0",
+    "id": "brave-search",
+    "version": "1.0.0",
+    "name": {
+      "cn": "Brave 搜索",
+      "en": "Brave Search"
+    },
+    "description": {
+      "cn": "使用 Brave Search API 进行网页搜索和实时信息检索。",
+      "en": "Use Brave Search API for web search and current information retrieval."
+    },
+    "repo": "https://github.com/brave/brave-search-mcp-server",
+    "tags": [
+      "official",
+      "search",
+      "web"
+    ],
+    "command": "npx",
+    "baseArgs": [
+      "-y",
+      "@brave/brave-search-mcp-server",
+      "--transport",
+      "stdio"
+    ],
+    "configurable": true,
+    "configSchema": {
+      "properties": {
+        "braveApiKey": {
+          "type": "string",
+          "description": {
+            "cn": "Brave Search API Key。",
+            "en": "Brave Search API Key."
+          },
+          "required": true,
+          "helpUrl": "https://api-dashboard.search.brave.com/login",
+          "helpLabel": {
+            "cn": "获取 API Key",
+            "en": "Get API Key"
+          }
+        }
+      }
+    },
+    "argsMapping": {
+      "braveApiKey": {
+        "type": "env",
+        "key": "BRAVE_API_KEY"
+      }
+    },
+    "release": {
+      "status": "published",
+      "review": "approved"
+    }
+  },
+  {
+    "schemaVersion": "1.0",
+    "id": "fetch",
+    "version": "1.0.0",
+    "name": {
+      "cn": "网页抓取",
+      "en": "Fetch"
+    },
+    "description": {
+      "cn": "抓取并转换网页内容，用于阅读、总结和调研工作流。",
+      "en": "Fetch and convert web content for reading, summarization, and research workflows."
+    },
+    "repo": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+    "tags": [
+      "official",
+      "web",
+      "http"
+    ],
+    "command": "uvx",
+    "baseArgs": [
+      "mcp-server-fetch"
+    ],
+    "configurable": false,
+    "release": {
+      "status": "published",
+      "review": "approved"
+    }
+  },
+  {
+    "schemaVersion": "1.0",
+    "id": "ifind-data",
+    "version": "0.1.0",
+    "name": {
+      "cn": "同花顺 iFinD 数据",
+      "en": "iFinD Data"
+    },
+    "description": {
+      "cn": "同花顺 iFinD / QuantAPI 行情数据连接器，用于策略调研、信号生成和交易前检查。",
+      "en": "TongHuaShun iFinD / QuantAPI market data connector for strategy research, signals, and pre-trade checks."
+    },
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/ifind-data-mcp",
+    "tags": [
+      "community",
+      "market-data",
+      "ifind",
+      "quantapi",
+      "tonghuashun",
+      "trading"
+    ],
+    "command": "npx",
+    "baseArgs": [
+      "-y",
+      "@yeying-community/ifind-data-mcp",
+      "--transport",
+      "stdio"
+    ],
+    "configurable": true,
+    "configSchema": {
+      "properties": {
+        "refreshToken": {
+          "type": "string",
+          "description": {
+            "cn": "iFinD / QuantAPI refresh_token，用于获取 access_token。",
+            "en": "iFinD / QuantAPI refresh_token. Used to obtain access_token."
+          },
+          "required": true,
+          "helpUrl": "https://quantapi.10jqka.com.cn/gwstatic/static/ds_web/super-command-web/index.html#/AccountDetails",
+          "helpLabel": {
+            "cn": "获取 refresh_token",
+            "en": "Get refresh_token"
+          }
+        },
+        "accessToken": {
+          "type": "string",
+          "description": {
+            "cn": "可选的已有 access_token；不填写时使用 refreshToken 自动获取。",
+            "en": "Optional existing access_token. If omitted, refreshToken is used."
+          },
+          "required": false
+        },
+        "baseUrl": {
+          "type": "string",
+          "description": {
+            "cn": "QuantAPI HTTP 基础地址，默认 https://quantapi.51ifind.com/api/v1。",
+            "en": "QuantAPI HTTP base URL. Defaults to https://quantapi.51ifind.com/api/v1."
+          },
+          "required": false
+        },
+        "requestTimeoutMs": {
+          "type": "string",
+          "description": {
+            "cn": "HTTP 请求超时时间，单位毫秒，默认 30000。",
+            "en": "HTTP request timeout in milliseconds. Defaults to 30000."
+          },
+          "required": false
+        }
+      }
+    },
+    "argsMapping": {
+      "refreshToken": {
+        "type": "env",
+        "key": "IFIND_REFRESH_TOKEN"
+      },
+      "accessToken": {
+        "type": "env",
+        "key": "IFIND_ACCESS_TOKEN"
+      },
+      "baseUrl": {
+        "type": "env",
+        "key": "IFIND_BASE_URL"
+      },
+      "requestTimeoutMs": {
+        "type": "env",
+        "key": "IFIND_REQUEST_TIMEOUT_MS"
+      }
+    },
+    "release": {
+      "status": "published",
+      "review": "approved"
+    }
+  },
+  {
+    "schemaVersion": "1.0",
+    "id": "paper-broker",
+    "version": "0.1.0",
+    "name": {
+      "cn": "模拟券商",
+      "en": "Paper Broker"
+    },
+    "description": {
+      "cn": "模拟券商连接器，用于订单演练、组合检查和策略交易测试。",
+      "en": "Simulated broker connector for dry-run order execution, portfolio checks, and strategy trading tests."
+    },
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/paper-broker-mcp",
+    "tags": [
+      "community",
+      "broker",
+      "trading",
+      "paper",
+      "simulation"
+    ],
+    "command": "npx",
+    "baseArgs": [
+      "-y",
+      "@yeying-community/paper-broker-mcp",
+      "--transport",
+      "stdio"
+    ],
+    "configurable": true,
+    "configSchema": {
+      "properties": {
+        "initialCash": {
+          "type": "string",
+          "description": {
+            "cn": "模拟交易初始现金余额，例如 100000。",
+            "en": "Initial paper trading cash balance, for example 100000."
+          },
+          "required": false
+        },
+        "market": {
+          "type": "string",
+          "description": {
+            "cn": "默认市场范围，例如 CN-A、HK、US 或 CRYPTO。",
+            "en": "Default market scope, for example CN-A, HK, US, or CRYPTO."
+          },
+          "required": false
+        },
+        "currency": {
+          "type": "string",
+          "description": {
+            "cn": "模拟交易账户币种，例如 USD、CNY 或 HKD。",
+            "en": "Paper trading account currency, for example USD, CNY, or HKD."
+          },
+          "required": false
+        },
+        "allowShort": {
+          "type": "boolean",
+          "description": {
+            "cn": "模拟卖出订单是否允许开空仓，默认关闭。",
+            "en": "Whether simulated sell orders can open short positions. Disabled by default."
+          },
+          "required": false
+        },
+        "requireConfirmation": {
+          "type": "boolean",
+          "description": {
+            "cn": "place_order 是否要求用户明确确认后传入 confirmed=true，默认开启。",
+            "en": "Whether place_order requires confirmed=true after explicit user confirmation. Enabled by default."
+          },
+          "required": false
+        }
+      }
+    },
+    "argsMapping": {
+      "initialCash": {
+        "type": "env",
+        "key": "PAPER_BROKER_INITIAL_CASH"
+      },
+      "market": {
+        "type": "env",
+        "key": "PAPER_BROKER_MARKET"
+      },
+      "currency": {
+        "type": "env",
+        "key": "PAPER_BROKER_CURRENCY"
+      },
+      "allowShort": {
+        "type": "env",
+        "key": "PAPER_BROKER_ALLOW_SHORT"
+      },
+      "requireConfirmation": {
+        "type": "env",
+        "key": "PAPER_BROKER_REQUIRE_CONFIRMATION"
+      }
+    },
+    "release": {
+      "status": "published",
+      "review": "approved"
+    }
+  },
+  {
+    "schemaVersion": "1.0",
+    "id": "qmt-broker",
+    "version": "0.1.0",
+    "name": {
+      "cn": "QMT 实盘券商",
+      "en": "QMT Broker"
+    },
+    "description": {
+      "cn": "通过本地 MiniQMT 和 xtquant 连接 A 股实盘券商，用于策略交易执行。",
+      "en": "Live broker connector for A-share strategy trading through local MiniQMT and xtquant."
+    },
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/qmt-broker-mcp",
+    "tags": [
+      "community",
+      "broker",
+      "trading",
+      "qmt",
+      "live-trading",
+      "a-share"
+    ],
+    "command": "npx",
+    "baseArgs": [
+      "-y",
+      "@yeying-community/qmt-broker-mcp",
+      "--transport",
+      "stdio"
+    ],
+    "configurable": true,
+    "configSchema": {
+      "properties": {
+        "qmtUserdataPath": {
+          "type": "string",
+          "description": {
+            "cn": "MiniQMT userdata_mini 路径，例如 D:\\QMT\\userdata_mini。",
+            "en": "MiniQMT userdata_mini path, for example D:\\QMT\\userdata_mini."
+          },
+          "required": true
+        },
+        "accountId": {
+          "type": "string",
+          "description": {
+            "cn": "券商资金账号。",
+            "en": "Broker fund account id."
+          },
+          "required": true
+        },
+        "accountType": {
+          "type": "string",
+          "description": {
+            "cn": "QMT 账号类型，通常是 STOCK 或 CREDIT。",
+            "en": "QMT account type, usually STOCK or CREDIT."
+          },
+          "required": false
+        },
+        "pythonCommand": {
+          "type": "string",
+          "description": {
+            "cn": "已安装 xtquant 的 Python 命令，例如 python 或 python3。",
+            "en": "Python command with xtquant installed, for example python or python3."
+          },
+          "required": false
+        },
+        "enableLiveTrading": {
+          "type": "boolean",
+          "description": {
+            "cn": "启用真实下单。账号、风控和确认流程验证完成前请保持关闭。",
+            "en": "Enable real order submission. Keep disabled until account, risk controls, and confirmation flow are verified."
+          },
+          "required": true
+        },
+        "requireConfirmation": {
+          "type": "boolean",
+          "description": {
+            "cn": "place_order 是否要求 confirmed=true，默认开启。",
+            "en": "Require confirmed=true for place_order. Enabled by default."
+          },
+          "required": false
+        }
+      }
+    },
+    "argsMapping": {
+      "qmtUserdataPath": {
+        "type": "env",
+        "key": "QMT_USERDATA_PATH"
+      },
+      "accountId": {
+        "type": "env",
+        "key": "QMT_ACCOUNT_ID"
+      },
+      "accountType": {
+        "type": "env",
+        "key": "QMT_ACCOUNT_TYPE"
+      },
+      "pythonCommand": {
+        "type": "env",
+        "key": "QMT_PYTHON"
+      },
+      "enableLiveTrading": {
+        "type": "env",
+        "key": "QMT_ENABLE_LIVE_TRADING"
+      },
+      "requireConfirmation": {
+        "type": "env",
+        "key": "QMT_REQUIRE_CONFIRMATION"
+      }
+    },
+    "release": {
+      "status": "published",
+      "review": "approved"
+    }
+  }
+]

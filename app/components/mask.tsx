@@ -19,6 +19,7 @@ import {
   allowSkillNativeMcpTools,
   getSkillBuiltInTools,
   getSkillMcpTools,
+  getSkillSessionToolbar,
   getLaunchableSkills,
   syncSkillLegacyPlugin,
   useSkillStore,
@@ -32,6 +33,10 @@ import {
   useAppConfig,
   useChatStore,
 } from "../store";
+import {
+  createDefaultRealtimeConfig,
+  type RealtimeConfig,
+} from "../store/realtime";
 import { LLMModel, MultimodalContent, ROLES } from "../client/api";
 import {
   Input,
@@ -81,6 +86,7 @@ import {
   normalizeModelCandidates,
 } from "../utils/model";
 import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
+import { RealtimeConfigList } from "./realtime-chat/realtime-config";
 
 type SkillPackageList = Partial<Record<Lang, SkillPackage[]>>;
 
@@ -213,10 +219,16 @@ function getSkillPermissionsText(
 function getSkillToolsText(
   skillPackage: SkillPackage,
   labels: ReturnType<typeof getSkillPackageLabels>,
+  lang: Lang,
 ) {
-  const tools = skillPackage.tools?.map((tool) => tool.name || tool.id) ?? [];
+  const tools =
+    skillPackage.tools?.map((tool) =>
+      resolveLocalizedText(tool.name, lang, tool.id),
+    ) ?? [];
   const servers =
-    skillPackage.mcp?.servers?.map((server) => server.name || server.id) ?? [];
+    skillPackage.mcp?.servers?.map((server) =>
+      resolveLocalizedText(server.name, lang, server.id),
+    ) ?? [];
   const items = [...tools, ...servers];
   return items.length ? items.join(", ") : labels.none;
 }
@@ -254,7 +266,7 @@ function SkillPackageSummary(props: { skill: Skill }) {
     },
     {
       label: labels.tools,
-      value: getSkillToolsText(skillPackage, labels),
+      value: getSkillToolsText(skillPackage, labels, props.skill.lang),
     },
     {
       label: labels.visibility,
@@ -323,6 +335,8 @@ export function SkillConfig(props: {
   const selectedBuiltInTools = getSkillBuiltInTools(skill);
   const selectedMcpTools = getSkillMcpTools(skill);
   const allowNativeMcpTools = allowSkillNativeMcpTools(skill);
+  const toolbar = getSkillSessionToolbar(skill);
+  const isRealtimeSkill = toolbar.realtime && Boolean(skill.realtimeConfig);
   const selectedCandidateModels = useMemo(
     () => normalizeModelCandidates(skill.candidateModels),
     [skill.candidateModels],
@@ -399,6 +413,16 @@ export function SkillConfig(props: {
       mask.modelConfig = config;
       // if user changed current session mask, it will disable auto sync
       mask.syncGlobalConfig = false;
+    });
+  };
+
+  const updateRealtimeConfig = (updater: (config: RealtimeConfig) => void) => {
+    if (props.readonly) return;
+
+    const config = createDefaultRealtimeConfig(skill.realtimeConfig);
+    updater(config);
+    props.updateMask((mask) => {
+      mask.realtimeConfig = config;
     });
   };
 
@@ -656,6 +680,14 @@ export function SkillConfig(props: {
         />
         {props.extraListItems}
       </List>
+      {isRealtimeSkill && (
+        <List>
+          <RealtimeConfigList
+            realtimeConfig={createDefaultRealtimeConfig(skill.realtimeConfig)}
+            updateConfig={updateRealtimeConfig}
+          />
+        </List>
+      )}
       {showCandidateModelSelector && (
         <Selector
           multiple

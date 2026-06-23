@@ -1,5 +1,9 @@
 import { Lang } from "../locales";
 import { type ModelConfig } from "../store/config";
+import {
+  createDefaultRealtimeConfig,
+  type RealtimeConfig,
+} from "../store/realtime";
 import { type ChatMessage } from "../store/chat";
 import { type BuiltinSkill } from "./typing";
 import type { SkillSessionToolbarConfig } from "../store/skill";
@@ -20,6 +24,7 @@ type BuiltinSkillInput = {
   ui?: BuiltinSkill["ui"];
   launch?: BuiltinSkill["launch"];
   modelConfig?: Partial<ModelConfig>;
+  realtimeConfig?: Partial<RealtimeConfig>;
 };
 
 const DEFAULT_MODEL_CONFIG: Partial<ModelConfig> = {
@@ -45,7 +50,7 @@ export const CHAT_TOOLBAR_PRESETS = {
     plugins: true,
     mcp: true,
     shortcutKeys: true,
-    realtime: true,
+    realtime: false,
   },
   research: {
     settings: true,
@@ -89,11 +94,26 @@ export const CHAT_TOOLBAR_PRESETS = {
     shortcutKeys: false,
     realtime: false,
   },
+  realtime: {
+    settings: true,
+    theme: false,
+    promptHints: false,
+    skillSwitcher: true,
+    clearContext: false,
+    modelSelector: false,
+    imageUpload: false,
+    imageParams: false,
+    plugins: false,
+    mcp: false,
+    shortcutKeys: false,
+    realtime: true,
+  },
 } satisfies Record<string, SkillSessionToolbarConfig>;
 
 export function createBuiltinSkill(input: BuiltinSkillInput): BuiltinSkill {
+  const { realtimeConfig, ...restInput } = input;
   return {
-    ...input,
+    ...restInput,
     builtin: true,
     hideContext: true,
     syncGlobalConfig: input.syncGlobalConfig ?? true,
@@ -101,6 +121,9 @@ export function createBuiltinSkill(input: BuiltinSkillInput): BuiltinSkill {
       ...DEFAULT_MODEL_CONFIG,
       ...input.modelConfig,
     },
+    ...(realtimeConfig
+      ? { realtimeConfig: createDefaultRealtimeConfig(realtimeConfig) }
+      : {}),
   };
 }
 

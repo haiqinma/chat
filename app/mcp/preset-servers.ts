@@ -1,7 +1,62 @@
 import { PresetServer } from "./types";
+import { type Lang } from "../locales";
 
 const OFFICIAL_REPO_BASE =
   "https://github.com/modelcontextprotocol/servers/tree/main/src";
+
+const OFFICIAL_MCP_DISPLAY_TEXT: Record<
+  string,
+  Partial<Record<Lang, Pick<PresetServer, "name" | "description">>>
+> = {
+  "brave-search": {
+    cn: {
+      name: "Brave 搜索",
+      description: "使用 Brave Search API 进行网页搜索。",
+    },
+  },
+  fetch: {
+    cn: {
+      name: "网页抓取",
+      description: "抓取并转换网页内容，用于阅读、总结和调研。",
+    },
+  },
+  filesystem: {
+    cn: {
+      name: "文件系统",
+      description: "在允许的目录内读取和写入文件。",
+    },
+  },
+  git: {
+    cn: {
+      name: "Git",
+      description: "检查和操作本地 Git 仓库。",
+    },
+  },
+  memory: {
+    cn: {
+      name: "记忆",
+      description: "基于本地知识图谱的持久记忆工具。",
+    },
+  },
+  sequentialthinking: {
+    cn: {
+      name: "顺序思考",
+      description: "用于分步骤推理和结构化解题。",
+    },
+  },
+  time: {
+    cn: {
+      name: "时间",
+      description: "提供时区和当前时间工具。",
+    },
+  },
+  everything: {
+    cn: {
+      name: "MCP 测试合集",
+      description: "用于测试 MCP 协议大部分能力的参考服务器。",
+    },
+  },
+};
 
 export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
   {
@@ -142,3 +197,10 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     configurable: false,
   },
 ];
+
+export function getOfficialMcpPresetServers(lang: Lang): PresetServer[] {
+  return OFFICIAL_MCP_PRESET_SERVERS.map((server) => ({
+    ...server,
+    ...OFFICIAL_MCP_DISPLAY_TEXT[server.id]?.[lang],
+  }));
+}

@@ -1,7 +1,31 @@
-import { COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL } from "../constant";
+import {
+  fetchMarketplaceJson,
+  type MarketplaceLoadResult,
+} from "../marketplace/sources";
+import { getLang } from "../locales";
+import { resolveLocalizedText, type LocalizedText } from "../skills";
 import { PresetServer } from "./types";
 
-type MarketplaceMcpServer = PresetServer & {
+type MarketplaceConfigProperty = {
+  type: string;
+  description?: LocalizedText;
+  required?: boolean;
+  minItems?: number;
+  itemLabel?: LocalizedText;
+  addButtonText?: LocalizedText;
+  helpUrl?: string;
+  helpLabel?: LocalizedText;
+};
+
+type MarketplaceMcpServer = Omit<
+  PresetServer,
+  "name" | "description" | "configSchema"
+> & {
+  name: LocalizedText;
+  description: LocalizedText;
+  configSchema?: {
+    properties: Record<string, MarketplaceConfigProperty>;
+  };
   schemaVersion?: string;
   version?: string;
   release?: {
@@ -12,12 +36,12 @@ type MarketplaceMcpServer = PresetServer & {
 
 function isValidPresetServer(
   server: MarketplaceMcpServer,
-): server is PresetServer {
+): server is MarketplaceMcpServer {
   return Boolean(
     server &&
     typeof server.id === "string" &&
-    typeof server.name === "string" &&
-    typeof server.description === "string" &&
+    server.name &&
+    server.description &&
     typeof server.repo === "string" &&
     Array.isArray(server.tags) &&
     typeof server.command === "string" &&
@@ -26,24 +50,64 @@ function isValidPresetServer(
   );
 }
 
-export async function fetchCommunityMcpPresetServers(signal?: AbortSignal) {
-  const response = await fetch(COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL, {
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
+function normalizeMcpConfigSchema(
+  schema: MarketplaceMcpServer["configSchema"],
+  lang: ReturnType<typeof getLang>,
+): PresetServer["configSchema"] {
+  if (!schema?.properties) return undefined;
 
-  const servers = (await response.json()) as MarketplaceMcpServer[];
+  return {
+    properties: Object.fromEntries(
+      Object.entries(schema.properties).map(([key, prop]) => [
+        key,
+        {
+          ...prop,
+          description: resolveLocalizedText(prop.description, lang),
+          itemLabel: resolveLocalizedText(prop.itemLabel, lang),
+          addButtonText: resolveLocalizedText(prop.addButtonText, lang),
+          helpLabel: resolveLocalizedText(prop.helpLabel, lang),
+        },
+      ]),
+    ),
+  };
+}
+
+function normalizeMcpServer(server: MarketplaceMcpServer): PresetServer {
+  const lang = getLang();
+
+  return {
+    ...server,
+    name: resolveLocalizedText(server.name, lang, server.id),
+    description: resolveLocalizedText(server.description, lang),
+    configSchema: normalizeMcpConfigSchema(server.configSchema, lang),
+  };
+}
+
+function filterMarketplaceMcpServers(servers: MarketplaceMcpServer[]) {
   if (!Array.isArray(servers)) return [];
 
-  return servers.filter((server) => {
-    if (server.release?.status && server.release.status !== "published") {
-      return false;
-    }
-    return isValidPresetServer(server);
-  });
+  return servers
+    .filter((server) => {
+      if (server.release?.status && server.release.status !== "published") {
+        return false;
+      }
+      return isValidPresetServer(server);
+    })
+    .map(normalizeMcpServer);
+}
+
+export async function fetchCommunityMcpPresetServers(
+  signal?: AbortSignal,
+): Promise<MarketplaceLoadResult<PresetServer[]>> {
+  const result = await fetchMarketplaceJson<MarketplaceMcpServer[]>(
+    "mcp",
+    signal,
+  );
+
+  return {
+    ...result,
+    data: filterMarketplaceMcpServers(result.data),
+  };
 }
 
 export function mergeMcpPresetServers(

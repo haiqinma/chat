@@ -7,7 +7,7 @@ import clsx from "clsx";
 
 import { useState, useRef, useEffect } from "react";
 
-import { useChatStore, createMessage, useAppConfig } from "@/app/store";
+import { useChatStore, createMessage } from "@/app/store";
 
 import { IconButton } from "@/app/components/button";
 
@@ -35,7 +35,7 @@ export function RealtimeChat({
 }: RealtimeChatProps) {
   const chatStore = useChatStore();
   const session = chatStore.currentSession();
-  const config = useAppConfig();
+  const realtimeConfig = session.mask.realtimeConfig;
   const [status, setStatus] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -52,13 +52,13 @@ export function RealtimeChat({
   const disconnectRef = useRef<() => Promise<void>>(async () => {});
   const isRecordingRef = useRef(false);
 
-  const temperature = config.realtimeConfig.temperature;
-  const apiKey = config.realtimeConfig.apiKey;
-  const model = config.realtimeConfig.model;
-  const azure = config.realtimeConfig.provider === "Azure";
-  const azureEndpoint = config.realtimeConfig.azure.endpoint;
-  const azureDeployment = config.realtimeConfig.azure.deployment;
-  const voice = config.realtimeConfig.voice;
+  const temperature = realtimeConfig?.temperature ?? 0.9;
+  const apiKey = realtimeConfig?.apiKey ?? "";
+  const model = realtimeConfig?.model ?? "gpt-4o-realtime-preview-2024-10-01";
+  const azure = realtimeConfig?.provider === "Azure";
+  const azureEndpoint = realtimeConfig?.azure.endpoint ?? "";
+  const azureDeployment = realtimeConfig?.azure.deployment ?? "";
+  const voice = realtimeConfig?.voice ?? "alloy";
 
   const handleConnect = async () => {
     if (isConnecting) return;

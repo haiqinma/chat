@@ -59,7 +59,7 @@
                     "plugins": true,
                     "mcp": true,
                     "shortcutKeys": true,
-                    "realtime": true
+                    "realtime": false
                 }
             },
             "permissions": {
@@ -115,7 +115,8 @@
                     "frequency_penalty": 0,
                     "sendMemory": true,
                     "historyMessageCount": 10,
-                    "compressMessageLengthThreshold": 2000
+                    "compressMessageLengthThreshold": 2000,
+                    "responsesMode": "stateful"
                 }
             },
             "tools": [],
@@ -125,13 +126,13 @@
                         "id": "brave-search",
                         "name": "brave-search",
                         "transport": "stdio",
-                        "required": false
+                        "required": true
                     },
                     {
                         "id": "fetch",
                         "name": "fetch",
                         "transport": "stdio",
-                        "required": false
+                        "required": true
                     }
                 ]
             },
@@ -488,6 +489,94 @@
                 "status": "published",
                 "review": "approved"
             }
+        },
+        {
+            "schemaVersion": "1.0",
+            "id": "builtin.cn.1700000001007",
+            "version": "1.0.0",
+            "name": {
+                "cn": "实时聊天"
+            },
+            "description": {
+                "cn": "使用实时语音对话能力，适合语音交流、即时反馈和口语互动。"
+            },
+            "icon": {
+                "type": "emoji",
+                "value": "1f3a7"
+            },
+            "category": "语音",
+            "visibility": {
+                "scope": "public"
+            },
+            "launch": {
+                "type": "chat"
+            },
+            "instructions": {
+                "type": "inline",
+                "content": "你正在进行实时语音聊天。回答要自然、简洁，适合口语交流；用户停顿或表达不完整时，优先确认意图并继续推进。"
+            },
+            "starters": [
+                "开始一次实时语音聊天。",
+                "我想用语音和你讨论一个问题。",
+                "开启实时对话，边说边聊。"
+            ],
+            "model": {
+                "syncGlobalConfig": false,
+                "params": {
+                    "temperature": 0.5,
+                    "max_tokens": 4000,
+                    "presence_penalty": 0,
+                    "frequency_penalty": 0,
+                    "sendMemory": true,
+                    "historyMessageCount": 6,
+                    "compressMessageLengthThreshold": 2000
+                }
+            },
+            "realtime": {
+                "enabled": false,
+                "provider": "OpenAI",
+                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "apiKey": "",
+                "azure": {
+                    "endpoint": "",
+                    "deployment": ""
+                },
+                "temperature": 0.9,
+                "voice": "alloy"
+            },
+            "tools": [],
+            "mcp": {
+                "servers": []
+            },
+            "ui": {
+                "sessionToolbar": {
+                    "settings": true,
+                    "theme": false,
+                    "promptHints": false,
+                    "skillSwitcher": true,
+                    "clearContext": false,
+                    "modelSelector": false,
+                    "imageUpload": false,
+                    "imageParams": false,
+                    "plugins": false,
+                    "mcp": false,
+                    "shortcutKeys": false,
+                    "realtime": true
+                }
+            },
+            "permissions": {
+                "network": false,
+                "filesystem": false,
+                "wallet": false,
+                "externalTools": []
+            },
+            "compatibility": {
+                "appVersion": ">=0.1.0"
+            },
+            "release": {
+                "status": "published",
+                "review": "approved"
+            }
         }
     ],
     "en": [
@@ -550,7 +639,7 @@
                     "plugins": true,
                     "mcp": true,
                     "shortcutKeys": true,
-                    "realtime": true
+                    "realtime": false
                 }
             },
             "permissions": {
@@ -606,7 +695,8 @@
                     "frequency_penalty": 0,
                     "sendMemory": true,
                     "historyMessageCount": 10,
-                    "compressMessageLengthThreshold": 2000
+                    "compressMessageLengthThreshold": 2000,
+                    "responsesMode": "stateful"
                 }
             },
             "tools": [],
@@ -616,13 +706,13 @@
                         "id": "brave-search",
                         "name": "brave-search",
                         "transport": "stdio",
-                        "required": false
+                        "required": true
                     },
                     {
                         "id": "fetch",
                         "name": "fetch",
                         "transport": "stdio",
-                        "required": false
+                        "required": true
                     }
                 ]
             },
@@ -964,6 +1054,94 @@
                     "mcp": false,
                     "shortcutKeys": false,
                     "realtime": false
+                }
+            },
+            "permissions": {
+                "network": false,
+                "filesystem": false,
+                "wallet": false,
+                "externalTools": []
+            },
+            "compatibility": {
+                "appVersion": ">=0.1.0"
+            },
+            "release": {
+                "status": "published",
+                "review": "approved"
+            }
+        },
+        {
+            "schemaVersion": "1.0",
+            "id": "builtin.en.1700000002007",
+            "version": "1.0.0",
+            "name": {
+                "en": "Realtime Chat"
+            },
+            "description": {
+                "en": "Use realtime voice conversation for spoken interaction, quick feedback, and natural back-and-forth."
+            },
+            "icon": {
+                "type": "emoji",
+                "value": "1f3a7"
+            },
+            "category": "Voice",
+            "visibility": {
+                "scope": "public"
+            },
+            "launch": {
+                "type": "chat"
+            },
+            "instructions": {
+                "type": "inline",
+                "content": "You are in a realtime voice chat. Keep responses natural, concise, and suitable for spoken conversation. If the user pauses or speaks incompletely, confirm the intent and keep the conversation moving."
+            },
+            "starters": [
+                "Start a realtime voice chat.",
+                "I want to discuss this by voice.",
+                "Open realtime conversation and talk with me."
+            ],
+            "model": {
+                "syncGlobalConfig": false,
+                "params": {
+                    "temperature": 0.5,
+                    "max_tokens": 4000,
+                    "presence_penalty": 0,
+                    "frequency_penalty": 0,
+                    "sendMemory": true,
+                    "historyMessageCount": 6,
+                    "compressMessageLengthThreshold": 2000
+                }
+            },
+            "realtime": {
+                "enabled": false,
+                "provider": "OpenAI",
+                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "apiKey": "",
+                "azure": {
+                    "endpoint": "",
+                    "deployment": ""
+                },
+                "temperature": 0.9,
+                "voice": "alloy"
+            },
+            "tools": [],
+            "mcp": {
+                "servers": []
+            },
+            "ui": {
+                "sessionToolbar": {
+                    "settings": true,
+                    "theme": false,
+                    "promptHints": false,
+                    "skillSwitcher": true,
+                    "clearContext": false,
+                    "modelSelector": false,
+                    "imageUpload": false,
+                    "imageParams": false,
+                    "plugins": false,
+                    "mcp": false,
+                    "shortcutKeys": false,
+                    "realtime": true
                 }
             },
             "permissions": {

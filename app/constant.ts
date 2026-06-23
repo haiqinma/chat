@@ -7,8 +7,16 @@ export const UPDATE_URL = `${REPO_URL}#keep-updated`;
 export const RELEASE_URL = `${REPO_URL}/releases`;
 export const FETCH_COMMIT_URL = `https://api.github.com/repos/${OWNER}/${REPO}/commits?per_page=1`;
 export const FETCH_TAG_URL = `https://api.github.com/repos/${OWNER}/${REPO}/tags?per_page=1`;
-export const COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL = `https://raw.githubusercontent.com/${OWNER}/marketplace/main/packages.json`;
-export const COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL = `https://raw.githubusercontent.com/${OWNER}/marketplace/main/mcp/packages.json`;
+export const MARKETPLACE_REPO = "marketplace";
+export const MARKETPLACE_BRANCH = "main";
+export const COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL = `https://cdn.jsdelivr.net/gh/${OWNER}/${MARKETPLACE_REPO}@${MARKETPLACE_BRANCH}/packages.json`;
+export const COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL = `https://cdn.jsdelivr.net/gh/${OWNER}/${MARKETPLACE_REPO}@${MARKETPLACE_BRANCH}/mcp/packages.json`;
+export const COMMUNITY_MARKETPLACE_SKILL_PACKAGES_RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${MARKETPLACE_REPO}/${MARKETPLACE_BRANCH}/packages.json`;
+export const COMMUNITY_MARKETPLACE_MCP_PACKAGES_RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${MARKETPLACE_REPO}/${MARKETPLACE_BRANCH}/mcp/packages.json`;
+export const LOCAL_MARKETPLACE_SKILL_PACKAGES_URL =
+  "/marketplace/packages.json";
+export const LOCAL_MARKETPLACE_MCP_PACKAGES_URL =
+  "/marketplace/mcp/packages.json";
 export const RUNTIME_CONFIG_DOM = "danger-runtime-config";
 
 export const STABILITY_BASE_URL = "https://api.stability.ai";
@@ -47,7 +55,8 @@ export enum Path {
   Home = "/",
   Chat = "/chat",
   Settings = "/settings",
-  Centers = "/my-center",
+  Router = "/router",
+  Storage = "/storage",
   Discovery = "/discovery",
   NewChat = "/new-chat",
   Skills = "/skills",

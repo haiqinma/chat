@@ -21,38 +21,12 @@ import {
 } from "@/app/store/native-tools";
 import { getClientConfig } from "@/app/config/client";
 import { ANTHROPIC_BASE_URL } from "@/app/constant";
-import { getCachedUcanSession } from "@/app/plugins/ucan-session";
-import {
-  getErrorMessage,
-  invalidateUcan,
-  invalidateUcanAndThrow,
-  shouldInvalidateUcanByError,
-} from "@/app/plugins/ucan-auth";
-import {
-  getRouterAudience,
-  getRouterCapabilities,
-  getUcanRootCapsKey,
-  UCAN_SESSION_ID,
-} from "@/app/plugins/ucan";
-import {
-  getCentralUcanAuthorizationHeaderForAudience,
-  isCentralModeEnabled,
-} from "@/app/plugins/central-ucan";
 import { getMessageTextContent, isVisionModel } from "@/app/utils";
 import { preProcessImageContent, stream } from "@/app/utils/chat";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
 import { applyMessagesReasoning } from "../reasoning";
-import {
-  decodeUcanPayload,
-  getCapabilityAction,
-  getCapabilityResource,
-  getOrCreateInvocationUcan,
-  isUcanTokenFresh,
-  normalizeUcanCapabilities,
-  type UcanCapability,
-} from "@yeying-community/web3-bs";
 
 export type MultiBlockContent = {
   type: "image" | "text";
@@ -148,15 +122,6 @@ const ClaudeMapper = {
 const keys = ["claude-2, claude-instant-1"];
 const ROUTER_HOST = "llm.yeying.pub";
 
-type CachedInvocationToken = {
-  key: string;
-  token: string;
-  exp: number;
-  nbf?: number;
-};
-
-let cachedRouterInvocationToken: CachedInvocationToken | null = null;
-
 const ROUTER_BACKEND_HOST = (() => {
   try {
     const url = getClientConfig()?.routerBackendUrl;
@@ -183,55 +148,31 @@ function isRouterUrl(url: string): boolean {
   }
 }
 
-function isUcanMetaValid(): boolean {
-  try {
-    if (typeof localStorage === "undefined") return false;
-    const expRaw = localStorage.getItem("ucanRootExp");
-    const iss = localStorage.getItem("ucanRootIss");
-    const caps = localStorage.getItem("ucanRootCaps");
-    const account = localStorage.getItem("currentAccount") || "";
-    if (!expRaw || !iss || !account) return false;
-    const exp = Number(expRaw);
-    if (!Number.isFinite(exp) || exp <= Date.now()) return false;
-    if (!caps || caps !== getUcanRootCapsKey()) return false;
-    return iss === `did:pkh:eth:${account.toLowerCase()}`;
-  } catch {
-    return false;
-  }
-}
-
-function buildCapsKey(caps: UcanCapability[]) {
-  return normalizeUcanCapabilities(caps || [], { includeLegacyAliases: false })
-    .map((cap) => {
-      const resource = getCapabilityResource(cap);
-      const action = getCapabilityAction(cap);
-      return `${resource}:${action}`;
-    })
-    .filter((entry) => entry !== ":")
-    .sort()
-    .join("|");
-}
-
-function buildRouterInvocationCacheKey(
-  audience: string,
-  capabilities: UcanCapability[],
+function applySelectedRouterTokenAuthorization(
+  headers: Record<string, string>,
+  url: string,
 ) {
-  if (typeof localStorage === "undefined") return "";
-  const account = localStorage.getItem("currentAccount") || "";
-  const rootCaps = localStorage.getItem("ucanRootCaps") || "";
-  return `${account}|${rootCaps}|${audience}|${buildCapsKey(capabilities)}`;
+  if (!isRouterUrl(url)) return headers;
+  const selectedToken =
+    useAccessStore.getState().selectedRouterToken?.trim() || "";
+  if (selectedToken) {
+    headers["Authorization"] = `Bearer ${selectedToken}`;
+  }
+  return headers;
 }
 
-function getValidCachedRouterInvocationToken(
-  audience: string,
-  capabilities: UcanCapability[],
+function getHeadersForRouterModelAccess(url: string) {
+  const headers = getBaseGatewayHeaders();
+  return applySelectedRouterTokenAuthorization(headers, url);
+}
+
+function ensureRouterModelAuthorization(
+  url: string,
+  headers: Record<string, string>,
 ) {
-  const cacheKey = buildRouterInvocationCacheKey(audience, capabilities);
-  const cached = cachedRouterInvocationToken;
-  if (!cached || !cacheKey || cached.key !== cacheKey) {
-    return null;
+  if (isRouterUrl(url) && !headers["Authorization"]) {
+    throw new Error("请先在 Router 页面选择可用令牌");
   }
-  return cached.token;
 }
 
 function getBaseGatewayHeaders() {
@@ -271,95 +212,6 @@ function toAnthropicTools(tools: any[]) {
       };
     })
     .filter(Boolean);
-}
-
-async function getHeadersWithRouterUcan(
-  url: string,
-  options: { forceRefresh?: boolean } = {},
-) {
-  const headers = getBaseGatewayHeaders();
-  const hasFallbackAuthorization = Boolean(headers["Authorization"]);
-  if (isCentralModeEnabled()) {
-    if (!isRouterUrl(url)) return headers;
-    const audience = getRouterAudience();
-    const capabilities = getRouterCapabilities();
-    if (!audience || !capabilities.length) return headers;
-    try {
-      const centralAuthorization =
-        await getCentralUcanAuthorizationHeaderForAudience({
-          audience,
-          capabilities,
-        });
-      if (centralAuthorization) {
-        headers["Authorization"] = centralAuthorization;
-      }
-    } catch (error) {
-      if (!hasFallbackAuthorization) {
-        throw error;
-      }
-      console.warn("[UCAN] failed to issue central invocation", error);
-    }
-    return headers;
-  }
-  if (!isRouterUrl(url)) return headers;
-  if (!isUcanMetaValid()) return headers;
-
-  const audience = getRouterAudience();
-  const capabilities = getRouterCapabilities();
-  if (!audience || !capabilities.length) return headers;
-
-  const cachedToken = options.forceRefresh
-    ? null
-    : getValidCachedRouterInvocationToken(audience, capabilities);
-  if (cachedToken && isUcanTokenFresh(cachedToken)) {
-    headers["Authorization"] = `Bearer ${cachedToken}`;
-    return headers;
-  }
-
-  const issuer = await getCachedUcanSession();
-  if (!issuer) {
-    cachedRouterInvocationToken = null;
-    if (!hasFallbackAuthorization) {
-      return await invalidateUcanAndThrow("UCAN session is not available");
-    }
-    await invalidateUcan("UCAN session is not available");
-    return headers;
-  }
-
-  try {
-    const ucan = await getOrCreateInvocationUcan({
-      ucan: cachedToken || undefined,
-      audience,
-      capabilities,
-      sessionId: UCAN_SESSION_ID,
-      issuer,
-    });
-    const payload = decodeUcanPayload(ucan);
-    const key = buildRouterInvocationCacheKey(audience, capabilities);
-    if (payload && typeof payload.exp === "number" && key) {
-      cachedRouterInvocationToken = {
-        key,
-        token: ucan,
-        exp: payload.exp,
-        nbf: payload.nbf,
-      };
-    }
-    headers["Authorization"] = `Bearer ${ucan}`;
-  } catch (error) {
-    cachedRouterInvocationToken = null;
-    if (shouldInvalidateUcanByError(error)) {
-      if (!hasFallbackAuthorization) {
-        return await invalidateUcanAndThrow(
-          getErrorMessage(error) || "UCAN invocation failed",
-        );
-      }
-      await invalidateUcan(getErrorMessage(error) || "UCAN invocation failed");
-      return headers;
-    }
-    console.warn("[UCAN] failed to create invocation", error);
-  }
-
-  return headers;
 }
 
 export class ClaudeApi implements LLMApi {
@@ -521,7 +373,8 @@ export class ClaudeApi implements LLMApi {
         ? endpointPath.replace(/^\//, "")
         : Anthropic.ChatPath;
     const path = this.path(chatEndpointPath);
-    const requestHeaders = await getHeadersWithRouterUcan(path);
+    const requestHeaders = getHeadersForRouterModelAccess(path);
+    ensureRouterModelAuthorization(path, requestHeaders);
 
     const controller = new AbortController();
     options.onController?.(controller);
@@ -626,7 +479,7 @@ export class ClaudeApi implements LLMApi {
         {
           ...options,
           getRefreshedHeaders: () =>
-            getHeadersWithRouterUcan(path, { forceRefresh: true }),
+            Promise.resolve(getHeadersForRouterModelAccess(path)),
         },
       );
     } else {

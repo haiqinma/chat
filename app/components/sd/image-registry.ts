@@ -47,7 +47,7 @@ function buildRuntimeImageModelForMode(
   model: LLMModel,
   mode: ImageFormMode,
 ): ImageModelDefinition | null {
-  const tags = model.tags ?? [];
+  const tags = Array.isArray(model.tags) ? model.tags : [];
   const endpoints = normalizeSupportedEndpoints(model.supportedEndpoints);
   const modelType = model.modelType?.trim().toLowerCase();
   if (!tags.includes("image") && modelType !== "image") return null;
