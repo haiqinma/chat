@@ -46,7 +46,7 @@ import QualityIcon from "../icons/hd.svg";
 import StyleIcon from "../icons/palette.svg";
 import PluginIcon from "../icons/plugin.svg";
 import ShortcutkeyIcon from "../icons/shortcutkey.svg";
-import McpToolIcon from "../icons/tool.svg";
+import ToolIcon from "../icons/tool.svg";
 import HeadphoneIcon from "../icons/headphone.svg";
 import {
   BOT_HELLO,
@@ -155,7 +155,10 @@ import {
 } from "../utils/plain-chat";
 import { RealtimeChat } from "@/app/components/realtime-chat";
 import clsx from "clsx";
-import { getAvailableClientsCount, isMcpEnabled } from "../mcp/actions";
+import {
+  getAvailableClientsCount,
+  isToolRuntimeEnabled,
+} from "../tools/actions";
 
 const localStorage = safeLocalStorage();
 
@@ -165,30 +168,30 @@ const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
 });
 
-const MCPAction = () => {
+const ToolAction = () => {
   const navigate = useNavigate();
   const [count, setCount] = useState<number>(0);
-  const [mcpEnabled, setMcpEnabled] = useState(false);
+  const [toolEnabled, setToolEnabled] = useState(false);
 
   useEffect(() => {
-    const checkMcpStatus = async () => {
-      const enabled = await isMcpEnabled();
-      setMcpEnabled(enabled);
+    const checkToolStatus = async () => {
+      const enabled = await isToolRuntimeEnabled();
+      setToolEnabled(enabled);
       if (enabled) {
         const count = await getAvailableClientsCount();
         setCount(count);
       }
     };
-    checkMcpStatus();
+    checkToolStatus();
   }, []);
 
-  if (!mcpEnabled) return null;
+  if (!toolEnabled) return null;
 
   return (
     <ChatAction
-      onClick={() => navigate(`${Path.Discovery}?type=mcp`)}
-      text={`${Locale.Mcp.Name}${count ? ` (${count})` : ""}`}
-      icon={<McpToolIcon />}
+      onClick={() => navigate(`${Path.Discovery}?type=tool`)}
+      text={`${Locale.Tool.Name}${count ? ` (${count})` : ""}`}
+      icon={<ToolIcon />}
     />
   );
 };
@@ -958,7 +961,7 @@ export function ChatActions(props: {
             icon={<ShortcutkeyIcon />}
           />
         )}
-        {!isMobileScreen && toolbar.mcp && <MCPAction />}
+        {!isMobileScreen && toolbar.tools && <ToolAction />}
       </>
       <div className={styles["chat-input-actions-end"]}>
         {toolbar.realtime && sessionSkill.realtimeConfig?.enabled && (
@@ -1936,7 +1939,7 @@ function ChatView() {
             >
               {messages
                 // TODO
-                // .filter((m) => !m.isMcpResponse)
+                // .filter((m) => !m.isToolResponse)
                 .map((message, i) => {
                   const isUser = message.role === "user";
                   const isContext = i < context.length;

@@ -1,5 +1,5 @@
 import {
-  COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
+  COMMUNITY_MARKETPLACE_TOOL_PACKAGES_URL,
   COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL,
   DEFAULT_INPUT_TEMPLATE,
 } from "../constant";
@@ -58,7 +58,7 @@ export type RuntimePublicConfig = BuildConfig & {
   customModels: string;
   defaultModel: string;
   visionModels: string;
-  enableMcp: boolean;
+  enableTools: boolean;
   routerBackendUrl: string;
   webdavBackendBaseUrl: string;
   webdavBackendPrefix: string;
@@ -67,7 +67,7 @@ export type RuntimePublicConfig = BuildConfig & {
   centralUcanAppId: string;
   ucanLoginForceMode: UcanLoginForceMode;
   marketplaceSkillPackagesUrl: string;
-  marketplaceMcpPackagesUrl: string;
+  marketplaceToolPackagesUrl: string;
 };
 
 export function getRuntimePublicConfig(): RuntimePublicConfig {
@@ -124,7 +124,7 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     customModels: serverConfig.customModels,
     defaultModel: serverConfig.defaultModel,
     visionModels: serverConfig.visionModels,
-    enableMcp: serverConfig.enableMcp,
+    enableTools: serverConfig.enableTools,
     routerBackendUrl,
     webdavBackendBaseUrl,
     webdavBackendPrefix,
@@ -138,8 +138,8 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     marketplaceSkillPackagesUrl:
       process.env.MARKETPLACE_SKILL_PACKAGES_URL?.trim() ||
       COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL,
-    marketplaceMcpPackagesUrl:
-      process.env.MARKETPLACE_MCP_PACKAGES_URL?.trim() ||
-      COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
+    marketplaceToolPackagesUrl:
+      process.env.MARKETPLACE_TOOL_PACKAGES_URL?.trim() ||
+      COMMUNITY_MARKETPLACE_TOOL_PACKAGES_URL,
   };
 }

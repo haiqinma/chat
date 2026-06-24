@@ -18,7 +18,7 @@ export function isPlainChatSkill(skill: Skill) {
     !skill.context?.length &&
     !skill.plugin?.length &&
     !skill.tools?.builtInTools?.length &&
-    !skill.tools?.mcpTools?.length &&
+    !skill.tools?.toolServers?.length &&
     !skill.tools?.apiTools?.length &&
     !skill.launch
   );
@@ -41,7 +41,7 @@ export function isLegacyPlainChatSkill(skill: Skill) {
     !skill.starters?.length &&
     !skill.context?.length &&
     !skill.plugin?.length &&
-    !skill.tools?.mcpTools?.length &&
+    !skill.tools?.toolServers?.length &&
     !skill.tools?.apiTools?.length &&
     !skill.launch &&
     builtInTools.every((tool) => tool === "web_search")

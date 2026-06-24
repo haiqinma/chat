@@ -28,7 +28,7 @@ Chat（UCAN 定制版）
 - Cloudflare Pages 部署指南：`docs/CloudflarePages部署指南.md`
 - Vercel 使用说明：`docs/Vercel使用说明.md`
 - 文生图与上传图片聊天工作流实现说明：`docs/文生图与上传图片聊天工作流实现说明.md`
-- MCP 启用机制与演进：`docs/MCP启用机制与演进.md`
+- 工具启用机制与演进：`docs/工具启用机制与演进.md`
 - 新增翻译指南：`docs/新增翻译指南.md`
 
 # 环境要求
@@ -168,19 +168,19 @@ bash scripts/package.sh app
 bash scripts/package.sh app-release
 ```
 
-# 工具（MCP）
+# 工具
 
-工具层当前主要通过 MCP 承载。MCP 只适用于 `standalone` 部署或本地 `npm run dev` 这种有 Next Node 进程的运行方式。Tauri 桌面端当前走静态导出，构建时会使用禁用版 MCP actions，不读取 `data/mcp_config.json`。
+工具层当前只适用于 `standalone` 部署或本地 `npm run dev` 这种有 Next Node 进程的运行方式，底层主要通过 MCP 协议承载。Tauri 桌面端当前走静态导出，构建时会使用禁用版 tool actions，不读取 `data/tool_config.json`。
 
 standalone 如需启用工具能力：
 
-1. 在 `.env` 中设置 `ENABLE_MCP=1`
+1. 在 `.env` 中设置 `ENABLE_TOOLS=1`
 2. 确保运行环境允许启动外部命令
-3. 确保服务进程对 `data/mcp_config.json` 可读写
+3. 确保服务进程对 `data/tool_config.json` 可读写
 
-`marketplace` 仓库管理 Tool/Skill 的可发现定义，例如名称、描述、启动命令和配置项 schema。standalone 当前实例的工具启用状态、用户自带 Key 和运行时参数写入 `data/mcp_config.json`，也可以通过 `MCP_CONFIG_PATH` 指定自定义路径。真实 Key 不应放进源码目录或 marketplace 数据。
+`marketplace` 仓库管理 Tool/Skill 的可发现定义，例如名称、描述、启动命令和配置项 schema。standalone 当前实例的工具启用状态、用户自带 Key 和运行时参数写入 `data/tool_config.json`，也可以通过 `TOOL_CONFIG_PATH` 指定自定义路径。真实 Key 不应放进源码目录或 marketplace 数据。
 
-更完整的说明见：`docs/MCP启用机制与演进.md`
+更完整的说明见：`docs/工具启用机制与演进.md`
 
 # 贡献指南
 

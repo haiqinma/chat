@@ -1,6 +1,6 @@
 @use "../styles/animation.scss";
 
-.mcp-market-page {
+.tool-market-page {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -15,7 +15,7 @@
     opacity: 0.8;
   }
 
-  .mcp-market-page-body {
+  .tool-market-page-body {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -45,7 +45,7 @@
       text-align: center;
     }
 
-    .mcp-market-filter {
+    .tool-market-filter {
       width: 100%;
       max-width: 100%;
       margin-bottom: 20px;
@@ -69,7 +69,7 @@
       min-width: 0;
     }
 
-    .mcp-market-item {
+    .tool-market-item {
       min-width: 0;
       padding: 20px;
       border: var(--border-in-light);
@@ -140,21 +140,21 @@
         }
       }
 
-      .mcp-market-header {
+      .tool-market-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         width: 100%;
         min-width: 0;
 
-        .mcp-market-title {
+        .tool-market-title {
           flex-grow: 1;
           min-width: 0;
           margin-right: 20px;
           max-width: calc(100% - 300px);
         }
 
-        .mcp-market-name {
+        .tool-market-name {
           font-size: 14px;
           font-weight: bold;
           display: flex;
@@ -229,7 +229,7 @@
           opacity: 0.8;
         }
 
-        .mcp-market-info {
+        .tool-market-info {
           color: var(--black);
           font-size: 12px;
           overflow: hidden;
@@ -238,7 +238,7 @@
           min-width: 0;
         }
 
-        .mcp-market-actions {
+        .tool-market-actions {
           display: flex;
           gap: 12px;
           align-items: flex-start;
@@ -251,18 +251,18 @@
   }
 
   @media screen and (max-width: 600px) {
-    .mcp-market-page-body {
-      .mcp-market-item {
-        .mcp-market-header {
+    .tool-market-page-body {
+      .tool-market-item {
+        .tool-market-header {
           flex-direction: column;
           gap: 12px;
 
-          .mcp-market-title {
+          .tool-market-title {
             max-width: 100%;
             margin-right: 0;
           }
 
-          .mcp-market-actions {
+          .tool-market-actions {
             width: 100%;
             min-width: 0;
             justify-content: flex-start;

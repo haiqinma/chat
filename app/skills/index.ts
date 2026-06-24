@@ -7,7 +7,7 @@ export {
   type SkillIcon,
   type SkillInstructions,
   type SkillLaunch,
-  type SkillMcpServer,
+  type SkillToolServer,
   type SkillPackage,
   type SkillPackageModel,
   type SkillPermissions,

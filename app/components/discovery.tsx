@@ -5,14 +5,14 @@ import clsx from "clsx";
 import { Path } from "../constant";
 import Locale, { getLang, type Lang } from "../locales";
 import {
-  addMcpServer,
+  addToolServer,
   getClientsStatus,
-  getMcpConfigFromFile,
-} from "../mcp/actions";
+  getToolConfigFromFile,
+} from "../tools/actions";
 import {
-  fetchCommunityMcpPresetServers,
-  mergeMcpPresetServers,
-} from "../mcp/marketplace";
+  fetchCommunityToolPresetServers,
+  mergeToolPresetServers,
+} from "../tools/marketplace";
 import {
   fetchMarketplaceJson,
   getMarketplaceSourceUrls,
@@ -22,16 +22,16 @@ import {
   getMarketplaceTagLabel,
 } from "../marketplace/display";
 import {
-  getMissingMcpConfigKeys,
-  readMcpConfigBoolean,
-  stringifyMcpConfigValue,
-} from "../mcp/config-schema";
-import { getOfficialMcpPresetServers } from "../mcp/preset-servers";
+  getMissingToolConfigKeys,
+  readToolConfigBoolean,
+  stringifyToolConfigValue,
+} from "../tools/config-schema";
+import { getOfficialToolPresetServers } from "../tools/preset-servers";
 import {
-  McpConfigData,
+  ToolConfigData,
   PresetServer,
   ServerStatusResponse,
-} from "../mcp/types";
+} from "../tools/types";
 import {
   BUILTIN_SKILLS,
   resolveLocalizedText,
@@ -43,7 +43,7 @@ import {
   Skill,
   getSkillApiTools,
   getSkillBuiltInTools,
-  getSkillMcpTools,
+  getSkillToolServers,
   useSkillStore,
 } from "../store/skill";
 import { usePluginStore } from "../store/plugin";
@@ -70,13 +70,13 @@ import { formatBytes } from "../utils/format";
 import {
   getSkillRuntimeIssueSummary,
   getSkillRuntimeStatusOrder,
-  hasSkillMcpRuntimeIssue,
+  hasSkillToolRuntimeIssue,
   resolveSkillRuntimeStatus,
   SkillRuntimeResult,
   SkillRuntimeStatus,
 } from "../skills/runtime";
 
-type CapabilityType = "all" | "skill" | "mcp" | "provider" | "storage";
+type CapabilityType = "all" | "skill" | "tool" | "provider" | "storage";
 type PricingType = "free" | "subscription" | "usage";
 type RuntimeType = "cloud" | "local" | "both";
 type DiscoveryView = "market" | "mine";
@@ -90,7 +90,7 @@ type MarketplaceLoadState = {
     url: string;
     error?: string;
   };
-  mcp: {
+  tool: {
     status: MarketplaceLoadStatus;
     count: number;
     url: string;
@@ -131,7 +131,7 @@ type Capability = {
 const typeOrder: CapabilityType[] = [
   "all",
   "skill",
-  "mcp",
+  "tool",
   "provider",
   "storage",
 ];
@@ -139,10 +139,10 @@ const typeOrder: CapabilityType[] = [
 function getInitialType(search: string): CapabilityType {
   const type = new URLSearchParams(search).get("type");
   if (type === "model") return "provider";
-  if (type === "tool") return "mcp";
+  if (type === "tool") return "tool";
   if (
     type === "skill" ||
-    type === "mcp" ||
+    type === "tool" ||
     type === "provider" ||
     type === "storage"
   ) {
@@ -173,7 +173,7 @@ function getSkillPackageId(skill: Skill) {
 
 function getCapabilityIcon(type: Capability["type"]) {
   if (type === "skill") return <BrainIcon />;
-  if (type === "mcp") return <ToolIcon />;
+  if (type === "tool") return <ToolIcon />;
   if (type === "storage") return <CloudStorageIcon />;
   return <ModelServiceIcon />;
 }
@@ -181,7 +181,7 @@ function getCapabilityIcon(type: Capability["type"]) {
 function getMarketplaceUrls() {
   return {
     skillUrl: getMarketplaceSourceUrls("skill")[0],
-    mcpUrl: getMarketplaceSourceUrls("mcp")[0],
+    toolUrl: getMarketplaceSourceUrls("tool")[0],
   };
 }
 
@@ -189,7 +189,10 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function isSensitiveMcpConfigField(key: string, prop: DiscoveryConfigProperty) {
+function isSensitiveToolConfigField(
+  key: string,
+  prop: DiscoveryConfigProperty,
+) {
   const text = `${key} ${prop.description ?? ""}`.toLowerCase();
   return (
     text.includes("key") ||
@@ -217,8 +220,8 @@ export function DiscoveryPage() {
   const view = getInitialView(location.search);
   const activeType = getInitialType(location.search);
   const currentLang = getLang();
-  const officialMcpPresetServers = useMemo(
-    () => getOfficialMcpPresetServers(currentLang),
+  const officialToolPresetServers = useMemo(
+    () => getOfficialToolPresetServers(currentLang),
     [currentLang],
   );
   const [searchText, setSearchText] = useState("");
@@ -231,19 +234,19 @@ export function DiscoveryPage() {
   const customModels = useAppConfig((state) => state.customModels);
   const accessCustomModels = useAccessStore((state) => state.customModels);
   const defaultModel = useAccessStore((state) => state.defaultModel);
-  const [mcpConfig, setMcpConfig] = useState<McpConfigData>();
-  const [mcpStatuses, setMcpStatuses] = useState<
+  const [toolConfig, setToolConfig] = useState<ToolConfigData>();
+  const [toolStatuses, setToolStatuses] = useState<
     Record<string, ServerStatusResponse> | undefined
   >();
   const [communitySkillPackages, setCommunitySkillPackages] =
     useState<SkillPackageList>({});
-  const [communityMcpServers, setCommunityMcpServers] = useState<
+  const [communityToolServers, setCommunityToolServers] = useState<
     PresetServer[]
   >([]);
   const [marketplaceReloadKey, setMarketplaceReloadKey] = useState(0);
   const [marketplaceLoadState, setMarketplaceLoadState] =
     useState<MarketplaceLoadState>(() => {
-      const { skillUrl, mcpUrl } = getMarketplaceUrls();
+      const { skillUrl, toolUrl } = getMarketplaceUrls();
       return {
         skill: {
           status: "idle",
@@ -251,19 +254,19 @@ export function DiscoveryPage() {
           total: 0,
           url: skillUrl,
         },
-        mcp: {
+        tool: {
           status: "idle",
           count: 0,
-          url: mcpUrl,
+          url: toolUrl,
         },
       };
     });
-  const [editingMcpServerId, setEditingMcpServerId] = useState<string>();
-  const [viewingMcpCapability, setViewingMcpCapability] =
+  const [editingToolServerId, setEditingToolServerId] = useState<string>();
+  const [viewingToolCapability, setViewingToolCapability] =
     useState<Capability>();
   const [editingSkillId, setEditingSkillId] = useState<string>();
-  const [mcpUserConfig, setMcpUserConfig] = useState<Record<string, any>>({});
-  const [savingMcpConfig, setSavingMcpConfig] = useState(false);
+  const [toolUserConfig, setToolUserConfig] = useState<Record<string, any>>({});
+  const [savingToolConfig, setSavingToolConfig] = useState(false);
   const [storageQuota, setStorageQuota] = useState<WebDAVQuota>();
   const [storageQuotaStatus, setStorageQuotaStatus] = useState<
     "idle" | "checking" | "ready" | "error"
@@ -271,20 +274,20 @@ export function DiscoveryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const loadMcpState = async () => {
+    const loadToolState = async () => {
       try {
         const [config, statuses] = await Promise.all([
-          getMcpConfigFromFile(),
+          getToolConfigFromFile(),
           getClientsStatus(),
         ]);
         if (cancelled) return;
-        setMcpConfig(config);
-        setMcpStatuses(statuses);
+        setToolConfig(config);
+        setToolStatuses(statuses);
       } catch (error) {
-        console.warn("[Discovery] failed to load MCP state", error);
+        console.warn("[Discovery] failed to load tool state", error);
       }
     };
-    loadMcpState();
+    loadToolState();
     return () => {
       cancelled = true;
     };
@@ -292,26 +295,26 @@ export function DiscoveryPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const { mcpUrl } = getMarketplaceUrls();
+    const { toolUrl } = getMarketplaceUrls();
 
     setMarketplaceLoadState((state) => ({
       ...state,
-      mcp: {
-        ...state.mcp,
+      tool: {
+        ...state.tool,
         status: "loading",
-        url: mcpUrl,
+        url: toolUrl,
         error: undefined,
       },
     }));
 
-    fetchCommunityMcpPresetServers(controller.signal)
+    fetchCommunityToolPresetServers(controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) {
           const servers = result.data;
-          setCommunityMcpServers(servers);
+          setCommunityToolServers(servers);
           setMarketplaceLoadState((state) => ({
             ...state,
-            mcp: {
+            tool: {
               status: "ready",
               count: servers.length,
               url: result.url,
@@ -321,18 +324,18 @@ export function DiscoveryPage() {
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setCommunityMcpServers([]);
+          setCommunityToolServers([]);
           setMarketplaceLoadState((state) => ({
             ...state,
-            mcp: {
+            tool: {
               status: "error",
               count: 0,
-              url: mcpUrl,
+              url: toolUrl,
               error: getErrorMessage(error),
             },
           }));
           console.warn(
-            "[Discovery] failed to load community MCP package list",
+            "[Discovery] failed to load community tool package list",
             error,
           );
         }
@@ -475,10 +478,10 @@ export function DiscoveryPage() {
 
   const capabilities = useMemo<Capability[]>(() => {
     const installedPluginIds = plugins.map((plugin) => plugin.id);
-    const installedMcpServerIds = Object.keys(mcpConfig?.mcpServers ?? {});
-    const mcpPresetServers = mergeMcpPresetServers(
-      officialMcpPresetServers,
-      communityMcpServers,
+    const installedToolServerIds = Object.keys(toolConfig?.toolServers ?? {});
+    const toolPresetServers = mergeToolPresetServers(
+      officialToolPresetServers,
+      communityToolServers,
     );
     const installedPackageIds = new Set(
       Object.values(skillRecords)
@@ -490,7 +493,7 @@ export function DiscoveryPage() {
         const runtimeSkill = skill as Skill;
         const skillToolCount =
           getSkillBuiltInTools(runtimeSkill).length +
-          getSkillMcpTools(runtimeSkill).length +
+          getSkillToolServers(runtimeSkill).length +
           getSkillApiTools(runtimeSkill).length;
         const runtime = resolveSkillRuntimeStatus({
           skill: runtimeSkill,
@@ -500,8 +503,8 @@ export function DiscoveryPage() {
           defaultModel,
           globalModelConfig: modelConfig,
           installedPluginIds,
-          installedMcpServerIds,
-          mcpStatuses,
+          installedToolServerIds,
+          toolStatuses,
         });
         const runtimeSummary = getSkillRuntimeIssueSummary(runtime);
         return {
@@ -557,7 +560,7 @@ export function DiscoveryPage() {
 
         const skillToolCount =
           getSkillBuiltInTools(skill).length +
-          getSkillMcpTools(skill).length +
+          getSkillToolServers(skill).length +
           getSkillApiTools(skill).length;
         const runtime = resolveSkillRuntimeStatus({
           skill,
@@ -567,8 +570,8 @@ export function DiscoveryPage() {
           defaultModel,
           globalModelConfig: modelConfig,
           installedPluginIds,
-          installedMcpServerIds,
-          mcpStatuses,
+          installedToolServerIds,
+          toolStatuses,
         });
         const runtimeSummary = getSkillRuntimeIssueSummary(runtime);
 
@@ -620,12 +623,12 @@ export function DiscoveryPage() {
         return a.title.localeCompare(b.title);
       });
 
-    const officialMcpIds = new Set(
-      officialMcpPresetServers.map((server) => server.id),
+    const officialToolIds = new Set(
+      officialToolPresetServers.map((server) => server.id),
     );
-    const mcpToolItems: Capability[] = mcpPresetServers.map((server) => {
-      const serverConfig = mcpConfig?.mcpServers[server.id];
-      const serverStatus = mcpStatuses?.[server.id]?.status;
+    const toolItems: Capability[] = toolPresetServers.map((server) => {
+      const serverConfig = toolConfig?.toolServers[server.id];
+      const serverStatus = toolStatuses?.[server.id]?.status;
       const installed = Boolean(serverConfig);
       const status =
         serverStatus === "active"
@@ -639,8 +642,8 @@ export function DiscoveryPage() {
                 : Locale.Discovery.Status.Configurable;
 
       return {
-        id: `mcp:${server.id}`,
-        type: "mcp",
+        id: `tool:${server.id}`,
+        type: "tool",
         title: server.name,
         description: server.description,
         highlights: server.tags
@@ -649,16 +652,16 @@ export function DiscoveryPage() {
         status,
         pricing: "free",
         runtime: "local",
-        source: officialMcpIds.has(server.id)
+        source: officialToolIds.has(server.id)
           ? Locale.Discovery.Source.Official
           : Locale.Discovery.Source.Community,
-        path: Path.McpMarket,
+        path: Path.ToolMarket,
         installed,
         presetServer: server,
       };
     });
 
-    const mcpItems: Capability[] = [...mcpToolItems];
+    const toolCapabilityItems: Capability[] = [...toolItems];
 
     const providerItems: Capability[] = [
       {
@@ -692,7 +695,7 @@ export function DiscoveryPage() {
         description: Locale.Discovery.CloudStorageDesc,
         highlights: [
           Locale.Discovery.StorageAppSync,
-          Locale.Discovery.StorageFutureMcp,
+          Locale.Discovery.StorageFutureTool,
           storageQuotaText,
         ].filter(Boolean) as string[],
         status: !storageConfigured
@@ -711,22 +714,22 @@ export function DiscoveryPage() {
     return [
       ...skillItems,
       ...communitySkillItems,
-      ...mcpItems,
+      ...toolCapabilityItems,
       ...providerItems,
       ...storageItems,
     ];
   }, [
     accessCustomModels,
-    communityMcpServers,
+    communityToolServers,
     communitySkillPackages,
     currentLang,
     customModels,
     defaultModel,
-    mcpConfig?.mcpServers,
-    mcpStatuses,
+    toolConfig?.toolServers,
+    toolStatuses,
     modelConfig,
     models,
-    officialMcpPresetServers,
+    officialToolPresetServers,
     plugins,
     skillRecords,
     skills,
@@ -737,17 +740,17 @@ export function DiscoveryPage() {
 
   const marketplaceStatusText = useMemo(() => {
     const skillState = marketplaceLoadState.skill;
-    const mcpState = marketplaceLoadState.mcp;
-    const error = skillState.error || mcpState.error;
+    const toolState = marketplaceLoadState.tool;
+    const error = skillState.error || toolState.error;
 
     if (error) return Locale.Discovery.MarketplaceError(error);
-    if (skillState.status === "loading" || mcpState.status === "loading") {
+    if (skillState.status === "loading" || toolState.status === "loading") {
       return Locale.Discovery.MarketplaceLoading;
     }
     return Locale.Discovery.MarketplaceLoaded(
       skillState.count,
       skillState.total,
-      mcpState.count,
+      toolState.count,
     );
   }, [marketplaceLoadState]);
 
@@ -803,15 +806,15 @@ export function DiscoveryPage() {
   };
 
   useEffect(() => {
-    if (!editingMcpServerId) return;
-    const preset = communityMcpServers
-      .concat(officialMcpPresetServers)
-      .find((server) => server.id === editingMcpServerId);
+    if (!editingToolServerId) return;
+    const preset = communityToolServers
+      .concat(officialToolPresetServers)
+      .find((server) => server.id === editingToolServerId);
     if (!preset?.configSchema) return;
 
-    const currentConfig = mcpConfig?.mcpServers?.[editingMcpServerId];
+    const currentConfig = toolConfig?.toolServers?.[editingToolServerId];
     if (!currentConfig) {
-      setMcpUserConfig({});
+      setToolUserConfig({});
       return;
     }
 
@@ -826,15 +829,15 @@ export function DiscoveryPage() {
         nextUserConfig[key] = currentConfig.env[mapping.key];
       }
     });
-    setMcpUserConfig(nextUserConfig);
+    setToolUserConfig(nextUserConfig);
   }, [
-    communityMcpServers,
-    editingMcpServerId,
-    mcpConfig?.mcpServers,
-    officialMcpPresetServers,
+    communityToolServers,
+    editingToolServerId,
+    toolConfig?.toolServers,
+    officialToolPresetServers,
   ]);
 
-  const renderMcpPropertyDescription = (prop: DiscoveryConfigProperty) => {
+  const renderToolPropertyDescription = (prop: DiscoveryConfigProperty) => {
     if (!prop.description && !prop.helpUrl) return undefined;
     return (
       <>
@@ -851,24 +854,24 @@ export function DiscoveryPage() {
     );
   };
 
-  const renderMcpConfigForm = () => {
-    const preset = mergeMcpPresetServers(
-      officialMcpPresetServers,
-      communityMcpServers,
-    ).find((server) => server.id === editingMcpServerId);
+  const renderToolConfigForm = () => {
+    const preset = mergeToolPresetServers(
+      officialToolPresetServers,
+      communityToolServers,
+    ).find((server) => server.id === editingToolServerId);
     if (!preset?.configSchema) return null;
 
     return Object.entries(preset.configSchema.properties).map(
       ([key, prop]: [string, DiscoveryConfigProperty]) => {
         if (prop.type === "array") {
-          const currentValue = mcpUserConfig[key] || [];
+          const currentValue = toolUserConfig[key] || [];
           const itemLabel = prop.itemLabel || key;
           const addButtonText = prop.addButtonText || `Add ${itemLabel}`;
           return (
             <ListItem
               key={key}
               title={key}
-              subTitle={renderMcpPropertyDescription(prop)}
+              subTitle={renderToolPropertyDescription(prop)}
               vertical
             >
               <div className={styles["config-list"]}>
@@ -885,8 +888,8 @@ export function DiscoveryPage() {
                         onChange={(e) => {
                           const nextValue = [...currentValue] as string[];
                           nextValue[index] = e.currentTarget.value;
-                          setMcpUserConfig({
-                            ...mcpUserConfig,
+                          setToolUserConfig({
+                            ...toolUserConfig,
                             [key]: nextValue,
                           });
                         }}
@@ -897,8 +900,8 @@ export function DiscoveryPage() {
                         onClick={() => {
                           const nextValue = [...currentValue] as string[];
                           nextValue.splice(index, 1);
-                          setMcpUserConfig({
-                            ...mcpUserConfig,
+                          setToolUserConfig({
+                            ...toolUserConfig,
                             [key]: nextValue,
                           });
                         }}
@@ -912,7 +915,7 @@ export function DiscoveryPage() {
                   bordered
                   onClick={() => {
                     const nextValue = [...currentValue, ""] as string[];
-                    setMcpUserConfig({ ...mcpUserConfig, [key]: nextValue });
+                    setToolUserConfig({ ...toolUserConfig, [key]: nextValue });
                   }}
                 />
               </div>
@@ -921,20 +924,20 @@ export function DiscoveryPage() {
         }
 
         if (prop.type === "boolean") {
-          const currentValue = readMcpConfigBoolean(mcpUserConfig[key]);
+          const currentValue = readToolConfigBoolean(toolUserConfig[key]);
           return (
             <ListItem
               key={key}
               title={key}
-              subTitle={renderMcpPropertyDescription(prop)}
+              subTitle={renderToolPropertyDescription(prop)}
             >
               <input
                 aria-label={key}
                 type="checkbox"
                 checked={currentValue}
                 onChange={(e) =>
-                  setMcpUserConfig({
-                    ...mcpUserConfig,
+                  setToolUserConfig({
+                    ...toolUserConfig,
                     [key]: e.currentTarget.checked,
                   })
                 }
@@ -943,22 +946,22 @@ export function DiscoveryPage() {
           );
         }
 
-        const currentValue = mcpUserConfig[key] || "";
+        const currentValue = toolUserConfig[key] || "";
         return (
           <ListItem
             key={key}
             title={key}
-            subTitle={renderMcpPropertyDescription(prop)}
+            subTitle={renderToolPropertyDescription(prop)}
           >
             <input
               aria-label={key}
-              type={isSensitiveMcpConfigField(key, prop) ? "password" : "text"}
+              type={isSensitiveToolConfigField(key, prop) ? "password" : "text"}
               autoComplete="off"
               value={currentValue}
               placeholder={`Enter ${key}`}
               onChange={(e) =>
-                setMcpUserConfig({
-                  ...mcpUserConfig,
+                setToolUserConfig({
+                  ...toolUserConfig,
                   [key]: e.currentTarget.value,
                 })
               }
@@ -969,18 +972,18 @@ export function DiscoveryPage() {
     );
   };
 
-  const saveMcpServerConfig = async () => {
-    const preset = mergeMcpPresetServers(
-      officialMcpPresetServers,
-      communityMcpServers,
-    ).find((server) => server.id === editingMcpServerId);
-    if (!preset || !preset.configSchema || !editingMcpServerId) return;
+  const saveToolServerConfig = async () => {
+    const preset = mergeToolPresetServers(
+      officialToolPresetServers,
+      communityToolServers,
+    ).find((server) => server.id === editingToolServerId);
+    if (!preset || !preset.configSchema || !editingToolServerId) return;
 
     try {
-      setSavingMcpConfig(true);
-      const missingKeys = getMissingMcpConfigKeys(
+      setSavingToolConfig(true);
+      const missingKeys = getMissingToolConfigKeys(
         preset.configSchema.properties,
-        mcpUserConfig,
+        toolUserConfig,
       );
       if (missingKeys.length > 0) {
         showToast(`缺少必填工具配置：${missingKeys.join(", ")}`);
@@ -991,7 +994,7 @@ export function DiscoveryPage() {
       const env: Record<string, string> = {};
 
       Object.entries(preset.argsMapping || {}).forEach(([key, mapping]) => {
-        const value = mcpUserConfig[key];
+        const value = toolUserConfig[key];
         if (mapping.type === "spread" && Array.isArray(value)) {
           const pos = mapping.position ?? 0;
           args.splice(pos, 0, ...value.filter(Boolean));
@@ -1002,7 +1005,7 @@ export function DiscoveryPage() {
         ) {
           args[mapping.position] = value;
         } else if (mapping.type === "env" && mapping.key) {
-          const envValue = stringifyMcpConfigValue(value);
+          const envValue = stringifyToolConfigValue(value);
           if (envValue !== undefined) {
             env[mapping.key] = envValue;
           }
@@ -1014,49 +1017,49 @@ export function DiscoveryPage() {
         args,
         ...(Object.keys(env).length > 0 ? { env } : {}),
       };
-      const newConfig = await addMcpServer(editingMcpServerId, serverConfig);
+      const newConfig = await addToolServer(editingToolServerId, serverConfig);
       const statuses = await getClientsStatus();
-      setMcpConfig(newConfig);
-      setMcpStatuses(statuses);
-      setEditingMcpServerId(undefined);
-      setMcpUserConfig({});
+      setToolConfig(newConfig);
+      setToolStatuses(statuses);
+      setEditingToolServerId(undefined);
+      setToolUserConfig({});
       showToast(Locale.Discovery.Status.Enabled);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "Failed to save tool config",
       );
     } finally {
-      setSavingMcpConfig(false);
+      setSavingToolConfig(false);
     }
   };
 
   const handleCapabilityAction = (item: Capability) => {
-    if (item.type === "mcp" && item.presetServer) {
+    if (item.type === "tool" && item.presetServer) {
       if (item.installed) {
-        setViewingMcpCapability(item);
+        setViewingToolCapability(item);
         return;
       }
 
       if (item.presetServer.configurable) {
-        setEditingMcpServerId(item.presetServer.id);
-        setMcpUserConfig({});
+        setEditingToolServerId(item.presetServer.id);
+        setToolUserConfig({});
         return;
       }
 
-      const enableMcp = async () => {
+      const enableTool = async () => {
         try {
           const serverConfig = {
             command: item.presetServer!.command,
             args: [...item.presetServer!.baseArgs],
           };
-          const newConfig = await addMcpServer(
+          const newConfig = await addToolServer(
             item.presetServer!.id,
             serverConfig,
           );
           const statuses = await getClientsStatus();
-          setMcpConfig(newConfig);
-          setMcpStatuses(statuses);
-          setViewingMcpCapability({
+          setToolConfig(newConfig);
+          setToolStatuses(statuses);
+          setViewingToolCapability({
             ...item,
             installed: true,
             status: Locale.Discovery.Status.Installed,
@@ -1069,7 +1072,7 @@ export function DiscoveryPage() {
         }
       };
 
-      void enableMcp();
+      void enableTool();
       return;
     }
 
@@ -1084,8 +1087,8 @@ export function DiscoveryPage() {
 
       if (item.runtimeStatus === "ready") {
         startSkill(installedSkill);
-      } else if (hasSkillMcpRuntimeIssue(item.runtimeResult)) {
-        navigate(Path.McpMarket);
+      } else if (hasSkillToolRuntimeIssue(item.runtimeResult)) {
+        navigate(Path.ToolMarket);
       } else {
         openSkillConfig(installedSkill);
       }
@@ -1097,8 +1100,8 @@ export function DiscoveryPage() {
         ? item.skill
         : enableSkill(item.skill);
       if (item.runtimeStatus !== "ready") {
-        if (hasSkillMcpRuntimeIssue(item.runtimeResult)) {
-          navigate(Path.McpMarket);
+        if (hasSkillToolRuntimeIssue(item.runtimeResult)) {
+          navigate(Path.ToolMarket);
           return;
         }
         openSkillConfig(enabledSkill);
@@ -1131,7 +1134,7 @@ export function DiscoveryPage() {
         ? Locale.Discovery.Use
         : Locale.Discovery.Manage;
     }
-    if (item.type === "mcp") {
+    if (item.type === "tool") {
       if (!item.installed && item.presetServer?.configurable) {
         return Locale.Discovery.ConfigureAndEnable;
       }
@@ -1221,10 +1224,10 @@ export function DiscoveryPage() {
             className={clsx(
               styles["marketplace-status"],
               (marketplaceLoadState.skill.status === "error" ||
-                marketplaceLoadState.mcp.status === "error") &&
+                marketplaceLoadState.tool.status === "error") &&
                 styles["marketplace-status-error"],
             )}
-            title={`${Locale.Discovery.MarketplaceSkillSource}: ${marketplaceLoadState.skill.url}\n${Locale.Discovery.MarketplaceMcpSource}: ${marketplaceLoadState.mcp.url}`}
+            title={`${Locale.Discovery.MarketplaceSkillSource}: ${marketplaceLoadState.skill.url}\n${Locale.Discovery.MarketplaceToolSource}: ${marketplaceLoadState.tool.url}`}
           >
             <div className={styles["marketplace-status-main"]}>
               <span>{marketplaceStatusText}</span>
@@ -1247,20 +1250,20 @@ export function DiscoveryPage() {
                 key={item.id}
                 className={clsx(
                   styles.card,
-                  item.type === "mcp" && styles["card-clickable"],
+                  item.type === "tool" && styles["card-clickable"],
                 )}
-                role={item.type === "mcp" ? "button" : undefined}
-                tabIndex={item.type === "mcp" ? 0 : undefined}
+                role={item.type === "tool" ? "button" : undefined}
+                tabIndex={item.type === "tool" ? 0 : undefined}
                 onClick={() => {
-                  if (item.type === "mcp") {
-                    setViewingMcpCapability(item);
+                  if (item.type === "tool") {
+                    setViewingToolCapability(item);
                   }
                 }}
                 onKeyDown={(event) => {
-                  if (item.type !== "mcp") return;
+                  if (item.type !== "tool") return;
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
-                  setViewingMcpCapability(item);
+                  setViewingToolCapability(item);
                 }}
               >
                 <div className={styles["card-header"]}>
@@ -1274,9 +1277,9 @@ export function DiscoveryPage() {
                 </div>
                 <div className={styles["card-desc"]}>{item.description}</div>
                 <div className={styles.badges}>
-                  {item.type === "mcp" && (
+                  {item.type === "tool" && (
                     <span className={styles.badge}>
-                      {Locale.Discovery.McpUserProvided}
+                      {Locale.Discovery.ToolUserProvided}
                     </span>
                   )}
                   <span className={styles.badge}>
@@ -1339,22 +1342,22 @@ export function DiscoveryPage() {
             )}
           </div>
         </div>
-        {editingMcpServerId && (
+        {editingToolServerId && (
           <div className="modal-mask">
             <Modal
-              title={`Configure Tool - ${editingMcpServerId}`}
+              title={`Configure Tool - ${editingToolServerId}`}
               onClose={() =>
-                !savingMcpConfig && setEditingMcpServerId(undefined)
+                !savingToolConfig && setEditingToolServerId(undefined)
               }
               actions={[
                 <IconButton
                   key="cancel"
                   text="Cancel"
                   bordered
-                  disabled={savingMcpConfig}
+                  disabled={savingToolConfig}
                   onClick={() => {
-                    setEditingMcpServerId(undefined);
-                    setMcpUserConfig({});
+                    setEditingToolServerId(undefined);
+                    setToolUserConfig({});
                   }}
                 />,
                 <IconButton
@@ -1362,15 +1365,15 @@ export function DiscoveryPage() {
                   text="Save"
                   type="primary"
                   bordered
-                  disabled={savingMcpConfig}
-                  onClick={saveMcpServerConfig}
+                  disabled={savingToolConfig}
+                  onClick={saveToolServerConfig}
                 />,
               ]}
             >
-              <div className={styles["mcp-config-hint"]}>
-                {Locale.Discovery.McpUserConfigHint}
+              <div className={styles["tool-config-hint"]}>
+                {Locale.Discovery.ToolUserConfigHint}
               </div>
-              <List>{renderMcpConfigForm()}</List>
+              <List>{renderToolConfigForm()}</List>
             </Modal>
           </div>
         )}
@@ -1390,53 +1393,53 @@ export function DiscoveryPage() {
             </Modal>
           </div>
         )}
-        {viewingMcpCapability && (
+        {viewingToolCapability && (
           <div className="modal-mask">
             <Modal
-              title={viewingMcpCapability.title}
-              onClose={() => setViewingMcpCapability(undefined)}
+              title={viewingToolCapability.title}
+              onClose={() => setViewingToolCapability(undefined)}
               actions={[
                 <IconButton
                   key="close"
                   text={Locale.UI.Close}
                   bordered
-                  onClick={() => setViewingMcpCapability(undefined)}
+                  onClick={() => setViewingToolCapability(undefined)}
                 />,
                 <IconButton
                   key="manager"
-                  text={Locale.Discovery.OpenMcpManager}
+                  text={Locale.Discovery.OpenToolManager}
                   type="primary"
                   bordered
                   onClick={() => {
-                    setViewingMcpCapability(undefined);
-                    navigate(Path.McpMarket);
+                    setViewingToolCapability(undefined);
+                    navigate(Path.ToolMarket);
                   }}
                 />,
               ]}
             >
-              <div className={styles["mcp-detail"]}>
-                <div className={styles["mcp-detail-row"]}>
-                  <span>{Locale.Discovery.McpStatus}</span>
-                  <strong>{viewingMcpCapability.status}</strong>
+              <div className={styles["tool-detail"]}>
+                <div className={styles["tool-detail-row"]}>
+                  <span>{Locale.Discovery.ToolStatus}</span>
+                  <strong>{viewingToolCapability.status}</strong>
                 </div>
-                <div className={styles["mcp-detail-row"]}>
+                <div className={styles["tool-detail-row"]}>
                   <span>{Locale.Discovery.SourceLabel}</span>
-                  <strong>{viewingMcpCapability.source}</strong>
+                  <strong>{viewingToolCapability.source}</strong>
                 </div>
-                <div className={styles["mcp-detail-row"]}>
+                <div className={styles["tool-detail-row"]}>
                   <span>{Locale.Discovery.ConfigMode}</span>
-                  <strong>{Locale.Discovery.McpUserProvided}</strong>
+                  <strong>{Locale.Discovery.ToolUserProvided}</strong>
                 </div>
-                <div className={styles["mcp-detail-desc"]}>
-                  {viewingMcpCapability.description}
+                <div className={styles["tool-detail-desc"]}>
+                  {viewingToolCapability.description}
                 </div>
-                {viewingMcpCapability.presetServer?.repo && (
+                {viewingToolCapability.presetServer?.repo && (
                   <a
-                    href={viewingMcpCapability.presetServer.repo}
+                    href={viewingToolCapability.presetServer.repo}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {viewingMcpCapability.presetServer.repo}
+                    {viewingToolCapability.presetServer.repo}
                   </a>
                 )}
               </div>

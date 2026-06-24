@@ -9,11 +9,11 @@ const colors = {
   blue: "\x1b[34m",
 };
 
-export class MCPClientLogger {
+export class ToolClientLogger {
   private readonly prefix: string;
   private readonly debugMode: boolean;
 
-  constructor(prefix: string = "Chat MCP Client", debugMode: boolean = false) {
+  constructor(prefix: string = "Chat Tool Client", debugMode: boolean = false) {
     this.prefix = prefix;
     this.debugMode = debugMode;
   }

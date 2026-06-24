@@ -1,4 +1,8 @@
-import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
+import {
+  executeToolAction,
+  getAllTools,
+  isToolRuntimeEnabled,
+} from "../tools/actions";
 import { ServiceProvider } from "../constant";
 import {
   normalizeModelEndpointPath,
@@ -11,9 +15,9 @@ export type NativeToolBundle = [
   Record<string, (args: Record<string, unknown>) => Promise<any>>,
 ];
 
-const MCP_TOOL_NAME_PREFIX = "mcp__";
+const TOOL_FUNCTION_NAME_PREFIX = "mcp__";
 
-export function shouldUseNativeMcpTools(config: {
+export function shouldUseNativeToolBridge(config: {
   providerName?: string;
   endpointPath?: string;
 }) {
@@ -27,15 +31,15 @@ export function shouldUseNativeMcpTools(config: {
   return false;
 }
 
-function createMcpToolFunctionName(clientId: string, toolName: string) {
-  return `${MCP_TOOL_NAME_PREFIX}${clientId}__${toolName}`;
+function createToolFunctionName(clientId: string, toolName: string) {
+  return `${TOOL_FUNCTION_NAME_PREFIX}${clientId}__${toolName}`;
 }
 
 export async function getNativeToolBundle(
   pluginIds: string[],
   options?: {
-    includeMcp?: boolean;
-    mcpClientIds?: string[];
+    includeToolServers?: boolean;
+    toolServerIds?: string[];
   },
 ): Promise<NativeToolBundle> {
   const pluginPair = usePluginStore.getState().getAsTools(pluginIds) as [
@@ -46,33 +50,30 @@ export async function getNativeToolBundle(
   const tools = [...(pluginPair[0] ?? [])];
   const funcs = { ...(pluginPair[1] ?? {}) };
 
-  if (!options?.includeMcp) {
+  if (!options?.includeToolServers) {
     return [tools, funcs];
   }
 
-  const mcpEnabled = await isMcpEnabled();
-  if (!mcpEnabled) {
+  const toolRuntimeEnabled = await isToolRuntimeEnabled();
+  if (!toolRuntimeEnabled) {
     return [tools, funcs];
   }
 
-  const selectedMcpClientIds = new Set(options.mcpClientIds ?? []);
-  const mcpClients = (await getAllTools()).filter(
+  const selectedToolServerIds = new Set(options.toolServerIds ?? []);
+  const toolClients = (await getAllTools()).filter(
     (client) =>
-      selectedMcpClientIds.size === 0 ||
-      selectedMcpClientIds.has(client.clientId),
+      selectedToolServerIds.size === 0 ||
+      selectedToolServerIds.has(client.clientId),
   );
 
-  mcpClients.forEach((client) => {
+  toolClients.forEach((client) => {
     const clientTools = client.tools?.tools;
     if (!Array.isArray(clientTools)) return;
 
     clientTools.forEach((tool) => {
       if (!tool?.name || typeof tool.name !== "string") return;
 
-      const functionName = createMcpToolFunctionName(
-        client.clientId,
-        tool.name,
-      );
+      const functionName = createToolFunctionName(client.clientId, tool.name);
 
       tools.push({
         type: "function",
@@ -93,7 +94,7 @@ export async function getNativeToolBundle(
       });
 
       funcs[functionName] = async (args: Record<string, unknown>) => {
-        const result = await executeMcpAction(client.clientId, {
+        const result = await executeToolAction(client.clientId, {
           method: "tools/call",
           params: {
             name: tool.name,

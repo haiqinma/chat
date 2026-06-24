@@ -1,14 +1,14 @@
 import { getClientConfig } from "../config/client";
 import {
-  COMMUNITY_MARKETPLACE_MCP_PACKAGES_RAW_URL,
-  COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
+  COMMUNITY_MARKETPLACE_TOOL_PACKAGES_RAW_URL,
+  COMMUNITY_MARKETPLACE_TOOL_PACKAGES_URL,
   COMMUNITY_MARKETPLACE_SKILL_PACKAGES_RAW_URL,
   COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL,
-  LOCAL_MARKETPLACE_MCP_PACKAGES_URL,
+  LOCAL_MARKETPLACE_TOOL_PACKAGES_URL,
   LOCAL_MARKETPLACE_SKILL_PACKAGES_URL,
 } from "../constant";
 
-type MarketplaceSourceKind = "skill" | "mcp";
+type MarketplaceSourceKind = "skill" | "tool";
 
 export type MarketplaceLoadResult<T> = {
   data: T;
@@ -33,7 +33,7 @@ function getConfiguredSource(kind: MarketplaceSourceKind) {
   const config = getClientConfig();
   return kind === "skill"
     ? config?.marketplaceSkillPackagesUrl
-    : config?.marketplaceMcpPackagesUrl;
+    : config?.marketplaceToolPackagesUrl;
 }
 
 export function getMarketplaceSourceUrls(kind: MarketplaceSourceKind) {
@@ -48,9 +48,9 @@ export function getMarketplaceSourceUrls(kind: MarketplaceSourceKind) {
 
   return uniqueUrls([
     getConfiguredSource(kind),
-    COMMUNITY_MARKETPLACE_MCP_PACKAGES_RAW_URL,
-    COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL,
-    LOCAL_MARKETPLACE_MCP_PACKAGES_URL,
+    COMMUNITY_MARKETPLACE_TOOL_PACKAGES_RAW_URL,
+    COMMUNITY_MARKETPLACE_TOOL_PACKAGES_URL,
+    LOCAL_MARKETPLACE_TOOL_PACKAGES_URL,
   ]);
 }
 

@@ -29,11 +29,11 @@ import {
   GEMINI_SUMMARIZE_MODEL,
   DEEPSEEK_SUMMARIZE_MODEL,
   KnowledgeCutOffDate,
-  MCP_SYSTEM_TEMPLATE,
-  MCP_TOOLS_TEMPLATE,
   ServiceProvider,
   StoreKey,
   SUMMARIZE_MODEL,
+  TOOL_LIST_TEMPLATE,
+  TOOL_SYSTEM_TEMPLATE,
 } from "../constant";
 import Locale, { getLang } from "../locales";
 import { prettyObject } from "../utils/format";
@@ -49,10 +49,14 @@ import {
   normalizeProviderName,
 } from "../utils/model";
 import { createEmptySkill, getBuiltinSkillsForLang, Skill } from "./skill";
-import { executeMcpAction, getAllTools, isMcpEnabled } from "../mcp/actions";
-import { extractMcpJson, isMcpJson } from "../mcp/utils";
+import {
+  executeToolAction,
+  getAllTools,
+  isToolRuntimeEnabled,
+} from "../tools/actions";
+import { extractToolJson, isToolJson } from "../tools/utils";
 import { isValidUcanAuthorization } from "../plugins/wallet";
-import { shouldUseNativeMcpTools } from "./native-tools";
+import { shouldUseNativeToolBridge } from "./native-tools";
 import {
   disablePlainChatReasoning,
   isPlainChatSkill,
@@ -83,7 +87,7 @@ export type ChatMessage = RequestMessage & {
   model?: ModelType;
   tools?: ChatMessageTool[];
   audio_url?: string;
-  isMcpResponse?: boolean;
+  isToolResponse?: boolean;
 };
 
 export function createMessage(override: Partial<ChatMessage>): ChatMessage {
@@ -119,10 +123,10 @@ export interface ChatSession {
   mask: Skill;
 }
 
-export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
+export const DEFAULT_TOPIC = "通用问答";
 export const BOT_HELLO: ChatMessage = createMessage({
   role: "assistant",
-  content: Locale.Store.BotHello,
+  content: "有什么可以帮你的吗",
 });
 
 function createEmptySession(): ChatSession {
@@ -140,14 +144,12 @@ function createEmptySession(): ChatSession {
     lastUpdate: Date.now(),
     lastSummarizeIndex: 0,
 
-    mask: createEmptySkill(),
+    mask: createEmptySkill("cn"),
   };
 }
 
 function isLegacyPlainChatMaskName(name?: string) {
-  return (
-    name === "新的聊天" || name === "New Conversation" || name === DEFAULT_TOPIC
-  );
+  return name === "新的聊天" || name === "New Conversation";
 }
 
 function getGeneralBuiltinSkill(lang = getLang()) {
@@ -361,7 +363,7 @@ function fillTemplateWith(input: string, modelConfig: ModelConfig) {
   return output;
 }
 
-async function getMcpSystemPrompt(): Promise<string> {
+async function getToolSystemPrompt(): Promise<string> {
   const tools = await getAllTools();
 
   let toolsStr = "";
@@ -370,7 +372,7 @@ async function getMcpSystemPrompt(): Promise<string> {
     // error client has no tools
     if (!i.tools) return;
 
-    toolsStr += MCP_TOOLS_TEMPLATE.replace(
+    toolsStr += TOOL_LIST_TEMPLATE.replace(
       "{{ clientId }}",
       i.clientId,
     ).replace(
@@ -379,7 +381,7 @@ async function getMcpSystemPrompt(): Promise<string> {
     );
   });
 
-  return MCP_SYSTEM_TEMPLATE.replace("{{ MCP_TOOLS }}", toolsStr);
+  return TOOL_SYSTEM_TEMPLATE.replace("{{ TOOLS }}", toolsStr);
 }
 
 const DEFAULT_CHAT_STATE = {
@@ -660,7 +662,7 @@ export const useChatStore = createPersistStore(
 
         get().updateStat(message, targetSession);
 
-        get().checkMcpJson(message);
+        void get().checkToolJson(message);
 
         get().summarizeSession(false, targetSession);
       },
@@ -668,7 +670,7 @@ export const useChatStore = createPersistStore(
       async onUserInput(
         content: string,
         attachments?: MultimodalContent[],
-        isMcpResponse?: boolean,
+        isToolResponse?: boolean,
         isAuthenticated: boolean = true,
       ) {
         // 权限认证
@@ -709,12 +711,12 @@ export const useChatStore = createPersistStore(
           return;
         }
 
-        // MCP Response no need to fill template
-        let mContent: string | MultimodalContent[] = isMcpResponse
+        // Tool responses already have the protocol wrapper, so do not fill templates.
+        let mContent: string | MultimodalContent[] = isToolResponse
           ? content
           : fillTemplateWith(content, modelConfig);
 
-        if (!isMcpResponse && normalizedAttachments.length > 0) {
+        if (!isToolResponse && normalizedAttachments.length > 0) {
           mContent = [
             ...(content ? [{ type: "text" as const, text: content }] : []),
             ...normalizedAttachments.map((item) => ({ ...item })),
@@ -724,7 +726,7 @@ export const useChatStore = createPersistStore(
         let userMessage: ChatMessage = createMessage({
           role: "user",
           content: normalizeMessageContent(mContent),
-          isMcpResponse,
+          isToolResponse,
         });
 
         const botMessage: ChatMessage = createMessage({
@@ -871,8 +873,8 @@ export const useChatStore = createPersistStore(
           (session.mask.modelConfig.model.startsWith("gpt-") ||
             session.mask.modelConfig.model.startsWith("chatgpt-"));
 
-        const mcpEnabled = await isMcpEnabled();
-        const nativeMcpEnabled = shouldUseNativeMcpTools({
+        const toolRuntimeEnabled = await isToolRuntimeEnabled();
+        const nativeToolBridgeEnabled = shouldUseNativeToolBridge({
           providerName: resolveRuntimeModelRouting(
             modelConfig.model,
             modelConfig.providerName,
@@ -882,8 +884,10 @@ export const useChatStore = createPersistStore(
             modelConfig.providerName,
           ).endpointPath,
         });
-        const mcpSystemPrompt =
-          mcpEnabled && !nativeMcpEnabled ? await getMcpSystemPrompt() : "";
+        const toolSystemPrompt =
+          toolRuntimeEnabled && !nativeToolBridgeEnabled
+            ? await getToolSystemPrompt()
+            : "";
 
         var systemPrompts: ChatMessage[] = [];
 
@@ -895,19 +899,19 @@ export const useChatStore = createPersistStore(
                 fillTemplateWith("", {
                   ...modelConfig,
                   template: DEFAULT_SYSTEM_TEMPLATE,
-                }) + mcpSystemPrompt,
+                }) + toolSystemPrompt,
             }),
           ];
-        } else if (mcpEnabled) {
+        } else if (toolRuntimeEnabled) {
           systemPrompts = [
             createMessage({
               role: "system",
-              content: mcpSystemPrompt,
+              content: toolSystemPrompt,
             }),
           ];
         }
 
-        if (shouldInjectSystemPrompts || mcpEnabled) {
+        if (shouldInjectSystemPrompts || toolRuntimeEnabled) {
           console.log(
             "[Global System Prompt] ",
             systemPrompts.at(0)?.content ?? "empty",
@@ -1168,28 +1172,28 @@ export const useChatStore = createPersistStore(
         });
       },
 
-      /** check if the message contains MCP JSON and execute the MCP action */
-      checkMcpJson(message: ChatMessage) {
-        const mcpEnabled = isMcpEnabled();
-        if (!mcpEnabled) return;
+      /** check if the message contains tool JSON and execute the tool action */
+      async checkToolJson(message: ChatMessage) {
+        const toolRuntimeEnabled = await isToolRuntimeEnabled();
+        if (!toolRuntimeEnabled) return;
         const content = getMessageTextContent(message);
-        if (isMcpJson(content)) {
+        if (isToolJson(content)) {
           try {
-            const mcpRequest = extractMcpJson(content);
-            if (mcpRequest) {
-              console.debug("[MCP Request]", mcpRequest);
+            const toolRequest = extractToolJson(content);
+            if (toolRequest) {
+              console.debug("[Tool Request]", toolRequest);
 
-              executeMcpAction(mcpRequest.clientId, mcpRequest.mcp)
+              executeToolAction(toolRequest.clientId, toolRequest.request)
                 .then((result) => {
-                  console.log("[MCP Response]", result);
-                  const mcpResponse =
+                  console.log("[Tool Response]", result);
+                  const toolResponse =
                     typeof result === "object"
                       ? JSON.stringify(result)
                       : String(result);
                   isValidUcanAuthorization()
                     .then((isAuthenticated) => {
                       get().onUserInput(
-                        `\`\`\`json:mcp-response:${mcpRequest.clientId}\n${mcpResponse}\n\`\`\``,
+                        `\`\`\`json:mcp-response:${toolRequest.clientId}\n${toolResponse}\n\`\`\``,
                         [],
                         true,
                         isAuthenticated,
@@ -1197,17 +1201,17 @@ export const useChatStore = createPersistStore(
                     })
                     .catch(() => {
                       get().onUserInput(
-                        `\`\`\`json:mcp-response:${mcpRequest.clientId}\n${mcpResponse}\n\`\`\``,
+                        `\`\`\`json:mcp-response:${toolRequest.clientId}\n${toolResponse}\n\`\`\``,
                         [],
                         true,
                         false,
                       );
                     });
                 })
-                .catch((error) => showToast("MCP execution failed", error));
+                .catch((error) => showToast("Tool execution failed", error));
             }
           } catch (error) {
-            console.error("[Check MCP JSON]", error);
+            console.error("[Check Tool JSON]", error);
           }
         }
       },

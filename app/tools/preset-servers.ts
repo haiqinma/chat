@@ -4,7 +4,7 @@ import { type Lang } from "../locales";
 const OFFICIAL_REPO_BASE =
   "https://github.com/modelcontextprotocol/servers/tree/main/src";
 
-const OFFICIAL_MCP_DISPLAY_TEXT: Record<
+const OFFICIAL_TOOL_DISPLAY_TEXT: Record<
   string,
   Partial<Record<Lang, Pick<PresetServer, "name" | "description">>>
 > = {
@@ -52,18 +52,18 @@ const OFFICIAL_MCP_DISPLAY_TEXT: Record<
   },
   everything: {
     cn: {
-      name: "MCP 测试合集",
+      name: "工具协议测试合集",
       description: "用于测试 MCP 协议大部分能力的参考服务器。",
     },
   },
 };
 
-export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
+export const OFFICIAL_TOOL_PRESET_SERVERS: PresetServer[] = [
   {
     id: "brave-search",
     name: "Brave Search",
     description:
-      "Official Brave MCP server for web search using the Brave Search API.",
+      "Official Brave tool server for web search using the Brave Search API.",
     repo: "https://github.com/brave/brave-search-mcp-server",
     tags: ["official", "search", "web"],
     command: "npx",
@@ -90,7 +90,8 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
   {
     id: "fetch",
     name: "Fetch",
-    description: "Official MCP server for fetching and converting web content.",
+    description:
+      "Official tool server for fetching and converting web content.",
     repo: `${OFFICIAL_REPO_BASE}/fetch`,
     tags: ["official", "web", "http"],
     command: "mcp-server-fetch",
@@ -101,7 +102,7 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     id: "filesystem",
     name: "Filesystem",
     description:
-      "Official MCP server for reading and writing files within allowed directories.",
+      "Official tool server for reading and writing files within allowed directories.",
     repo: `${OFFICIAL_REPO_BASE}/filesystem`,
     tags: ["official", "local", "files"],
     command: "npx",
@@ -131,7 +132,7 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     id: "git",
     name: "Git",
     description:
-      "Official MCP server for inspecting and operating on a local Git repository.",
+      "Official tool server for inspecting and operating on a local Git repository.",
     repo: `${OFFICIAL_REPO_BASE}/git`,
     tags: ["official", "local", "git"],
     command: "uvx",
@@ -157,7 +158,7 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     id: "memory",
     name: "Memory",
     description:
-      "Official MCP server for persistent memory backed by a local knowledge graph.",
+      "Official tool server for persistent memory backed by a local knowledge graph.",
     repo: `${OFFICIAL_REPO_BASE}/memory`,
     tags: ["official", "memory", "knowledge-graph"],
     command: "npx",
@@ -168,7 +169,7 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     id: "sequentialthinking",
     name: "Sequential Thinking",
     description:
-      "Official MCP server for step-by-step reasoning and structured problem solving.",
+      "Official tool server for step-by-step reasoning and structured problem solving.",
     repo: `${OFFICIAL_REPO_BASE}/sequentialthinking`,
     tags: ["official", "reasoning", "tools"],
     command: "npx",
@@ -178,7 +179,8 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
   {
     id: "time",
     name: "Time",
-    description: "Official MCP server for timezone and current time utilities.",
+    description:
+      "Official tool server for timezone and current time utilities.",
     repo: `${OFFICIAL_REPO_BASE}/time`,
     tags: ["official", "time", "timezone"],
     command: "uvx",
@@ -189,7 +191,7 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
     id: "everything",
     name: "Everything",
     description:
-      "Official MCP reference server that exercises most protocol features for testing.",
+      "Official tool protocol reference server that exercises most protocol features for testing.",
     repo: `${OFFICIAL_REPO_BASE}/everything`,
     tags: ["official", "reference", "testing"],
     command: "npx",
@@ -198,9 +200,9 @@ export const OFFICIAL_MCP_PRESET_SERVERS: PresetServer[] = [
   },
 ];
 
-export function getOfficialMcpPresetServers(lang: Lang): PresetServer[] {
-  return OFFICIAL_MCP_PRESET_SERVERS.map((server) => ({
+export function getOfficialToolPresetServers(lang: Lang): PresetServer[] {
+  return OFFICIAL_TOOL_PRESET_SERVERS.map((server) => ({
     ...server,
-    ...OFFICIAL_MCP_DISPLAY_TEXT[server.id]?.[lang],
+    ...OFFICIAL_TOOL_DISPLAY_TEXT[server.id]?.[lang],
   }));
 }

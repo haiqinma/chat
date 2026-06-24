@@ -11,17 +11,17 @@ import {
 } from "@/app/constant";
 import {
   ChatMessageTool,
-  allowSkillNativeMcpTools,
+  allowSkillNativeToolBridge,
   getSkillApiTools,
   getSkillBuiltInTools,
-  getSkillMcpTools,
+  getSkillToolServers,
   useAccessStore,
   useAppConfig,
   useChatStore,
 } from "@/app/store";
 import {
   getNativeToolBundle,
-  shouldUseNativeMcpTools,
+  shouldUseNativeToolBridge,
 } from "@/app/store/native-tools";
 import { collectModelsWithDefaultModel } from "@/app/utils/model";
 import {
@@ -892,10 +892,10 @@ function shouldFallbackResponsesToolsToChatCompletions(config: {
   if (config.hasBuiltInResponsesTools) {
     return false;
   }
-  const hasMcpTools = (config.tools ?? []).some((tool) =>
+  const hasToolBridgeTools = (config.tools ?? []).some((tool) =>
     String(tool?.function?.name || "").startsWith("mcp__"),
   );
-  if (!hasMcpTools) {
+  if (!hasToolBridgeTools) {
     return false;
   }
   const supportedEndpoints = normalizeSupportedEndpoints(
@@ -1058,18 +1058,18 @@ export class ChatGPTApi implements LLMApi {
       let funcs: Record<string, Function> = {};
       const sessionSkill = useChatStore.getState().currentSession().mask;
       const skillApiTools = getSkillApiTools(sessionSkill);
-      const skillMcpTools = getSkillMcpTools(sessionSkill);
+      const skillToolServers = getSkillToolServers(sessionSkill);
       const skillBuiltInTools = getSkillBuiltInTools(sessionSkill);
-      const allowNativeMcpTools = allowSkillNativeMcpTools(sessionSkill);
+      const allowNativeToolBridge = allowSkillNativeToolBridge(sessionSkill);
       if (shouldStream) {
         const toolPair = (await getNativeToolBundle(skillApiTools, {
-          includeMcp:
-            allowNativeMcpTools &&
-            shouldUseNativeMcpTools({
+          includeToolServers:
+            allowNativeToolBridge &&
+            shouldUseNativeToolBridge({
               providerName: modelConfig.providerName,
               endpointPath,
             }),
-          mcpClientIds: skillMcpTools,
+          toolServerIds: skillToolServers,
         })) as [any[], Record<string, Function>];
         tools = toolPair[0] ?? [];
         funcs = toolPair[1] ?? {};

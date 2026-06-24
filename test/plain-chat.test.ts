@@ -42,7 +42,7 @@ const plainSkill: Skill = {
   plugin: [],
   tools: {
     builtInTools: [],
-    mcpTools: [],
+    toolServers: [],
     apiTools: [],
   },
 };
@@ -66,7 +66,7 @@ describe("plain chat reasoning isolation", () => {
         ...plainSkill,
         tools: {
           builtInTools: ["web_search"],
-          mcpTools: [],
+          toolServers: [],
           apiTools: [],
         },
       }),

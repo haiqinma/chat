@@ -16,9 +16,9 @@ import DragIcon from "../icons/drag.svg";
 import {
   DEFAULT_SKILL_AVATAR,
   Skill,
-  allowSkillNativeMcpTools,
+  allowSkillNativeToolBridge,
   getSkillBuiltInTools,
-  getSkillMcpTools,
+  getSkillToolServers,
   getSkillSessionToolbar,
   getLaunchableSkills,
   syncSkillLegacyPlugin,
@@ -85,7 +85,7 @@ import {
   getModelProvider,
   normalizeModelCandidates,
 } from "../utils/model";
-import { OFFICIAL_MCP_PRESET_SERVERS } from "../mcp/preset-servers";
+import { OFFICIAL_TOOL_PRESET_SERVERS } from "../tools/preset-servers";
 import { RealtimeConfigList } from "./realtime-chat/realtime-config";
 
 type SkillPackageList = Partial<Record<Lang, SkillPackage[]>>;
@@ -142,7 +142,7 @@ function getSkillPackageLabels(lang: Lang) {
       runtime: "运行方式",
       model: "模型",
       permissions: "权限",
-      tools: "工具 / MCP",
+      tools: "工具",
       visibility: "可见范围",
       version: "版本",
       chat: "会话",
@@ -161,7 +161,7 @@ function getSkillPackageLabels(lang: Lang) {
     runtime: "Runtime",
     model: "Model",
     permissions: "Permissions",
-    tools: "Tools / MCP",
+    tools: "Tools",
     visibility: "Visibility",
     version: "Version",
     chat: "Session",
@@ -226,7 +226,7 @@ function getSkillToolsText(
       resolveLocalizedText(tool.name, lang, tool.id),
     ) ?? [];
   const servers =
-    skillPackage.mcp?.servers?.map((server) =>
+    skillPackage.toolServers?.map((server) =>
       resolveLocalizedText(server.name, lang, server.id),
     ) ?? [];
   const items = [...tools, ...servers];
@@ -330,11 +330,11 @@ export function SkillConfig(props: {
   const [showCandidateModelSelector, setShowCandidateModelSelector] =
     useState(false);
   const [showBuiltInToolSelector, setShowBuiltInToolSelector] = useState(false);
-  const [showMcpToolSelector, setShowMcpToolSelector] = useState(false);
+  const [showToolServerSelector, setShowToolServerSelector] = useState(false);
   const skillProviderModels = useMaskProviderModels();
   const selectedBuiltInTools = getSkillBuiltInTools(skill);
-  const selectedMcpTools = getSkillMcpTools(skill);
-  const allowNativeMcpTools = allowSkillNativeMcpTools(skill);
+  const selectedToolServers = getSkillToolServers(skill);
+  const allowNativeToolBridge = allowSkillNativeToolBridge(skill);
   const toolbar = getSkillSessionToolbar(skill);
   const isRealtimeSkill = toolbar.realtime && Boolean(skill.realtimeConfig);
   const selectedCandidateModels = useMemo(
@@ -382,20 +382,22 @@ export function SkillConfig(props: {
     selectedBuiltInTools.length === 0
       ? Locale.Mask.Config.Tools.SummaryNone
       : Locale.Mask.Config.Tools.SummarySelected(selectedBuiltInTools.length);
-  const mcpToolSummary =
-    selectedMcpTools.length === 0
+  const toolServerSummary =
+    selectedToolServers.length === 0
       ? Locale.Mask.Config.Tools.SummaryNone
-      : Locale.Mask.Config.Tools.SummarySelected(selectedMcpTools.length);
+      : Locale.Mask.Config.Tools.SummarySelected(selectedToolServers.length);
   const builtInToolSelectorItems = BUILT_IN_SKILL_TOOL_ITEMS.map((item) => ({
     title: item.name,
     subTitle: item.description,
     value: item.id,
   }));
-  const mcpToolSelectorItems = OFFICIAL_MCP_PRESET_SERVERS.map((server) => ({
-    title: server.name,
-    subTitle: server.description,
-    value: server.id,
-  }));
+  const toolServerSelectorItems = OFFICIAL_TOOL_PRESET_SERVERS.map(
+    (server) => ({
+      title: server.name,
+      subTitle: server.description,
+      value: server.id,
+    }),
+  );
 
   const readonlyContextMarkdown = skill.context
     .map((message, index) => {
@@ -547,30 +549,30 @@ export function SkillConfig(props: {
           ></input>
         </ListItem>
         <ListItem
-          title={Locale.Mask.Config.Tools.Mcp.Title}
-          subTitle={Locale.Mask.Config.Tools.Mcp.SubTitle}
+          title={Locale.Mask.Config.Tools.ToolServers.Title}
+          subTitle={Locale.Mask.Config.Tools.ToolServers.SubTitle}
         >
           <input
-            aria-label={Locale.Mask.Config.Tools.Mcp.Title}
+            aria-label={Locale.Mask.Config.Tools.ToolServers.Title}
             type="text"
             readOnly
-            value={mcpToolSummary}
-            onClick={() => setShowMcpToolSelector(true)}
+            value={toolServerSummary}
+            onClick={() => setShowToolServerSelector(true)}
           ></input>
         </ListItem>
         <ListItem
-          title={Locale.Mask.Config.Tools.NativeMcp.Title}
-          subTitle={Locale.Mask.Config.Tools.NativeMcp.SubTitle}
+          title={Locale.Mask.Config.Tools.NativeToolBridge.Title}
+          subTitle={Locale.Mask.Config.Tools.NativeToolBridge.SubTitle}
         >
           <input
-            aria-label={Locale.Mask.Config.Tools.NativeMcp.Title}
+            aria-label={Locale.Mask.Config.Tools.NativeToolBridge.Title}
             type="checkbox"
-            checked={allowNativeMcpTools}
+            checked={allowNativeToolBridge}
             onChange={(e) => {
               props.updateMask((mask) => {
                 mask.toolStrategy = {
                   ...mask.toolStrategy,
-                  nativeMcpTools: e.currentTarget.checked ? "auto" : "off",
+                  nativeToolBridge: e.currentTarget.checked ? "auto" : "off",
                 };
               });
             }}
@@ -728,17 +730,17 @@ export function SkillConfig(props: {
           }}
         />
       )}
-      {showMcpToolSelector && (
+      {showToolServerSelector && (
         <Selector
           multiple
-          defaultSelectedValue={selectedMcpTools}
-          items={mcpToolSelectorItems}
-          onClose={() => setShowMcpToolSelector(false)}
+          defaultSelectedValue={selectedToolServers}
+          items={toolServerSelectorItems}
+          onClose={() => setShowToolServerSelector(false)}
           onSelection={(selection) => {
             props.updateMask((mask) => {
               mask.tools = {
                 ...mask.tools,
-                mcpTools: selection,
+                toolServers: selection,
               };
               syncSkillLegacyPlugin(mask);
             });

@@ -1,5 +1,6 @@
 import { getClientConfig } from "../config/client";
-import { SubmitKey } from "../store/config";
+
+const ENTER_KEY = "Enter";
 
 const isApp = !!getClientConfig()?.isApp;
 
@@ -85,7 +86,7 @@ const cn = {
     Typing: "正在输入…",
     Input: (submitKey: string) => {
       var inputHints = `${submitKey} 发送`;
-      if (submitKey === String(SubmitKey.Enter)) {
+      if (submitKey === ENTER_KEY) {
         inputHints += "，Shift + Enter 换行";
       }
       return inputHints + "，/ 触发补全，: 触发命令";
@@ -664,7 +665,7 @@ const cn = {
     },
   },
   Store: {
-    DefaultTopic: "新的聊天",
+    DefaultTopic: "通用问答",
     BotHello: "有什么可以帮你的吗",
     Error: "出错了，稍后重试吧",
     Prompt: {
@@ -699,7 +700,7 @@ const cn = {
     Types: {
       all: "全部",
       skill: "技能",
-      mcp: "工具",
+      tool: "工具",
       provider: "模型服务商",
       storage: "存储",
     },
@@ -729,12 +730,12 @@ const cn = {
       Provider: "模型服务商",
     },
     SourceLabel: "来源",
-    McpStatus: "工具状态",
+    ToolStatus: "工具状态",
     ConfigMode: "配置模式",
-    McpUserProvided: "用户自带工具配置",
-    McpUserConfigHint:
+    ToolUserProvided: "用户自带工具配置",
+    ToolUserConfigHint:
       "当前工具使用用户自带配置模式，仅适用于 standalone 或本地 Next 进程。API Key 等密钥会写入该实例的工具运行配置文件，不会作为市场数据下发；请只在可信环境中配置。",
-    OpenMcpManager: "打开工具管理",
+    OpenToolManager: "打开工具管理",
     Manage: "管理",
     Configure: "配置",
     Enable: "启用",
@@ -750,13 +751,13 @@ const cn = {
     ReloadMarketplace: "重新加载市场",
     MarketplaceSource: "市场源",
     MarketplaceSkillSource: "技能市场源",
-    MarketplaceMcpSource: "工具市场源",
+    MarketplaceToolSource: "工具市场源",
     MarketplaceLoading: "正在加载市场数据",
     MarketplaceLoaded: (
       currentLangSkills: number,
       totalSkills: number,
-      mcps: number,
-    ) => `已加载 ${currentLangSkills}/${totalSkills} 个技能，${mcps} 个工具`,
+      tools: number,
+    ) => `已加载 ${currentLangSkills}/${totalSkills} 个技能，${tools} 个工具`,
     MarketplaceError: (message: string) => `市场加载失败：${message}`,
     DefaultSkillDesc: "面向任务的工作方式，可绑定模型、提示词和工具。",
     SkillStarters: (count: number) => `${count} 个开场白`,
@@ -767,7 +768,7 @@ const cn = {
     CloudStorageDesc:
       "管理聊天、技能等本地数据的云端同步；后续可作为工具文件能力提供给模型。",
     StorageAppSync: "应用同步",
-    StorageFutureMcp: "后续工具文件能力",
+    StorageFutureTool: "后续工具文件能力",
     StorageQuotaUsage: (used: string, quota: string) =>
       `已用 ${used} / ${quota}`,
     StorageQuotaUnlimited: (used: string) => `已用 ${used} / 无限空间`,
@@ -775,11 +776,11 @@ const cn = {
       tags.length > 0
         ? `${available}/${total} 个模型可用 · ${tags.join(" / ")}`
         : `${available}/${total} 个模型可用`,
-    ToolMcpTitle: "工具",
-    ToolMcpDesc:
-      "连接搜索、抓取、文件、Git、时间等工具能力。当前主要由 MCP 承载。",
+    ToolTitle: "工具",
+    ToolDesc:
+      "连接搜索、抓取、文件、Git、时间等工具能力。当前主要由工具层承载。",
   },
-  Mcp: {
+  Tool: {
     Name: "工具",
   },
   FineTuned: {
@@ -883,11 +884,11 @@ const cn = {
           Title: "内置工具",
           SubTitle: "模型平台提供的能力，例如 Web Search",
         },
-        Mcp: {
+        ToolServers: {
           Title: "工具",
           SubTitle: "限制这个技能可调用的工具服务；未选择表示不限制",
         },
-        NativeMcp: {
+        NativeToolBridge: {
           Title: "工具策略",
           SubTitle:
             "用于深度思考等技能；开启后模型可调用 Brave/fetch 等已连接工具，关闭后仅使用模型自身能力",

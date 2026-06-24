@@ -53,10 +53,10 @@ export const CN_SKILLS: BuiltinSkill[] = [
       sessionToolbar: CHAT_TOOLBAR_PRESETS.research,
     },
     tools: {
-      mcpTools: ["brave-search", "fetch"],
+      toolServers: ["brave-search", "fetch"],
     },
     toolStrategy: {
-      nativeMcpTools: "auto",
+      nativeToolBridge: "auto",
     },
     modelConfig: {
       responsesMode: "stateful",
@@ -150,7 +150,7 @@ export const CN_SKILLS: BuiltinSkill[] = [
     syncGlobalConfig: false,
     candidateModels: [{ capability: "reasoning" }],
     toolStrategy: {
-      nativeMcpTools: "auto",
+      nativeToolBridge: "auto",
     },
     ui: {
       sessionToolbar: CHAT_TOOLBAR_PRESETS.reasoning,

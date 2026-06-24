@@ -95,13 +95,13 @@
 因为桌面端当前采用 Next 静态导出，而仓库里仍存在 Route Handlers 和 Server Actions，直接 `next build` 用于 export 会冲突，所以导出脚本在构建期间会做两件事：
 
 1. 临时隐藏所有 `app/**/route.ts`
-2. 将 `app/mcp/actions.ts` 暂时替换为 [app/mcp/actions.export.ts](../app/mcp/actions.export.ts)
+2. 将 `app/tools/actions.ts` 暂时替换为 [app/tools/actions.export.ts](../app/tools/actions.export.ts)
 
 构建结束后会自动恢复原文件。
 
 这个处理只影响桌面导出链路，不影响 Web 开发与 Web 生产运行。
 
-当前桌面端 MCP 是显式禁用状态：`actions.export.ts` 不会读取 `data/mcp_config.json`，也不会启动 stdio MCP 进程。后续如果要支持桌面端 MCP，应使用 Tauri 用户数据目录保存本机配置，并单独设计权限提示、命令白名单和密钥存储，不复用 standalone 的部署目录配置文件。
+当前桌面端工具运行时是显式禁用状态：`actions.export.ts` 不会读取 `data/tool_config.json`，也不会启动 stdio 工具进程。后续如果要支持本地工具运行时，应使用 Tauri 用户数据目录保存本机配置，并单独设计权限提示、命令白名单和密钥存储，不复用 standalone 的部署目录配置文件。
 
 ### 4. 桌面打包链路
 

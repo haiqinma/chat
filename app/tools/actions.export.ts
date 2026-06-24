@@ -1,14 +1,14 @@
 import {
-  DEFAULT_MCP_CONFIG,
+  DEFAULT_TOOL_CONFIG,
   ListToolsResponse,
-  McpConfigData,
+  ToolConfigData,
   McpRequestMessage,
   ServerConfig,
   ServerStatusResponse,
 } from "./types";
 
 function disabledError() {
-  return new Error("MCP is not available in desktop export builds");
+  return new Error("Tool runtime is not available in desktop export builds");
 }
 
 export async function getClientsStatus(): Promise<
@@ -29,48 +29,48 @@ export async function getAllTools() {
   return [] as { clientId: string; tools: ListToolsResponse | null }[];
 }
 
-export async function initializeMcpSystem(): Promise<McpConfigData> {
-  return DEFAULT_MCP_CONFIG;
+export async function initializeToolSystem(): Promise<ToolConfigData> {
+  return DEFAULT_TOOL_CONFIG;
 }
 
-export async function addMcpServer(
+export async function addToolServer(
   _clientId: string,
   _config: ServerConfig,
-): Promise<McpConfigData> {
+): Promise<ToolConfigData> {
   throw disabledError();
 }
 
-export async function pauseMcpServer(
+export async function pauseToolServer(
   _clientId: string,
-): Promise<McpConfigData> {
+): Promise<ToolConfigData> {
   throw disabledError();
 }
 
-export async function resumeMcpServer(_clientId: string): Promise<void> {
+export async function resumeToolServer(_clientId: string): Promise<void> {
   throw disabledError();
 }
 
-export async function removeMcpServer(
+export async function removeToolServer(
   _clientId: string,
-): Promise<McpConfigData> {
+): Promise<ToolConfigData> {
   throw disabledError();
 }
 
-export async function restartAllClients(): Promise<McpConfigData> {
+export async function restartAllClients(): Promise<ToolConfigData> {
   throw disabledError();
 }
 
-export async function executeMcpAction(
+export async function executeToolAction(
   _clientId: string,
   _request: McpRequestMessage,
 ) {
   throw disabledError();
 }
 
-export async function getMcpConfigFromFile(): Promise<McpConfigData> {
-  return DEFAULT_MCP_CONFIG;
+export async function getToolConfigFromFile(): Promise<ToolConfigData> {
+  return DEFAULT_TOOL_CONFIG;
 }
 
-export async function isMcpEnabled(): Promise<boolean> {
+export async function isToolRuntimeEnabled(): Promise<boolean> {
   return false;
 }

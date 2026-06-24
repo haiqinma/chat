@@ -43,9 +43,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -57,7 +55,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": true,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -120,22 +118,20 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": [
-                    {
-                        "id": "brave-search",
-                        "name": "brave-search",
-                        "transport": "stdio",
-                        "required": true
-                    },
-                    {
-                        "id": "fetch",
-                        "name": "fetch",
-                        "transport": "stdio",
-                        "required": true
-                    }
-                ]
-            },
+            "toolServers": [
+                {
+                    "id": "brave-search",
+                    "name": "brave-search",
+                    "transport": "stdio",
+                    "required": true
+                },
+                {
+                    "id": "fetch",
+                    "name": "fetch",
+                    "transport": "stdio",
+                    "required": true
+                }
+            ],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -147,7 +143,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -212,9 +208,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -226,7 +220,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -288,9 +282,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -302,7 +294,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -371,9 +363,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -385,7 +375,7 @@
                     "imageUpload": false,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -457,9 +447,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": false,
@@ -471,7 +459,7 @@
                     "imageUpload": true,
                     "imageParams": true,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": false,
                     "realtime": false
                 }
@@ -548,9 +536,7 @@
                 "voice": "Tina"
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -562,7 +548,7 @@
                     "imageUpload": false,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": false,
                     "realtime": true
                 }
@@ -626,9 +612,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -640,7 +624,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": true,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -703,22 +687,20 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": [
-                    {
-                        "id": "brave-search",
-                        "name": "brave-search",
-                        "transport": "stdio",
-                        "required": true
-                    },
-                    {
-                        "id": "fetch",
-                        "name": "fetch",
-                        "transport": "stdio",
-                        "required": true
-                    }
-                ]
-            },
+            "toolServers": [
+                {
+                    "id": "brave-search",
+                    "name": "brave-search",
+                    "transport": "stdio",
+                    "required": true
+                },
+                {
+                    "id": "fetch",
+                    "name": "fetch",
+                    "transport": "stdio",
+                    "required": true
+                }
+            ],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -730,7 +712,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -795,9 +777,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -809,7 +789,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -871,9 +851,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -885,7 +863,7 @@
                     "imageUpload": true,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": true,
+                    "tools": true,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -954,9 +932,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -968,7 +944,7 @@
                     "imageUpload": false,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -1040,9 +1016,7 @@
                 }
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": false,
@@ -1054,7 +1028,7 @@
                     "imageUpload": true,
                     "imageParams": true,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": false,
                     "realtime": false
                 }
@@ -1131,9 +1105,7 @@
                 "voice": "Tina"
             },
             "tools": [],
-            "mcp": {
-                "servers": []
-            },
+            "toolServers": [],
             "ui": {
                 "sessionToolbar": {
                     "settings": true,
@@ -1145,7 +1117,7 @@
                     "imageUpload": false,
                     "imageParams": false,
                     "plugins": false,
-                    "mcp": false,
+                    "tools": false,
                     "shortcutKeys": false,
                     "realtime": true
                 }

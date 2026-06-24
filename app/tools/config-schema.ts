@@ -1,17 +1,17 @@
-export type McpConfigPropertyLike = {
+export type ToolConfigPropertyLike = {
   type: string;
   required?: boolean;
   minItems?: number;
 };
 
-export function readMcpConfigBoolean(value: unknown) {
+export function readToolConfigBoolean(value: unknown) {
   if (typeof value === "boolean") return value;
   if (typeof value !== "string") return false;
 
   return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
-export function stringifyMcpConfigValue(value: unknown) {
+export function stringifyToolConfigValue(value: unknown) {
   if (typeof value === "string") return value;
   if (typeof value === "boolean" || typeof value === "number") {
     return String(value);
@@ -19,8 +19,8 @@ export function stringifyMcpConfigValue(value: unknown) {
   return undefined;
 }
 
-export function getMissingMcpConfigKeys(
-  properties: Record<string, McpConfigPropertyLike>,
+export function getMissingToolConfigKeys(
+  properties: Record<string, ToolConfigPropertyLike>,
   values: Record<string, unknown>,
 ) {
   return Object.entries(properties)

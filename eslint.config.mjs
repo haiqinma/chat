@@ -10,8 +10,6 @@ const config = [
       "src-tauri/target/**",
       "src-tauri/gen/schemas/**",
       "public/serviceWorker.js",
-      "app/mcp/mcp_config.json",
-      "app/mcp/mcp_config.default.json",
     ],
   },
   ...nextConfig,

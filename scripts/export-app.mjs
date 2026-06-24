@@ -5,8 +5,8 @@ import { spawn } from "node:child_process";
 const rootDir = process.cwd();
 const appDir = path.join(rootDir, "app");
 const disabledSuffix = ".export-disabled";
-const mcpActionsPath = path.join(appDir, "mcp", "actions.ts");
-const mcpActionsExportPath = path.join(appDir, "mcp", "actions.export.ts");
+const toolActionsPath = path.join(appDir, "tools", "actions.ts");
+const toolActionsExportPath = path.join(appDir, "tools", "actions.export.ts");
 
 async function findRouteFiles(dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -67,24 +67,24 @@ async function restoreRoutes(renamedFiles) {
   );
 }
 
-async function swapMcpActions() {
-  const backupPath = `${mcpActionsPath}${disabledSuffix}`;
-  await fs.rename(mcpActionsPath, backupPath);
-  await fs.copyFile(mcpActionsExportPath, mcpActionsPath);
+async function swapToolActions() {
+  const backupPath = `${toolActionsPath}${disabledSuffix}`;
+  await fs.rename(toolActionsPath, backupPath);
+  await fs.copyFile(toolActionsExportPath, toolActionsPath);
 
   return async () => {
     try {
-      await fs.unlink(mcpActionsPath);
+      await fs.unlink(toolActionsPath);
     } catch {}
     try {
-      await fs.rename(backupPath, mcpActionsPath);
+      await fs.rename(backupPath, toolActionsPath);
     } catch {}
   };
 }
 
 const routeFiles = await findRouteFiles(appDir);
 const renamedFiles = await disableRoutes(routeFiles);
-const restoreMcpActions = await swapMcpActions();
+const restoreToolActions = await swapToolActions();
 
 try {
   await run("npm", ["run", "skill"]);
@@ -94,6 +94,6 @@ try {
     { ...process.env, BUILD_MODE: "export", BUILD_APP: "1" },
   );
 } finally {
-  await restoreMcpActions();
+  await restoreToolActions();
   await restoreRoutes(renamedFiles);
 }

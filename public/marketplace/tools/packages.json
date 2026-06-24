@@ -93,7 +93,7 @@
       "cn": "同花顺 iFinD / QuantAPI 行情数据连接器，用于策略调研、信号生成和交易前检查。",
       "en": "TongHuaShun iFinD / QuantAPI market data connector for strategy research, signals, and pre-trade checks."
     },
-    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/ifind-data-mcp",
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/tools/packages/ifind-data-mcp",
     "tags": [
       "community",
       "market-data",
@@ -186,7 +186,7 @@
       "cn": "模拟券商连接器，用于订单演练、组合检查和策略交易测试。",
       "en": "Simulated broker connector for dry-run order execution, portfolio checks, and strategy trading tests."
     },
-    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/paper-broker-mcp",
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/tools/packages/paper-broker-mcp",
     "tags": [
       "community",
       "broker",
@@ -285,7 +285,7 @@
       "cn": "通过本地 MiniQMT 和 xtquant 连接 A 股实盘券商，用于策略交易执行。",
       "en": "Live broker connector for A-share strategy trading through local MiniQMT and xtquant."
     },
-    "repo": "https://github.com/yeying-community/marketplace/tree/main/mcp/packages/qmt-broker-mcp",
+    "repo": "https://github.com/yeying-community/marketplace/tree/main/tools/packages/qmt-broker-mcp",
     "tags": [
       "community",
       "broker",

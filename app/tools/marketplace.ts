@@ -17,7 +17,7 @@ type MarketplaceConfigProperty = {
   helpLabel?: LocalizedText;
 };
 
-type MarketplaceMcpServer = Omit<
+type MarketplaceToolServer = Omit<
   PresetServer,
   "name" | "description" | "configSchema"
 > & {
@@ -35,8 +35,8 @@ type MarketplaceMcpServer = Omit<
 };
 
 function isValidPresetServer(
-  server: MarketplaceMcpServer,
-): server is MarketplaceMcpServer {
+  server: MarketplaceToolServer,
+): server is MarketplaceToolServer {
   return Boolean(
     server &&
     typeof server.id === "string" &&
@@ -50,8 +50,8 @@ function isValidPresetServer(
   );
 }
 
-function normalizeMcpConfigSchema(
-  schema: MarketplaceMcpServer["configSchema"],
+function normalizeToolConfigSchema(
+  schema: MarketplaceToolServer["configSchema"],
   lang: ReturnType<typeof getLang>,
 ): PresetServer["configSchema"] {
   if (!schema?.properties) return undefined;
@@ -72,18 +72,18 @@ function normalizeMcpConfigSchema(
   };
 }
 
-function normalizeMcpServer(server: MarketplaceMcpServer): PresetServer {
+function normalizeToolServer(server: MarketplaceToolServer): PresetServer {
   const lang = getLang();
 
   return {
     ...server,
     name: resolveLocalizedText(server.name, lang, server.id),
     description: resolveLocalizedText(server.description, lang),
-    configSchema: normalizeMcpConfigSchema(server.configSchema, lang),
+    configSchema: normalizeToolConfigSchema(server.configSchema, lang),
   };
 }
 
-function filterMarketplaceMcpServers(servers: MarketplaceMcpServer[]) {
+function filterMarketplaceToolServers(servers: MarketplaceToolServer[]) {
   if (!Array.isArray(servers)) return [];
 
   return servers
@@ -93,24 +93,24 @@ function filterMarketplaceMcpServers(servers: MarketplaceMcpServer[]) {
       }
       return isValidPresetServer(server);
     })
-    .map(normalizeMcpServer);
+    .map(normalizeToolServer);
 }
 
-export async function fetchCommunityMcpPresetServers(
+export async function fetchCommunityToolPresetServers(
   signal?: AbortSignal,
 ): Promise<MarketplaceLoadResult<PresetServer[]>> {
-  const result = await fetchMarketplaceJson<MarketplaceMcpServer[]>(
-    "mcp",
+  const result = await fetchMarketplaceJson<MarketplaceToolServer[]>(
+    "tool",
     signal,
   );
 
   return {
     ...result,
-    data: filterMarketplaceMcpServers(result.data),
+    data: filterMarketplaceToolServers(result.data),
   };
 }
 
-export function mergeMcpPresetServers(
+export function mergeToolPresetServers(
   officialServers: PresetServer[],
   communityServers: PresetServer[],
 ) {

@@ -31,7 +31,7 @@ import { getClientConfig } from "../config/client";
 import { getRouterClientApi } from "../client/api";
 import { useAccessStore, useSkillProviderModelsStore } from "../store";
 import clsx from "clsx";
-import { initializeMcpSystem, isMcpEnabled } from "../mcp/actions";
+import { initializeToolSystem, isToolRuntimeEnabled } from "../tools/actions";
 import {
   UCAN_AUTH_EVENT,
   initWalletListeners,
@@ -138,8 +138,8 @@ const Sd = dynamic(async () => (await import("./sd")).Sd, {
   loading: () => <Loading noLogo />,
 });
 
-const McpMarketPage = dynamic(
-  async () => (await import("./mcp-market")).McpMarketPage,
+const ToolMarketPage = dynamic(
+  async () => (await import("./tool-market")).ToolMarketPage,
   {
     loading: () => <Loading noLogo />,
   },
@@ -334,7 +334,7 @@ function Screen() {
               <Route path={Path.Router} element={<RouterPage />} />
               <Route path={Path.Storage} element={<StoragePage />} />
               <Route path={Path.Discovery} element={<DiscoveryPage />} />
-              <Route path={Path.McpMarket} element={<McpMarketPage />} />
+              <Route path={Path.ToolMarket} element={<ToolMarketPage />} />
             </Routes>
           </div>
         </WindowContent>
@@ -442,17 +442,17 @@ function AuthenticatedBootstrap() {
   useEffect(() => {
     useAccessStore.getState().fetch();
 
-    const initMcp = async () => {
+    const initToolRuntime = async () => {
       try {
-        const enabled = await isMcpEnabled();
+        const enabled = await isToolRuntimeEnabled();
         if (enabled) {
-          await initializeMcpSystem();
+          await initializeToolSystem();
         }
       } catch (err) {
-        console.error("[MCP] failed to initialize:", err);
+        console.error("[Tools] failed to initialize:", err);
       }
     };
-    initMcp();
+    initToolRuntime();
   }, []);
 
   return null;

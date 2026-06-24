@@ -1,6 +1,6 @@
 import { IconButton } from "./button";
 import { ErrorBoundary } from "./error";
-import styles from "./mcp-market.module.scss";
+import styles from "./tool-market.module.scss";
 import EditIcon from "../icons/edit.svg";
 import AddIcon from "../icons/add.svg";
 import CloseIcon from "../icons/close.svg";
@@ -12,37 +12,37 @@ import { List, ListItem, Modal, showToast } from "./ui-lib";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
-  addMcpServer,
+  addToolServer,
   getClientsStatus,
   getClientTools,
-  getMcpConfigFromFile,
-  isMcpEnabled,
-  pauseMcpServer,
+  getToolConfigFromFile,
+  isToolRuntimeEnabled,
+  pauseToolServer,
   restartAllClients,
-  resumeMcpServer,
-} from "../mcp/actions";
+  resumeToolServer,
+} from "../tools/actions";
 import {
   ListToolsResponse,
-  McpConfigData,
+  ToolConfigData,
   PresetServer,
   ServerConfig,
   ServerStatusResponse,
-} from "../mcp/types";
+} from "../tools/types";
 import {
-  fetchCommunityMcpPresetServers,
-  mergeMcpPresetServers,
-} from "../mcp/marketplace";
+  fetchCommunityToolPresetServers,
+  mergeToolPresetServers,
+} from "../tools/marketplace";
 import {
-  getMissingMcpConfigKeys,
-  readMcpConfigBoolean,
-  stringifyMcpConfigValue,
-} from "../mcp/config-schema";
+  getMissingToolConfigKeys,
+  readToolConfigBoolean,
+  stringifyToolConfigValue,
+} from "../tools/config-schema";
 import clsx from "clsx";
 import PlayIcon from "../icons/play.svg";
 import StopIcon from "../icons/pause.svg";
 import { Path } from "../constant";
 import Locale, { getLang } from "../locales";
-import { getOfficialMcpPresetServers } from "../mcp/preset-servers";
+import { getOfficialToolPresetServers } from "../tools/preset-servers";
 
 interface ConfigProperty {
   type: string;
@@ -55,21 +55,21 @@ interface ConfigProperty {
   helpLabel?: string;
 }
 
-export function McpMarketPage() {
+export function ToolMarketPage() {
   const navigate = useNavigate();
   const currentLang = getLang();
   const officialPresetServers = useMemo(
-    () => getOfficialMcpPresetServers(currentLang),
+    () => getOfficialToolPresetServers(currentLang),
     [currentLang],
   );
-  const [mcpEnabled, setMcpEnabled] = useState(false);
+  const [toolEnabled, setToolEnabled] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [userConfig, setUserConfig] = useState<Record<string, any>>({});
   const [editingServerId, setEditingServerId] = useState<string | undefined>();
   const [tools, setTools] = useState<ListToolsResponse["tools"] | null>(null);
   const [viewingServerId, setViewingServerId] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
-  const [config, setConfig] = useState<McpConfigData>();
+  const [config, setConfig] = useState<ToolConfigData>();
   const [clientStatuses, setClientStatuses] = useState<
     Record<string, ServerStatusResponse>
   >({});
@@ -81,19 +81,19 @@ export function McpMarketPage() {
 
   // 检查工具功能是否启用
   useEffect(() => {
-    const checkMcpStatus = async () => {
-      const enabled = await isMcpEnabled();
-      setMcpEnabled(enabled);
+    const checkToolStatus = async () => {
+      const enabled = await isToolRuntimeEnabled();
+      setToolEnabled(enabled);
       if (!enabled) {
         navigate(Path.Home);
       }
     };
-    checkMcpStatus();
+    checkToolStatus();
   }, [navigate]);
 
   // 添加状态轮询
   useEffect(() => {
-    if (!mcpEnabled || !config) return;
+    if (!toolEnabled || !config) return;
 
     const updateStatuses = async () => {
       const statuses = await getClientsStatus();
@@ -106,22 +106,22 @@ export function McpMarketPage() {
     const timer = setInterval(updateStatuses, 1000);
 
     return () => clearInterval(timer);
-  }, [mcpEnabled, config]);
+  }, [toolEnabled, config]);
 
   // 加载工具市场服务器
   useEffect(() => {
     const controller = new AbortController();
 
     const loadPresetServers = async () => {
-      if (!mcpEnabled) return;
+      if (!toolEnabled) return;
       try {
         setLoadingPresets(true);
-        const communityServers = await fetchCommunityMcpPresetServers(
+        const communityServers = await fetchCommunityToolPresetServers(
           controller.signal,
         );
         if (controller.signal.aborted) return;
         setPresetServers(
-          mergeMcpPresetServers(officialPresetServers, communityServers.data),
+          mergeToolPresetServers(officialPresetServers, communityServers.data),
         );
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -137,15 +137,15 @@ export function McpMarketPage() {
     loadPresetServers();
 
     return () => controller.abort();
-  }, [mcpEnabled, officialPresetServers]);
+  }, [toolEnabled, officialPresetServers]);
 
   // 加载初始状态
   useEffect(() => {
     const loadInitialState = async () => {
-      if (!mcpEnabled) return;
+      if (!toolEnabled) return;
       try {
         setIsLoading(true);
-        const config = await getMcpConfigFromFile();
+        const config = await getToolConfigFromFile();
         setConfig(config);
 
         // 获取所有客户端的状态
@@ -159,12 +159,12 @@ export function McpMarketPage() {
       }
     };
     loadInitialState();
-  }, [mcpEnabled]);
+  }, [toolEnabled]);
 
   // 加载当前编辑服务器的配置
   useEffect(() => {
     if (!editingServerId || !config) return;
-    const currentConfig = config.mcpServers[editingServerId];
+    const currentConfig = config.toolServers[editingServerId];
     if (currentConfig) {
       // 从当前配置中提取用户配置
       const preset = presetServers.find((s) => s.id === editingServerId);
@@ -194,13 +194,13 @@ export function McpMarketPage() {
     }
   }, [editingServerId, config, presetServers]);
 
-  if (!mcpEnabled) {
+  if (!toolEnabled) {
     return null;
   }
 
   // 检查服务器是否已添加
   const isServerAdded = (id: string) => {
-    return id in (config?.mcpServers ?? {});
+    return id in (config?.toolServers ?? {});
   };
 
   // 保存服务器配置
@@ -208,7 +208,7 @@ export function McpMarketPage() {
     const preset = presetServers.find((s) => s.id === editingServerId);
     if (!preset || !preset.configSchema || !editingServerId) return;
 
-    const missingKeys = getMissingMcpConfigKeys(
+    const missingKeys = getMissingToolConfigKeys(
       preset.configSchema.properties,
       userConfig,
     );
@@ -237,7 +237,7 @@ export function McpMarketPage() {
         ) {
           args[mapping.position] = value;
         } else if (mapping.type === "env" && mapping.key) {
-          const envValue = stringifyMcpConfigValue(value);
+          const envValue = stringifyToolConfigValue(value);
           if (envValue !== undefined) {
             env[mapping.key] = envValue;
           }
@@ -250,7 +250,7 @@ export function McpMarketPage() {
         ...(Object.keys(env).length > 0 ? { env } : {}),
       };
 
-      const newConfig = await addMcpServer(savingServerId, serverConfig);
+      const newConfig = await addToolServer(savingServerId, serverConfig);
       setConfig(newConfig);
       showToast("Server configuration updated successfully");
     } catch (error) {
@@ -300,7 +300,7 @@ export function McpMarketPage() {
           command: preset.command,
           args: [...preset.baseArgs],
         };
-        const newConfig = await addMcpServer(preset.id, serverConfig);
+        const newConfig = await addToolServer(preset.id, serverConfig);
         setConfig(newConfig);
 
         // 更新状态
@@ -320,7 +320,7 @@ export function McpMarketPage() {
   const pauseServer = async (id: string) => {
     try {
       updateLoadingState(id, "Stopping server...");
-      const newConfig = await pauseMcpServer(id);
+      const newConfig = await pauseToolServer(id);
       setConfig(newConfig);
       showToast("Server stopped successfully");
     } catch (error) {
@@ -335,7 +335,7 @@ export function McpMarketPage() {
   const restartServer = async (id: string) => {
     try {
       updateLoadingState(id, "Starting server...");
-      await resumeMcpServer(id);
+      await resumeToolServer(id);
     } catch (error) {
       showToast(
         error instanceof Error
@@ -440,7 +440,7 @@ export function McpMarketPage() {
             </ListItem>
           );
         } else if (prop.type === "boolean") {
-          const currentValue = readMcpConfigBoolean(
+          const currentValue = readToolConfigBoolean(
             userConfig[key as keyof typeof userConfig],
           );
           return (
@@ -597,14 +597,14 @@ export function McpMarketPage() {
       })
       .map((server) => (
         <div
-          className={clsx(styles["mcp-market-item"], {
+          className={clsx(styles["tool-market-item"], {
             [styles["loading"]]: loadingStates[server.id],
           })}
           key={server.id}
         >
-          <div className={styles["mcp-market-header"]}>
-            <div className={styles["mcp-market-title"]}>
-              <div className={styles["mcp-market-name"]}>
+          <div className={styles["tool-market-header"]}>
+            <div className={styles["tool-market-title"]}>
+              <div className={styles["tool-market-name"]}>
                 {server.name}
                 {loadingStates[server.id] && (
                   <span
@@ -637,13 +637,13 @@ export function McpMarketPage() {
                 ))}
               </div>
               <div
-                className={clsx(styles["mcp-market-info"], "one-line")}
+                className={clsx(styles["tool-market-info"], "one-line")}
                 title={server.description}
               >
                 {server.description}
               </div>
             </div>
-            <div className={styles["mcp-market-actions"]}>
+            <div className={styles["tool-market-actions"]}>
               {isServerAdded(server.id) ? (
                 <>
                   {server.configurable && (
@@ -708,11 +708,11 @@ export function McpMarketPage() {
 
   return (
     <ErrorBoundary>
-      <div className={styles["mcp-market-page"]}>
+      <div className={styles["tool-market-page"]}>
         <div className="window-header">
           <div className="window-header-title">
             <div className="window-header-main-title">
-              {Locale.Mcp.Name}
+              {Locale.Tool.Name}
               {loadingStates["all"] && (
                 <span className={styles["loading-indicator"]}>
                   {loadingStates["all"]}
@@ -721,8 +721,8 @@ export function McpMarketPage() {
             </div>
             <div className="window-header-sub-title">
               {currentLang === "cn"
-                ? `已配置 ${Object.keys(config?.mcpServers ?? {}).length} 个工具`
-                : `${Object.keys(config?.mcpServers ?? {}).length} tools configured`}
+                ? `已配置 ${Object.keys(config?.toolServers ?? {}).length} 个工具`
+                : `${Object.keys(config?.toolServers ?? {}).length} tools configured`}
             </div>
           </div>
 
@@ -747,8 +747,8 @@ export function McpMarketPage() {
           </div>
         </div>
 
-        <div className={styles["mcp-market-page-body"]}>
-          <div className={styles["mcp-market-filter"]}>
+        <div className={styles["tool-market-page-body"]}>
+          <div className={styles["tool-market-filter"]}>
             <input
               type="text"
               className={styles["search-bar"]}

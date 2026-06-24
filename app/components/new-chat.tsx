@@ -25,13 +25,13 @@ import { ServiceProvider } from "../constant";
 import { useAccessStore } from "../store/access";
 import {
   getSkillRuntimeStatusOrder,
-  hasSkillMcpRuntimeIssue,
+  hasSkillToolRuntimeIssue,
   resolveSkillRuntimeStatus,
   SkillRuntimeResult,
 } from "../skills/runtime";
 import { usePluginStore } from "../store/plugin";
-import { getClientsStatus, getMcpConfigFromFile } from "../mcp/actions";
-import { McpConfigData, ServerStatusResponse } from "../mcp/types";
+import { getClientsStatus, getToolConfigFromFile } from "../tools/actions";
+import { ToolConfigData, ServerStatusResponse } from "../tools/types";
 
 function SkillItem(props: {
   skill: Skill;
@@ -112,8 +112,8 @@ export function NewChat() {
   const plugins = usePluginStore((state) => state.plugins);
   const [draft, setDraft] = useState("");
   const [selectedModelValue, setSelectedModelValue] = useState("");
-  const [mcpConfig, setMcpConfig] = useState<McpConfigData>();
-  const [mcpStatuses, setMcpStatuses] = useState<
+  const [toolConfig, setToolConfig] = useState<ToolConfigData>();
+  const [toolStatuses, setToolStatuses] = useState<
     Record<string, ServerStatusResponse> | undefined
   >();
   const [hiddenOrphanSkillKeys, setHiddenOrphanSkillKeys] = useState(() => {
@@ -162,22 +162,22 @@ export function NewChat() {
       .slice(0, 3);
   }, [chatStore.sessions, currentSkillKeys]);
   const installedPluginIds = useMemo(() => Object.keys(plugins), [plugins]);
-  const installedMcpServerIds = useMemo(
-    () => Object.keys(mcpConfig?.mcpServers ?? {}),
-    [mcpConfig?.mcpServers],
+  const installedToolServerIds = useMemo(
+    () => Object.keys(toolConfig?.toolServers ?? {}),
+    [toolConfig?.toolServers],
   );
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMcpConfigFromFile(), getClientsStatus()])
+    Promise.all([getToolConfigFromFile(), getClientsStatus()])
       .then(([config, statuses]) => {
         if (!cancelled) {
-          setMcpConfig(config);
-          setMcpStatuses(statuses);
+          setToolConfig(config);
+          setToolStatuses(statuses);
         }
       })
       .catch((error) => {
-        console.warn("[NewChat] failed to load MCP config", error);
+        console.warn("[NewChat] failed to load tool config", error);
       });
 
     return () => {
@@ -197,8 +197,8 @@ export function NewChat() {
           defaultModel: accessStore.defaultModel,
           globalModelConfig: config.modelConfig,
           installedPluginIds,
-          installedMcpServerIds,
-          mcpStatuses,
+          installedToolServerIds,
+          toolStatuses,
         }),
       ]),
     );
@@ -208,9 +208,9 @@ export function NewChat() {
     config.customModels,
     config.modelConfig,
     config.models,
-    installedMcpServerIds,
+    installedToolServerIds,
     installedPluginIds,
-    mcpStatuses,
+    toolStatuses,
     recentSkills,
     skills,
   ]);
@@ -261,8 +261,8 @@ export function NewChat() {
             defaultModel: accessStore.defaultModel,
             globalModelConfig: config.modelConfig,
             installedPluginIds,
-            installedMcpServerIds,
-            mcpStatuses,
+            installedToolServerIds,
+            toolStatuses,
           });
         const statusLabel =
           runtime.status === "ready"
@@ -284,9 +284,9 @@ export function NewChat() {
       config.modelConfig,
       config.models,
       entrySkills,
-      installedMcpServerIds,
+      installedToolServerIds,
       installedPluginIds,
-      mcpStatuses,
+      toolStatuses,
       skillRuntimeMap,
     ],
   );
@@ -399,7 +399,9 @@ export function NewChat() {
 
     const runtime = skillRuntimeMap.get(getSkillEntryKey(skill));
     if (runtime && runtime.status !== "ready") {
-      navigate(hasSkillMcpRuntimeIssue(runtime) ? Path.McpMarket : Path.Skills);
+      navigate(
+        hasSkillToolRuntimeIssue(runtime) ? Path.ToolMarket : Path.Skills,
+      );
       return;
     }
 

@@ -1,7 +1,8 @@
 import { getClientConfig } from "../config/client";
-import { SubmitKey } from "../store/config";
-import { LocaleType } from "./index";
+import type { LocaleType } from "./index";
 // if you are adding a new translation, please use PartialLocaleType instead of LocaleType
+
+const ENTER_KEY = "Enter";
 
 const isApp = !!getClientConfig()?.isApp;
 const en: LocaleType = {
@@ -86,7 +87,7 @@ const en: LocaleType = {
     Typing: "Typing…",
     Input: (submitKey: string) => {
       var inputHints = `${submitKey} to send`;
-      if (submitKey === String(SubmitKey.Enter)) {
+      if (submitKey === ENTER_KEY) {
         inputHints += ", Shift + Enter to wrap";
       }
       return inputHints + ", / to search prompts, : to use commands";
@@ -673,7 +674,7 @@ const en: LocaleType = {
     },
   },
   Store: {
-    DefaultTopic: "New Conversation",
+    DefaultTopic: "Direct Chat",
     BotHello: "Hello! How can I assist you today?",
     Error: "Something went wrong, please try again later.",
     Prompt: {
@@ -709,7 +710,7 @@ const en: LocaleType = {
     Types: {
       all: "All",
       skill: "Skills",
-      mcp: "Tools",
+      tool: "Tools",
       provider: "Model Services",
       storage: "Storage",
     },
@@ -739,12 +740,12 @@ const en: LocaleType = {
       Provider: "Model Service",
     },
     SourceLabel: "Source",
-    McpStatus: "Tool Status",
+    ToolStatus: "Tool Status",
     ConfigMode: "Config mode",
-    McpUserProvided: "User-provided tool config",
-    McpUserConfigHint:
+    ToolUserProvided: "User-provided tool config",
+    ToolUserConfigHint:
       "Tools currently use user-provided configuration and only apply to standalone or local Next processes. API keys and other secrets are written to this instance's tool runtime config file, not shipped as marketplace data. Configure them only in a trusted environment.",
-    OpenMcpManager: "Open Tool Manager",
+    OpenToolManager: "Open Tool Manager",
     Manage: "Manage",
     Configure: "Configure",
     Enable: "Enable",
@@ -760,13 +761,13 @@ const en: LocaleType = {
     ReloadMarketplace: "Reload Market",
     MarketplaceSource: "Market source",
     MarketplaceSkillSource: "Skill market source",
-    MarketplaceMcpSource: "Tool market source",
+    MarketplaceToolSource: "Tool market source",
     MarketplaceLoading: "Loading market data",
     MarketplaceLoaded: (
       currentLangSkills: number,
       totalSkills: number,
-      mcps: number,
-    ) => `Loaded ${currentLangSkills}/${totalSkills} skills and ${mcps} tools`,
+      tools: number,
+    ) => `Loaded ${currentLangSkills}/${totalSkills} skills and ${tools} tools`,
     MarketplaceError: (message: string) => `Market load failed: ${message}`,
     DefaultSkillDesc:
       "A task-oriented workflow that can bind models, prompts, and tools.",
@@ -779,7 +780,7 @@ const en: LocaleType = {
     CloudStorageDesc:
       "Manage cloud sync for chats, skills, and local app data. It can later expose file access to models through tools.",
     StorageAppSync: "App sync",
-    StorageFutureMcp: "Future tool file capability",
+    StorageFutureTool: "Future tool file capability",
     StorageQuotaUsage: (used: string, quota: string) =>
       `${used} / ${quota} used`,
     StorageQuotaUnlimited: (used: string) => `${used} used / unlimited`,
@@ -787,11 +788,11 @@ const en: LocaleType = {
       tags.length > 0
         ? `${available}/${total} models available · ${tags.join(" / ")}`
         : `${available}/${total} models available`,
-    ToolMcpTitle: "Tools",
-    ToolMcpDesc:
-      "Connect tool capabilities such as search, fetch, filesystem, git, and time. Currently mainly backed by MCP.",
+    ToolTitle: "Tools",
+    ToolDesc:
+      "Connect tool capabilities such as search, fetch, filesystem, git, and time. Currently mainly backed by the tool layer.",
   },
-  Mcp: {
+  Tool: {
     Name: "Tools",
   },
   FineTuned: {
@@ -897,12 +898,12 @@ const en: LocaleType = {
           Title: "Built-in Tools",
           SubTitle: "Model platform capabilities such as Web Search",
         },
-        Mcp: {
+        ToolServers: {
           Title: "Tools",
           SubTitle:
             "Restrict which tool services this skill can call; none selected means unrestricted",
         },
-        NativeMcp: {
+        NativeToolBridge: {
           Title: "Tool Strategy",
           SubTitle:
             "Used by skills such as Deep Reasoning; enabled allows Brave/fetch and other connected tools, disabled uses only the model itself",

@@ -46,7 +46,7 @@ export type SkillTool = {
   required: boolean;
 };
 
-export type SkillMcpServer = {
+export type SkillToolServer = {
   id: string;
   name: LocalizedText;
   transport: "stdio" | "http" | "sse";
@@ -94,9 +94,7 @@ export type SkillPackage = {
   model?: SkillPackageModel;
   realtime?: Partial<RealtimeConfig>;
   tools?: SkillTool[];
-  mcp?: {
-    servers?: SkillMcpServer[];
-  };
+  toolServers?: SkillToolServer[];
   ui?: {
     entryLabel?: LocalizedText;
     emptyState?: "minimal" | "guided";
@@ -105,7 +103,7 @@ export type SkillPackage = {
   permissions?: SkillPermissions;
   compatibility?: {
     appVersion?: string;
-    mcp?: string;
+    toolRuntime?: string;
   };
   release?: SkillRelease;
 };
@@ -124,24 +122,24 @@ function getSkillApiTools(skill: Skill | BuiltinSkill) {
   return skill.tools?.apiTools ?? skill.plugin ?? [];
 }
 
-function getSkillMcpTools(skill: Skill | BuiltinSkill) {
-  return skill.tools?.mcpTools ?? [];
+function getSkillToolServers(skill: Skill | BuiltinSkill) {
+  return skill.tools?.toolServers ?? [];
 }
 
-function getSkillMcpToolRequired(skill: Skill | BuiltinSkill, id: string) {
-  return skill.tools?.mcpToolRequirements?.[id] !== false;
+function getSkillToolServerRequired(skill: Skill | BuiltinSkill, id: string) {
+  return skill.tools?.toolRequirements?.[id] !== false;
 }
 
 function syncSkillLegacyPlugin(skill: Skill) {
   const apiTools = skill.tools?.apiTools ?? skill.plugin ?? [];
-  const mcpTools = skill.tools?.mcpTools ?? [];
-  const existingMcpRequirements = skill.tools?.mcpToolRequirements ?? {};
+  const toolServers = skill.tools?.toolServers ?? [];
+  const existingToolRequirements = skill.tools?.toolRequirements ?? {};
   skill.plugin = apiTools;
   skill.tools = {
     builtInTools: skill.tools?.builtInTools ?? [],
-    mcpTools,
-    mcpToolRequirements: Object.fromEntries(
-      mcpTools.map((id) => [id, existingMcpRequirements[id] ?? true]),
+    toolServers,
+    toolRequirements: Object.fromEntries(
+      toolServers.map((id) => [id, existingToolRequirements[id] ?? true]),
     ),
     apiTools,
   };
@@ -210,7 +208,7 @@ export function skillPackageToSkill(
   const apiTools = packageTools
     .map((tool) => tool.id)
     .filter((id) => !isBuiltInTool(id));
-  const mcpServers = skillPackage.mcp?.servers ?? [];
+  const toolServers = skillPackage.toolServers ?? [];
   const skill = {
     id: skillPackage.id,
     createdAt: Date.now(),
@@ -238,9 +236,9 @@ export function skillPackageToSkill(
     plugin: apiTools,
     tools: {
       builtInTools,
-      mcpTools: mcpServers.map((server) => server.id),
-      mcpToolRequirements: Object.fromEntries(
-        mcpServers.map((server) => [server.id, server.required]),
+      toolServers: toolServers.map((server) => server.id),
+      toolRequirements: Object.fromEntries(
+        toolServers.map((server) => [server.id, server.required]),
       ),
       apiTools,
     },
@@ -322,14 +320,12 @@ export function skillToSkillPackage(skill: Skill | BuiltinSkill): SkillPackage {
         required: false,
       })),
     ],
-    mcp: {
-      servers: getSkillMcpTools(skill as Skill).map((id) => ({
-        id,
-        name: id,
-        transport: "stdio",
-        required: getSkillMcpToolRequired(skill as Skill, id),
-      })),
-    },
+    toolServers: getSkillToolServers(skill as Skill).map((id) => ({
+      id,
+      name: id,
+      transport: "stdio",
+      required: getSkillToolServerRequired(skill as Skill, id),
+    })),
     ui: skill.ui,
     permissions: {
       network: false,
@@ -338,7 +334,7 @@ export function skillToSkillPackage(skill: Skill | BuiltinSkill): SkillPackage {
       externalTools: [
         ...getSkillApiTools(skill as Skill),
         ...getSkillBuiltInTools(skill as Skill),
-        ...getSkillMcpTools(skill as Skill),
+        ...getSkillToolServers(skill as Skill),
       ],
     },
     compatibility: {

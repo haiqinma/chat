@@ -73,24 +73,24 @@ export interface ListToolsResponse {
   };
 }
 
-export type McpClientData =
-  | McpActiveClient
-  | McpErrorClient
-  | McpInitializingClient;
+export type ToolClientData =
+  | ToolActiveClient
+  | ToolErrorClient
+  | ToolInitializingClient;
 
-interface McpInitializingClient {
+interface ToolInitializingClient {
   client: null;
   tools: null;
   errorMsg: null;
 }
 
-interface McpActiveClient {
+interface ToolActiveClient {
   client: Client;
   tools: ListToolsResponse;
   errorMsg: null;
 }
 
-interface McpErrorClient {
+interface ToolErrorClient {
   client: null;
   tools: null;
   errorMsg: string;
@@ -109,7 +109,7 @@ export interface ServerStatusResponse {
   errorMsg: string | null;
 }
 
-// MCP 服务器配置相关类型
+// 工具服务器配置相关类型
 export interface ServerConfig {
   command: string;
   args: string[];
@@ -117,13 +117,13 @@ export interface ServerConfig {
   status?: "active" | "paused" | "error";
 }
 
-export interface McpConfigData {
-  // MCP Server 的配置
-  mcpServers: Record<string, ServerConfig>;
+export interface ToolConfigData {
+  // Tool Server 的配置
+  toolServers: Record<string, ServerConfig>;
 }
 
-export const DEFAULT_MCP_CONFIG: McpConfigData = {
-  mcpServers: {},
+export const DEFAULT_TOOL_CONFIG: ToolConfigData = {
+  toolServers: {},
 };
 
 export interface ArgsMapping {
@@ -138,31 +138,31 @@ export interface ArgsMapping {
 }
 
 export interface PresetServer {
-  // MCP Server 的唯一标识，作为最终配置文件 Json 的 key
+  // Tool Server 的唯一标识，作为最终配置文件 Json 的 key
   id: string;
 
-  // MCP Server 的显示名称
+  // Tool Server 的显示名称
   name: string;
 
-  // MCP Server 的描述
+  // Tool Server 的描述
   description: string;
 
-  // MCP Server 的仓库地址
+  // Tool Server 的仓库地址
   repo: string;
 
-  // MCP Server 的标签
+  // Tool Server 的标签
   tags: string[];
 
-  // MCP Server 的命令
+  // Tool Server 的命令
   command: string;
 
-  // MCP Server 的参数
+  // Tool Server 的参数
   baseArgs: string[];
 
-  // MCP Server 是否需要配置
+  // Tool Server 是否需要配置
   configurable: boolean;
 
-  // MCP Server 的配置 schema
+  // Tool Server 的配置 schema
   configSchema?: {
     properties: Record<
       string,
@@ -179,6 +179,6 @@ export interface PresetServer {
     >;
   };
 
-  // MCP Server 的参数映射
+  // Tool Server 的参数映射
   argsMapping?: Record<string, ArgsMapping>;
 }

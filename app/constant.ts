@@ -10,13 +10,13 @@ export const FETCH_TAG_URL = `https://api.github.com/repos/${OWNER}/${REPO}/tags
 export const MARKETPLACE_REPO = "marketplace";
 export const MARKETPLACE_BRANCH = "main";
 export const COMMUNITY_MARKETPLACE_SKILL_PACKAGES_URL = `https://cdn.jsdelivr.net/gh/${OWNER}/${MARKETPLACE_REPO}@${MARKETPLACE_BRANCH}/packages.json`;
-export const COMMUNITY_MARKETPLACE_MCP_PACKAGES_URL = `https://cdn.jsdelivr.net/gh/${OWNER}/${MARKETPLACE_REPO}@${MARKETPLACE_BRANCH}/mcp/packages.json`;
+export const COMMUNITY_MARKETPLACE_TOOL_PACKAGES_URL = `https://cdn.jsdelivr.net/gh/${OWNER}/${MARKETPLACE_REPO}@${MARKETPLACE_BRANCH}/tools/packages.json`;
 export const COMMUNITY_MARKETPLACE_SKILL_PACKAGES_RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${MARKETPLACE_REPO}/${MARKETPLACE_BRANCH}/packages.json`;
-export const COMMUNITY_MARKETPLACE_MCP_PACKAGES_RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${MARKETPLACE_REPO}/${MARKETPLACE_BRANCH}/mcp/packages.json`;
+export const COMMUNITY_MARKETPLACE_TOOL_PACKAGES_RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${MARKETPLACE_REPO}/${MARKETPLACE_BRANCH}/tools/packages.json`;
 export const LOCAL_MARKETPLACE_SKILL_PACKAGES_URL =
   "/marketplace/packages.json";
-export const LOCAL_MARKETPLACE_MCP_PACKAGES_URL =
-  "/marketplace/mcp/packages.json";
+export const LOCAL_MARKETPLACE_TOOL_PACKAGES_URL =
+  "/marketplace/tools/packages.json";
 export const RUNTIME_CONFIG_DOM = "danger-runtime-config";
 
 export const STABILITY_BASE_URL = "https://api.stability.ai";
@@ -67,7 +67,7 @@ export enum Path {
   SdNew = "/sd-new",
   Artifacts = "/artifacts",
   SearchChat = "/search-chat",
-  McpMarket = "/mcp-market",
+  ToolMarket = "/tools",
 }
 
 export enum ApiPath {
@@ -114,7 +114,7 @@ export enum StoreKey {
   Update = "chat-update",
   Sync = "sync",
   SdList = "sd-list",
-  Mcp = "mcp-store",
+  Tool = "tool-store",
 }
 
 export const DEFAULT_SIDEBAR_WIDTH = 300;
@@ -328,18 +328,18 @@ Latex inline: \\(x^2\\)
 Latex block: $$e=mc^2$$
 `;
 
-export const MCP_TOOLS_TEMPLATE = `
+export const TOOL_LIST_TEMPLATE = `
 [clientId]
 {{ clientId }}
 [tools]
 {{ tools }}
 `;
 
-export const MCP_SYSTEM_TEMPLATE = `
+export const TOOL_SYSTEM_TEMPLATE = `
 You are an AI assistant with access to system tools. Your role is to help users by combining natural language understanding with tool operations when needed.
 
 1. AVAILABLE TOOLS:
-{{ MCP_TOOLS }}
+{{ TOOLS }}
 
 2. WHEN TO USE TOOLS:
    - ALWAYS USE TOOLS when they can help answer user questions
@@ -411,7 +411,7 @@ You are an AI assistant with access to system tools. Your role is to help users 
   }
 \`\`\`
 
-   follwing is the wrong! mcp json example:
+   following is the wrong tool json example:
 
    \`\`\`json:mcp:filesystem
    {

@@ -1,7 +1,7 @@
 import { BUILTIN_SKILLS, BuiltinSkill } from "../skills";
 import { getLang, Lang } from "../locales";
 import { ModelCandidate } from "../client/api";
-import { DEFAULT_TOPIC, ChatMessage } from "./chat";
+import type { ChatMessage } from "./chat";
 import { ModelConfig, useAppConfig } from "./config";
 import { createDefaultRealtimeConfig, type RealtimeConfig } from "./realtime";
 import { StoreKey } from "../constant";
@@ -16,15 +16,15 @@ export type BuiltInSkillToolType = "web_search";
 
 export type SkillToolsConfig = {
   builtInTools?: BuiltInSkillToolType[];
-  mcpTools?: string[];
-  mcpToolRequirements?: Record<string, boolean>;
+  toolServers?: string[];
+  toolRequirements?: Record<string, boolean>;
   apiTools?: string[];
 };
 
-export type SkillNativeMcpToolsMode = "auto" | "off";
+export type SkillNativeToolBridgeMode = "auto" | "off";
 
 export type SkillToolStrategy = {
-  nativeMcpTools?: SkillNativeMcpToolsMode;
+  nativeToolBridge?: SkillNativeToolBridgeMode;
 };
 
 export type SkillSessionToolbarConfig = {
@@ -37,7 +37,7 @@ export type SkillSessionToolbarConfig = {
   imageUpload?: boolean;
   imageParams?: boolean;
   plugins?: boolean;
-  mcp?: boolean;
+  tools?: boolean;
   shortcutKeys?: boolean;
   realtime?: boolean;
 };
@@ -84,7 +84,7 @@ export const DEFAULT_SESSION_TOOLBAR: Required<SkillSessionToolbarConfig> = {
   imageUpload: true,
   imageParams: true,
   plugins: true,
-  mcp: true,
+  tools: true,
   shortcutKeys: true,
   realtime: false,
 };
@@ -122,27 +122,28 @@ export function removeLegacySkills(skills: Record<string, Skill>) {
 }
 
 export const DEFAULT_SKILL_AVATAR = "gpt-bot";
-export const createEmptySkill = () =>
+const DEFAULT_EMPTY_SKILL_NAME = "通用问答";
+export const createEmptySkill = (lang: Lang = getLang()) =>
   ({
     id: nanoid(),
     avatar: DEFAULT_SKILL_AVATAR,
-    name: DEFAULT_TOPIC,
+    name: DEFAULT_EMPTY_SKILL_NAME,
     context: [],
     syncGlobalConfig: true, // use global config as default
     modelConfig: disablePlainChatReasoning(useAppConfig.getState().modelConfig),
     candidateModels: [],
-    lang: getLang(),
+    lang,
     builtin: false,
     createdAt: Date.now(),
     plugin: [],
     tools: {
       builtInTools: [],
-      mcpTools: [],
-      mcpToolRequirements: {},
+      toolServers: [],
+      toolRequirements: {},
       apiTools: [],
     },
     toolStrategy: {
-      nativeMcpTools: "auto",
+      nativeToolBridge: "auto",
     },
     ui: {
       sessionToolbar: DEFAULT_SESSION_TOOLBAR,
@@ -180,7 +181,7 @@ export function isLaunchableSkill(skill: Skill) {
     skill.starters?.length ||
     skill.plugin?.length ||
     skill.tools?.builtInTools?.length ||
-    skill.tools?.mcpTools?.length ||
+    skill.tools?.toolServers?.length ||
     skill.tools?.apiTools?.length,
   );
 }
@@ -193,13 +194,13 @@ export function getSkillBuiltInTools(skill: Skill) {
   return skill.tools?.builtInTools ?? [];
 }
 
-export function getSkillMcpTools(skill: Skill) {
-  return skill.tools?.mcpTools ?? [];
+export function getSkillToolServers(skill: Skill) {
+  return skill.tools?.toolServers ?? [];
 }
 
-export function getRequiredSkillMcpTools(skill: Skill) {
-  return getSkillMcpTools(skill).filter(
-    (id) => skill.tools?.mcpToolRequirements?.[id] !== false,
+export function getRequiredSkillToolServers(skill: Skill) {
+  return getSkillToolServers(skill).filter(
+    (id) => skill.tools?.toolRequirements?.[id] !== false,
   );
 }
 
@@ -207,29 +208,29 @@ export function getSkillApiTools(skill: Skill) {
   return skill.tools?.apiTools ?? skill.plugin ?? [];
 }
 
-export function getSkillNativeMcpToolsMode(skill: Skill) {
-  return skill.toolStrategy?.nativeMcpTools ?? "auto";
+export function getSkillNativeToolBridgeMode(skill: Skill) {
+  return skill.toolStrategy?.nativeToolBridge ?? "auto";
 }
 
-export function allowSkillNativeMcpTools(skill: Skill) {
-  return getSkillNativeMcpToolsMode(skill) !== "off";
+export function allowSkillNativeToolBridge(skill: Skill) {
+  return getSkillNativeToolBridgeMode(skill) !== "off";
 }
 
 export function syncSkillLegacyPlugin(skill: Skill) {
   const apiTools = skill.tools?.apiTools ?? skill.plugin ?? [];
-  const mcpTools = skill.tools?.mcpTools ?? [];
-  const existingMcpRequirements = skill.tools?.mcpToolRequirements ?? {};
+  const toolServers = skill.tools?.toolServers ?? [];
+  const existingToolRequirements = skill.tools?.toolRequirements ?? {};
   skill.plugin = apiTools;
   skill.tools = {
     builtInTools: skill.tools?.builtInTools ?? [],
-    mcpTools,
-    mcpToolRequirements: Object.fromEntries(
-      mcpTools.map((id) => [id, existingMcpRequirements[id] ?? true]),
+    toolServers,
+    toolRequirements: Object.fromEntries(
+      toolServers.map((id) => [id, existingToolRequirements[id] ?? true]),
     ),
     apiTools,
   };
   skill.toolStrategy = {
-    nativeMcpTools: skill.toolStrategy?.nativeMcpTools ?? "auto",
+    nativeToolBridge: skill.toolStrategy?.nativeToolBridge ?? "auto",
   };
   if (skill.realtimeConfig) {
     skill.realtimeConfig = createDefaultRealtimeConfig(skill.realtimeConfig);

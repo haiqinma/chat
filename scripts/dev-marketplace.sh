@@ -20,8 +20,8 @@ if [ ! -f "${MARKETPLACE_DIR}/packages.json" ]; then
   exit 1
 fi
 
-if [ ! -f "${MARKETPLACE_DIR}/mcp/packages.json" ]; then
-  echo "Error: missing ${MARKETPLACE_DIR}/mcp/packages.json" >&2
+if [ ! -f "${MARKETPLACE_DIR}/tools/packages.json" ]; then
+  echo "Error: missing ${MARKETPLACE_DIR}/tools/packages.json" >&2
   echo "Generate marketplace tool packages before starting local preview." >&2
   exit 1
 fi
@@ -37,7 +37,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 has_cors_header() {
-  curl -fsSI "${MARKETPLACE_BASE_URL}/mcp/packages.json" 2>/dev/null |
+  curl -fsSI "${MARKETPLACE_BASE_URL}/tools/packages.json" 2>/dev/null |
     tr -d '\r' |
     grep -qi '^Access-Control-Allow-Origin:'
 }
@@ -74,11 +74,11 @@ else
 fi
 
 export MARKETPLACE_SKILL_PACKAGES_URL="${MARKETPLACE_BASE_URL}/packages.json"
-export MARKETPLACE_MCP_PACKAGES_URL="${MARKETPLACE_BASE_URL}/mcp/packages.json"
+export MARKETPLACE_TOOL_PACKAGES_URL="${MARKETPLACE_BASE_URL}/tools/packages.json"
 
 echo "Chat marketplace sources:"
 echo "  skills: ${MARKETPLACE_SKILL_PACKAGES_URL}"
-echo "  tools:  ${MARKETPLACE_MCP_PACKAGES_URL}"
+echo "  tools:  ${MARKETPLACE_TOOL_PACKAGES_URL}"
 
 cd "${ROOT_DIR}"
 npm run dev

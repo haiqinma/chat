@@ -95,8 +95,8 @@ declare global {
       // custom template for preprocessing user input
       DEFAULT_INPUT_TEMPLATE?: string;
 
-      ENABLE_MCP?: string; // enable mcp functionality
-      MCP_CONFIG_PATH?: string; // optional path for runtime MCP config
+      ENABLE_TOOLS?: string; // enable tool runtime
+      TOOL_CONFIG_PATH?: string; // optional path for runtime tool config
 
       WEBDAV_BACKEND_BASE_URL?: string;
       WEBDAV_BACKEND_PREFIX?: string;
@@ -330,7 +330,7 @@ export const getServerSideConfig = () => {
     customModels,
     defaultModel,
     visionModels,
-    enableMcp: isEnabledEnv(process.env.ENABLE_MCP),
+    enableTools: isEnabledEnv(process.env.ENABLE_TOOLS),
     web_dav_backend_base_url: webdavBackendBaseUrl,
     web_dav_backend_prefix: webdavBackendPrefix,
     web_dav_backend_url: webdavBackendUrl,

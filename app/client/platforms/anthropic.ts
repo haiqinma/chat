@@ -11,13 +11,13 @@ import {
   useAppConfig,
   useChatStore,
   ChatMessageTool,
-  allowSkillNativeMcpTools,
+  allowSkillNativeToolBridge,
   getSkillApiTools,
-  getSkillMcpTools,
+  getSkillToolServers,
 } from "@/app/store";
 import {
   getNativeToolBundle,
-  shouldUseNativeMcpTools,
+  shouldUseNativeToolBridge,
 } from "@/app/store/native-tools";
 import { getClientConfig } from "@/app/config/client";
 import { ANTHROPIC_BASE_URL } from "@/app/constant";
@@ -383,15 +383,15 @@ export class ClaudeApi implements LLMApi {
       let index = -1;
       const sessionSkill = useChatStore.getState().currentSession().mask;
       const skillApiTools = getSkillApiTools(sessionSkill);
-      const skillMcpTools = getSkillMcpTools(sessionSkill);
+      const skillToolServers = getSkillToolServers(sessionSkill);
       const [tools, funcs] = await getNativeToolBundle(skillApiTools, {
-        includeMcp:
-          allowSkillNativeMcpTools(sessionSkill) &&
-          shouldUseNativeMcpTools({
+        includeToolServers:
+          allowSkillNativeToolBridge(sessionSkill) &&
+          shouldUseNativeToolBridge({
             providerName: options.config.providerName,
             endpointPath: chatEndpointPath,
           }),
-        mcpClientIds: skillMcpTools,
+        toolServerIds: skillToolServers,
       });
       return stream(
         path,
