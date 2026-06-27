@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "./router-page.module.scss";
 
@@ -32,6 +32,7 @@ import {
   type RouterPublicToken,
   type RouterTokenStatus,
 } from "../client/platforms/router";
+import { buildTokenScopedRouterModelCatalog } from "./router-model-catalog";
 
 const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
 const ROUTER_BASE_URL =
@@ -142,7 +143,6 @@ function isRouterTokenSelectable(token: RouterPublicToken) {
 
 export function RouterPage() {
   const navigate = useNavigate();
-  const config = useAppConfig();
   const mergeModels = useAppConfig((state) => state.mergeModels);
   const accessStore = useAccessStore();
   const updateStore = useUpdateStore();
@@ -157,18 +157,18 @@ export function RouterPage() {
   const [searchText, setSearchText] = useState("");
   const [filter, setFilter] = useState<ModelFilter>("all");
   const [tokens, setTokens] = useState<RouterPublicToken[]>([]);
+  const [tokenModels, setTokenModels] = useState<LLMModel[]>([]);
   const [tokenStatus, setTokenStatus] = useState<RouterTokenStatus | null>(
     null,
   );
 
-  const runtimeModels = useMemo(
-    () => config.models.filter((model) => model.available),
-    [config.models],
-  );
-
   const catalogModels = useMemo(() => {
-    const source = providerModels.length > 0 ? providerModels : runtimeModels;
     const map = new Map<string, LLMModel>();
+    const source = buildTokenScopedRouterModelCatalog(
+      tokenModels,
+      providerModels,
+    );
+
     source.forEach((model) => {
       const providerId =
         model.provider?.id ||
@@ -178,7 +178,7 @@ export function RouterPage() {
       map.set(`${model.name}@${providerId}`, model);
     });
     return Array.from(map.values());
-  }, [providerModels, runtimeModels]);
+  }, [providerModels, tokenModels]);
 
   const visibleModels = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -259,20 +259,22 @@ export function RouterPage() {
     }
   }
 
-  async function reloadModels() {
+  const reloadModels = useCallback(async () => {
     setLoadingModels(true);
+    setTokenModels([]);
     try {
       const api = getRouterClientApi();
       const [models, nextProviderModels] = await Promise.all([
         api.llm.models(),
         api.llm.providerModels?.() ?? Promise.resolve([]),
       ]);
+      setTokenModels(models);
       mergeModels(models);
       setProviderModels(nextProviderModels);
     } finally {
       setLoadingModels(false);
     }
-  }
+  }, [mergeModels, setProviderModels]);
 
   async function loadTokens() {
     setLoadingTokens(true);
@@ -301,6 +303,14 @@ export function RouterPage() {
   useEffect(() => {
     void loadTokenStatus();
   }, [selectedRouterToken]);
+
+  useEffect(() => {
+    if (!selectedRouterToken) {
+      setTokenModels([]);
+      return;
+    }
+    void reloadModels();
+  }, [reloadModels, selectedRouterToken]);
 
   return (
     <ErrorBoundary>
@@ -545,7 +555,7 @@ export function RouterPage() {
               <div>
                 <div className={styles["panel-title"]}>支持模型</div>
                 <div className={styles["panel-subtitle"]}>
-                  Router 当前返回的模型目录。
+                  当前令牌可用的模型。
                 </div>
               </div>
             </div>
@@ -653,7 +663,13 @@ export function RouterPage() {
                 </table>
               </div>
             ) : (
-              <div className={styles.empty}>没有匹配到模型</div>
+              <div className={styles.empty}>
+                {loadingModels
+                  ? "模型加载中"
+                  : selectedRouterToken
+                    ? "当前令牌没有返回可用模型"
+                    : "请选择令牌后加载模型"}
+              </div>
             )}
           </section>
         </div>
