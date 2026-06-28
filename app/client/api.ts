@@ -1,9 +1,5 @@
 import { getClientConfig } from "../config/client";
-import {
-  ACCESS_CODE_PREFIX,
-  ModelProvider,
-  ServiceProvider,
-} from "../constant";
+import { ModelProvider, ServiceProvider } from "../constant";
 import {
   ChatMessageTool,
   ChatMessage,
@@ -371,7 +367,6 @@ export function getHeaders(
     const isChatGLM = providerName === ServiceProvider.ChatGLM;
     const isSiliconFlow = providerName === ServiceProvider.SiliconFlow;
     const isAI302 = providerName === ServiceProvider["302.AI"];
-    const isEnabledAccessControl = accessStore.enabledAccessControl();
     const apiKey = isGoogle
       ? accessStore.googleApiKey
       : isAzure
@@ -417,7 +412,6 @@ export function getHeaders(
       isSiliconFlow,
       isAI302,
       apiKey,
-      isEnabledAccessControl,
     };
   }
 
@@ -446,7 +440,6 @@ export function getHeaders(
     isSiliconFlow,
     isAI302,
     apiKey,
-    isEnabledAccessControl,
   } = getConfig();
   // when using baidu api in app, not set auth header
   if (isBaidu && clientConfig?.isApp) return headers;
@@ -460,10 +453,6 @@ export function getHeaders(
 
   if (bearerToken) {
     headers[authHeader] = bearerToken;
-  } else if (isEnabledAccessControl && validString(accessStore.accessCode)) {
-    headers["Authorization"] = getBearerToken(
-      ACCESS_CODE_PREFIX + accessStore.accessCode,
-    );
   }
 
   return headers;

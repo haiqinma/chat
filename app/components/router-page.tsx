@@ -208,18 +208,15 @@ export function RouterPage() {
     });
   }, [catalogModels, filter, searchText]);
 
-  const showUsage = accessStore.isAuthorized();
-  const showAccessCode =
-    accessStore.enabledAccessControl() && !getClientConfig()?.isApp;
+  const endpointValue = accessStore.openaiUrl || ROUTER_BASE_URL_NORMALIZED;
+  const selectedRouterToken = accessStore.selectedRouterToken?.trim() || "";
+  const tokenConfigured = selectedRouterToken.length > 0;
+  const routerApiKeyConfigured = accessStore.openaiApiKey.trim().length > 0;
+  const showUsage = tokenConfigured || routerApiKeyConfigured;
   const usage = {
     used: updateStore.used,
     subscription: updateStore.subscription,
   };
-
-  const endpointValue = accessStore.openaiUrl || ROUTER_BASE_URL_NORMALIZED;
-  const accessCodeConfigured = accessStore.accessCode.trim().length > 0;
-  const selectedRouterToken = accessStore.selectedRouterToken?.trim() || "";
-  const tokenConfigured = selectedRouterToken.length > 0;
   const availableTokens = useMemo(
     () => tokens.filter((token) => token && isRouterTokenSelectable(token)),
     [tokens],
@@ -356,17 +353,6 @@ export function RouterPage() {
               </div>
               <div className={styles["panel-actions"]}>
                 <div className={styles["status-inline"]}>
-                  {showAccessCode && (
-                    <span
-                      className={
-                        accessCodeConfigured
-                          ? styles["status-on"]
-                          : styles["status-off"]
-                      }
-                    >
-                      访问密码 {accessCodeConfigured ? "已配置" : "未配置"}
-                    </span>
-                  )}
                   <span
                     className={
                       tokenConfigured
@@ -469,7 +455,7 @@ export function RouterPage() {
               <div>
                 <div className={styles["panel-title"]}>Router 配置</div>
                 <div className={styles["panel-subtitle"]}>
-                  接入地址、访问密码和默认模型令牌。
+                  接入地址和默认模型令牌。
                 </div>
               </div>
             </div>
@@ -491,25 +477,6 @@ export function RouterPage() {
                   默认地址：{ROUTER_BASE_URL_NORMALIZED}
                 </span>
               </label>
-
-              {showAccessCode && (
-                <label className={styles.field}>
-                  <span className={styles["field-label"]}>访问密码</span>
-                  <input
-                    type="password"
-                    value={accessStore.accessCode}
-                    placeholder={Locale.Settings.Access.AccessCode.Placeholder}
-                    onChange={(e) => {
-                      accessStore.update(
-                        (state) => (state.accessCode = e.currentTarget.value),
-                      );
-                    }}
-                  />
-                  <span className={styles["field-hint"]}>
-                    访问受控 Router 时使用。
-                  </span>
-                </label>
-              )}
 
               <label className={styles.field}>
                 <span className={styles["field-label"]}>令牌</span>

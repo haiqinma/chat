@@ -27,7 +27,7 @@ import {
   RouterRealtimeResponse,
   createRouterSessionParams,
 } from "./router-realtime-client";
-import { ACCESS_CODE_PREFIX, ServiceProvider } from "@/app/constant";
+import { ServiceProvider } from "@/app/constant";
 import { getClientConfig } from "@/app/config/client";
 
 type RealtimeClient = RTClient | RouterRealtimeClient;
@@ -54,11 +54,6 @@ function resolveRouterToken(tokenOverride?: string) {
 
   const apiKey = accessStore.openaiApiKey?.trim();
   if (apiKey) return apiKey;
-
-  const accessCode = accessStore.accessCode?.trim();
-  if (accessStore.enabledAccessControl() && accessCode) {
-    return `${ACCESS_CODE_PREFIX}${accessCode}`;
-  }
 
   return "";
 }

@@ -14,17 +14,17 @@ const cn = {
        \\ 2️⃣ 如果你想消耗自己的 OpenAI 资源，点击[这里](/#/settings)修改设置 ⚙️`
       : `😆 对话遇到了一些问题，不用慌:
        \ 1️⃣ 想要零配置开箱即用，请使用 Chat AI
-       \ 2️⃣ 如果你正在使用私有部署版本，点击[这里](/#/auth)输入访问秘钥 🔑
+       \ 2️⃣ 如果你需要完成账号授权，点击[这里](/#/auth)继续登录 🔑
        \ 3️⃣ 如果你想消耗自己的 OpenAI 资源，点击[这里](/#/settings)修改设置 ⚙️
        `,
   },
   Auth: {
     Return: "返回",
-    Title: "需要密码",
-    Tips: "已开启密码验证，请在下方填入访问码",
-    SubTips: "或者输入你的 OpenAI 或 Google AI 密钥",
-    Input: "在此处填写访问码",
-    Confirm: "确认",
+    Title: "登录授权",
+    Tips: "使用区块链地址完成授权登录",
+    SubTips: "可使用钱包签名或中心化 UCAN 授权",
+    Input: "输入或选择区块链地址",
+    Confirm: "登录",
     Later: "稍后再说",
     TopTips:
       "🥳 Chat AI 首发，立刻解锁 qwen3.7-plus、deepseek-v4-pro、gpt-5.5、claude-4.8等最新大模型",
@@ -327,7 +327,7 @@ const cn = {
       },
       IsChecking: "正在检查…",
       Check: "重新检查",
-      NoAccess: "输入 API Key 或访问密码查看余额",
+      NoAccess: "选择令牌或填写 API Key 后查看余额",
     },
 
     Access: {
@@ -934,7 +934,7 @@ const cn = {
   },
 
   URLCommand: {
-    Code: "检测到链接中已经包含访问码，是否自动填入？",
+    Code: "检测到链接中包含授权参数，是否继续处理？",
     Settings: "检测到链接中包含了预制设置，是否自动填入？",
   },
 
