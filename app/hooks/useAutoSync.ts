@@ -8,6 +8,7 @@ import {
   isUcanSignPending,
   isUcanSignPendingError,
 } from "../plugins/ucan-sign-lock";
+import { getAccountWorkspaceSyncDelayMs } from "../utils/account-workspace";
 
 let autoSyncInFlight = false;
 let lastAutoSyncAt = 0;
@@ -49,6 +50,16 @@ export function useAutoSync() {
   const triggerSync = useCallback(
     async (reason: string) => {
       if (!enabled || autoSyncInFlight) return;
+      const workspaceSyncDelayMs = getAccountWorkspaceSyncDelayMs();
+      if (workspaceSyncDelayMs > 0) {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+        debounceRef.current = setTimeout(() => {
+          triggerSync(`${reason}:workspace-delay`);
+        }, workspaceSyncDelayMs);
+        return;
+      }
       const now = Date.now();
       if (now - lastAutoSyncAt < AUTO_SYNC_DEDUPE_WINDOW_MS) return;
       if (isUcanSignPending()) {
@@ -82,12 +93,16 @@ export function useAutoSync() {
   const scheduleSync = useCallback(
     (reason: string) => {
       if (!enabled) return;
+      const workspaceSyncDelayMs = getAccountWorkspaceSyncDelayMs();
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-      debounceRef.current = setTimeout(() => {
-        triggerSync(reason);
-      }, debounceMs);
+      debounceRef.current = setTimeout(
+        () => {
+          triggerSync(reason);
+        },
+        Math.max(debounceMs, workspaceSyncDelayMs),
+      );
     },
     [debounceMs, enabled, triggerSync],
   );

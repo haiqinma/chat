@@ -1114,6 +1114,10 @@ const en: LocaleType = {
     QuotaUsed: "Used",
     QuotaAvailable: "Available",
     DataTitle: "Data Management",
+    WorkspaceAccount: "Current Workspace Account",
+    WorkspaceAccountGuest: "Not signed in (guest workspace)",
+    WorkspaceSyncDelay: (seconds: number) =>
+      `Workspace just switched accounts. Auto sync is paused for about ${seconds}s to avoid overwriting remote data.`,
     LastSync: "Last sync",
     LocalData: "Local data",
     Expansion: "Storage expansion",

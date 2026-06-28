@@ -90,7 +90,7 @@ const isRouterEndpoint = (url: string | undefined): boolean => {
   }
 };
 
-const createDefaultAccessState = () => {
+export const createDefaultAccessState = () => {
   const isExportApp = isApp();
   const defaultOpenAIUrl = getDefaultOpenAIUrl();
 
@@ -188,7 +188,7 @@ const createDefaultAccessState = () => {
   };
 };
 
-const DEFAULT_ACCESS_STATE = createDefaultAccessState();
+export const DEFAULT_ACCESS_STATE = createDefaultAccessState();
 
 const syncRouterBackendUrlSnapshot = (state: typeof DEFAULT_ACCESS_STATE) => {
   const routerBackendUrl = getRouterBackendUrl();

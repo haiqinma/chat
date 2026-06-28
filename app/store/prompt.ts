@@ -12,6 +12,11 @@ export interface Prompt {
   createdAt: number;
 }
 
+export const DEFAULT_PROMPT_STATE = {
+  counter: 0,
+  prompts: {} as Record<string, Prompt>,
+};
+
 export const SearchService = {
   ready: false,
   builtinEngine: new Fuse<Prompt>([], { keys: ["title"] }),
@@ -51,10 +56,7 @@ export const SearchService = {
 };
 
 export const usePromptStore = createPersistStore(
-  {
-    counter: 0,
-    prompts: {} as Record<string, Prompt>,
-  },
+  DEFAULT_PROMPT_STATE,
 
   (set, get) => ({
     add(prompt: Prompt) {

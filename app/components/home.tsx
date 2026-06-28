@@ -1,6 +1,7 @@
 "use client";
 
 require("../polyfill");
+import "../utils/account-workspace";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import styles from "./home.module.scss";

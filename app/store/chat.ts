@@ -389,13 +389,15 @@ async function getToolSystemPrompt(): Promise<string> {
   return TOOL_SYSTEM_TEMPLATE.replace("{{ TOOLS }}", toolsStr);
 }
 
-const DEFAULT_CHAT_STATE = {
+export const createDefaultChatState = () => ({
   sessions: [createEmptySession()],
   currentSessionIndex: 0,
   lastInput: "",
   deletedSessions: {} as Record<string, number>,
   deletedMessages: {} as Record<string, number>,
-};
+});
+
+export const DEFAULT_CHAT_STATE = createDefaultChatState();
 
 export const useChatStore = createPersistStore(
   DEFAULT_CHAT_STATE,

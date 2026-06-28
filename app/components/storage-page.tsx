@@ -10,6 +10,7 @@ import ResetIcon from "../icons/reload.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import UploadIcon from "../icons/upload.svg";
 import Locale from "../locales";
+import { getCurrentAccount } from "../plugins/wallet";
 import { fetchQuota, WebDAVQuota } from "../plugins/webdav";
 import { useChatStore } from "../store";
 import { usePromptStore } from "../store/prompt";
@@ -20,6 +21,7 @@ import {
 } from "../store/skill";
 import { useSyncStore } from "../store/sync";
 import { ProviderType } from "../utils/cloud";
+import { getAccountWorkspaceSyncDelayMs } from "../utils/account-workspace";
 import { formatBytes } from "../utils/format";
 import { IconButton } from "./button";
 import { ErrorBoundary } from "./error";
@@ -65,6 +67,7 @@ export function StoragePage() {
   const [quotaState, setQuotaState] = useState<QuotaState>("idle");
   const [checkState, setCheckState] = useState<CheckState>("none");
   const [syncing, setSyncing] = useState(false);
+  const [workspaceSyncDelayMs, setWorkspaceSyncDelayMs] = useState(0);
   const webdavEnvBaseUrl =
     getClientConfig()?.webdavBackendBaseUrl?.trim() || "";
   const webdavEnvPrefix = getClientConfig()?.webdavBackendPrefix?.trim() || "";
@@ -72,6 +75,7 @@ export function StoragePage() {
   const webdavPrefix = syncStore.webdav.baseUrl.trim()
     ? syncStore.webdav.prefix
     : syncStore.webdav.prefix || webdavEnvPrefix;
+  const workspaceAccount = (getCurrentAccount() || "").trim();
 
   const stateOverview = useMemo(() => {
     const sessions = chatStore.sessions;
@@ -118,6 +122,14 @@ export function StoragePage() {
     setQuota(nextQuota);
     setQuotaState(nextQuota ? "ready" : "error");
   };
+
+  useEffect(() => {
+    setWorkspaceSyncDelayMs(getAccountWorkspaceSyncDelayMs());
+    const timer = window.setInterval(() => {
+      setWorkspaceSyncDelayMs(getAccountWorkspaceSyncDelayMs());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,6 +232,13 @@ export function StoragePage() {
               <div className={styles["status-desc"]}>
                 {Locale.Storage.StatusDesc}
               </div>
+              {workspaceSyncDelayMs > 0 ? (
+                <div className={styles["status-hint"]}>
+                  {Locale.Storage.WorkspaceSyncDelay(
+                    Math.ceil(workspaceSyncDelayMs / 1000),
+                  )}
+                </div>
+              ) : null}
               <div className={styles.actions}>
                 <IconButton
                   icon={
@@ -501,6 +520,12 @@ export function StoragePage() {
             {Locale.Storage.DataTitle}
           </div>
           <List>
+            <ListItem
+              title={Locale.Storage.WorkspaceAccount}
+              subTitle={
+                workspaceAccount || Locale.Storage.WorkspaceAccountGuest
+              }
+            />
             <ListItem
               title={Locale.Storage.LastSync}
               subTitle={

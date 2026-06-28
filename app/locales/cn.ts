@@ -1091,6 +1091,10 @@ const cn = {
     QuotaUsed: "已使用",
     QuotaAvailable: "剩余空间",
     DataTitle: "数据管理",
+    WorkspaceAccount: "当前工作区账号",
+    WorkspaceAccountGuest: "未登录（访客工作区）",
+    WorkspaceSyncDelay: (seconds: number) =>
+      `账号工作区刚切换，自动同步已暂缓约 ${seconds} 秒，避免误覆盖远端数据。`,
     LastSync: "最近同步",
     LocalData: "本地数据",
     Expansion: "存储扩容",
