@@ -1,4 +1,4 @@
-import { ACCESS_CODE_PREFIX, Anthropic, ApiPath } from "@/app/constant";
+import { Anthropic, ApiPath } from "@/app/constant";
 import {
   ChatOptions,
   LLMApi,
@@ -185,14 +185,6 @@ function getBaseGatewayHeaders() {
   const gatewayApiKey = accessStore.openaiApiKey.trim();
   if (gatewayApiKey) {
     headers["Authorization"] = `Bearer ${gatewayApiKey}`;
-    return headers;
-  }
-  if (
-    accessStore.enabledAccessControl() &&
-    accessStore.accessCode.trim().length > 0
-  ) {
-    headers["Authorization"] =
-      `Bearer ${ACCESS_CODE_PREFIX}${accessStore.accessCode.trim()}`;
   }
   return headers;
 }

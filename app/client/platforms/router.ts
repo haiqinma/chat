@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ACCESS_CODE_PREFIX,
   ApiPath,
   OPENAI_BASE_URL,
   OpenaiPath,
@@ -154,12 +153,6 @@ function getBaseRouterHeaders() {
   const apiKey = accessStore.openaiApiKey.trim();
   if (apiKey) {
     headers["Authorization"] = `Bearer ${apiKey}`;
-    return headers;
-  }
-
-  const accessCode = accessStore.accessCode.trim();
-  if (accessStore.enabledAccessControl() && accessCode) {
-    headers["Authorization"] = `Bearer ${ACCESS_CODE_PREFIX}${accessCode}`;
   }
 
   return headers;
@@ -512,16 +505,10 @@ export class RouterApi implements LLMApi {
   async providerModels(): Promise<LLMModel[]> {
     const providerModelsPath = this.path(OpenaiPath.ProviderModelsPath);
     const accessStore = useAccessStore.getState();
-    const hasAccessCode =
-      accessStore.enabledAccessControl() &&
-      accessStore.accessCode.trim() !== "";
     const hasApiKey = accessStore.openaiApiKey.trim() !== "";
     const hasSelectedToken = accessStore.selectedRouterToken.trim() !== "";
     const shouldSkipRouterFetch =
-      isRouterUrl(providerModelsPath) &&
-      !hasSelectedToken &&
-      !hasApiKey &&
-      !hasAccessCode;
+      isRouterUrl(providerModelsPath) && !hasSelectedToken && !hasApiKey;
 
     if (shouldSkipRouterFetch) {
       return [];
@@ -551,16 +538,10 @@ export class RouterApi implements LLMApi {
   async models(): Promise<LLMModel[]> {
     const listPath = this.path(OpenaiPath.ListModelPath);
     const accessStore = useAccessStore.getState();
-    const hasAccessCode =
-      accessStore.enabledAccessControl() &&
-      accessStore.accessCode.trim() !== "";
     const hasApiKey = accessStore.openaiApiKey.trim() !== "";
     const hasSelectedToken = accessStore.selectedRouterToken.trim() !== "";
     const shouldSkipRouterFetch =
-      isRouterUrl(listPath) &&
-      !hasSelectedToken &&
-      !hasApiKey &&
-      !hasAccessCode;
+      isRouterUrl(listPath) && !hasSelectedToken && !hasApiKey;
 
     if (shouldSkipRouterFetch) {
       return [];

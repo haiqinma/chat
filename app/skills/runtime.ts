@@ -68,9 +68,7 @@ function hasRouterRealtimeToken(apiKey?: string) {
   if (apiKey?.trim()) return true;
   const accessStore = useAccessStore.getState();
   return Boolean(
-    accessStore.selectedRouterToken?.trim() ||
-    accessStore.openaiApiKey?.trim() ||
-    (accessStore.enabledAccessControl() && accessStore.accessCode?.trim()),
+    accessStore.selectedRouterToken?.trim() || accessStore.openaiApiKey?.trim(),
   );
 }
 

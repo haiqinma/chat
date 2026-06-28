@@ -15,17 +15,17 @@ const en: LocaleType = {
      \\ 2️⃣ Want to use your own OpenAI resources? [Click here](/#/settings) to change settings ⚙️`
       : `😆 Oops, there's an issue. Let's fix it:
      \ 1️⃣ Want zero-config access? Please use Chat AI
-     \ 2️⃣ Using a private setup? [Click here](/#/auth) to enter your key 🔑
+     \ 2️⃣ Need to finish account authorization? [Click here](/#/auth) to sign in 🔑
      \ 3️⃣ Want to use your own OpenAI resources? [Click here](/#/settings) to change settings ⚙️
      `,
   },
   Auth: {
     Return: "Return",
-    Title: "Need Access Code",
-    Tips: "Please enter access code below",
-    SubTips: "Or enter your OpenAI or Google API Key",
-    Input: "access code",
-    Confirm: "Confirm",
+    Title: "Sign In",
+    Tips: "Authorize with your blockchain address",
+    SubTips: "Use wallet signature or centralized UCAN authorization",
+    Input: "Enter or select blockchain address",
+    Confirm: "Sign In",
     Later: "Later",
     TopTips:
       "🥳 Chat AI launch promotion: Instantly unlock the latest models like OpenAI o1, GPT-4o, Claude-3.5!",
@@ -332,7 +332,7 @@ const en: LocaleType = {
       },
       IsChecking: "Checking...",
       Check: "Check",
-      NoAccess: "Enter API Key to check balance",
+      NoAccess: "Select a token or enter an API key to view balance",
     },
     Access: {
       SaasStart: {
@@ -971,7 +971,7 @@ const en: LocaleType = {
     Time: "Time",
   },
   URLCommand: {
-    Code: "Detected access code from url, confirm to apply? ",
+    Code: "Detected authorization parameters in the URL. Continue?",
     Settings: "Detected settings from url, confirm to apply?",
   },
   SdPanel: {
