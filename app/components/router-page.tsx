@@ -223,6 +223,10 @@ export function RouterPage() {
 
   const endpointValue = accessStore.openaiUrl || ROUTER_BASE_URL_NORMALIZED;
   const selectedRouterToken = accessStore.selectedRouterToken?.trim() || "";
+  const tokenFromQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get("token") || "").trim();
+  }, [location.search]);
   const tokenConfigured = selectedRouterToken.length > 0;
   const routerApiKeyConfigured = accessStore.openaiApiKey.trim().length > 0;
   const showUsage = tokenConfigured || routerApiKeyConfigured;
@@ -385,12 +389,36 @@ export function RouterPage() {
 
   useEffect(() => {
     if (loadingTokens) return;
+    if (tokenFromQuery) {
+      if (selectedRouterToken !== tokenFromQuery) {
+        accessStore.update((state) => {
+          state.selectedRouterToken = tokenFromQuery;
+        });
+      }
+      const params = new URLSearchParams(location.search);
+      params.delete("token");
+      const nextSearch = params.toString();
+      navigate(`${Path.Router}${nextSearch ? `?${nextSearch}` : ""}`, {
+        replace: true,
+      });
+      return;
+    }
+
     const nextToken = selectedToken?.key?.trim() || "";
+    if (!nextToken) return;
     if (selectedRouterToken === nextToken) return;
     accessStore.update((state) => {
       state.selectedRouterToken = nextToken;
     });
-  }, [accessStore, loadingTokens, selectedRouterToken, selectedToken]);
+  }, [
+    accessStore,
+    loadingTokens,
+    location.search,
+    navigate,
+    selectedRouterToken,
+    selectedToken,
+    tokenFromQuery,
+  ]);
 
   useEffect(() => {
     void loadTokenStatus();
