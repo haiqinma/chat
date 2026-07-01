@@ -34,6 +34,11 @@ import {
 } from "../client/platforms/router";
 import { buildTokenScopedRouterModelCatalog } from "./router-model-catalog";
 import { getLang } from "../locales";
+import {
+  getAccountWorkspaceOwner,
+  getAccountWorkspaceStatus,
+  subscribeAccountWorkspaceStatus,
+} from "../utils/account-workspace";
 
 const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
 const ROUTER_BASE_URL =
@@ -174,6 +179,23 @@ export function RouterPage() {
   const [tokenStatus, setTokenStatus] = useState<RouterTokenStatus | null>(
     null,
   );
+  const [workspaceOwner, setWorkspaceOwner] = useState(() =>
+    getAccountWorkspaceOwner(),
+  );
+  const [workspaceStatus, setWorkspaceStatus] = useState(() =>
+    getAccountWorkspaceStatus(),
+  );
+  const workspaceReady = workspaceStatus === "ready";
+
+  useEffect(() => {
+    const unsubscribe = subscribeAccountWorkspaceStatus(() => {
+      setWorkspaceOwner(getAccountWorkspaceOwner());
+      setWorkspaceStatus(getAccountWorkspaceStatus());
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const catalogModels = useMemo(() => {
     const map = new Map<string, LLMModel>();
@@ -355,7 +377,15 @@ export function RouterPage() {
     }
   }, [checkUsage, navigate, redirectTarget, routerAction]);
 
+  const resetRouterRuntimeState = useCallback(() => {
+    setTokens([]);
+    setTokenModels([]);
+    setProviderModels([]);
+    setTokenStatus(null);
+  }, [setProviderModels]);
+
   const reloadModels = useCallback(async () => {
+    if (!workspaceReady) return;
     setLoadingModels(true);
     setTokenModels([]);
     try {
@@ -370,9 +400,10 @@ export function RouterPage() {
     } finally {
       setLoadingModels(false);
     }
-  }, [mergeModels, setProviderModels]);
+  }, [mergeModels, setProviderModels, workspaceReady]);
 
-  async function loadTokens() {
+  const loadTokens = useCallback(async () => {
+    if (!workspaceReady) return;
     setLoadingTokens(true);
     try {
       const api = new RouterApi();
@@ -381,13 +412,19 @@ export function RouterPage() {
     } finally {
       setLoadingTokens(false);
     }
-  }
+  }, [workspaceReady]);
 
   useEffect(() => {
+    resetRouterRuntimeState();
+  }, [resetRouterRuntimeState, workspaceOwner]);
+
+  useEffect(() => {
+    if (!workspaceReady) return;
     void loadTokens();
-  }, []);
+  }, [loadTokens, workspaceOwner, workspaceReady]);
 
   useEffect(() => {
+    if (!workspaceReady) return;
     if (loadingTokens) return;
     if (tokenFromQuery) {
       if (selectedRouterToken !== tokenFromQuery) {
@@ -418,19 +455,28 @@ export function RouterPage() {
     selectedRouterToken,
     selectedToken,
     tokenFromQuery,
+    workspaceReady,
   ]);
 
   useEffect(() => {
+    if (!workspaceReady) {
+      setTokenStatus(null);
+      return;
+    }
     void loadTokenStatus();
-  }, [selectedRouterToken]);
+  }, [selectedRouterToken, workspaceOwner, workspaceReady]);
 
   useEffect(() => {
+    if (!workspaceReady) {
+      setTokenModels([]);
+      return;
+    }
     if (!selectedRouterToken) {
       setTokenModels([]);
       return;
     }
     void reloadModels();
-  }, [reloadModels, selectedRouterToken]);
+  }, [reloadModels, selectedRouterToken, workspaceOwner, workspaceReady]);
 
   useEffect(() => {
     if (routerAction !== "token") return;

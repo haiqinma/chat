@@ -32,6 +32,10 @@ function getCurrentAccountOwner() {
   return normalizeWorkspaceOwner(storage.getItem("currentAccount"));
 }
 
+export function getAccountWorkspaceOwner() {
+  return getCurrentAccountOwner();
+}
+
 function createDefaultWorkspaceState(): AppState {
   return {
     [StoreKey.Chat]: deepClone(DEFAULT_CHAT_STATE),
