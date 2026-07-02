@@ -791,10 +791,9 @@ const cn = {
     RouterProviderTitle: "社区 Router",
     RouterProviderDesc: "默认模型服务商，统一接入社区可用模型。",
     CloudStorageTitle: "云端存储",
-    CloudStorageDesc:
-      "管理聊天、技能等本地数据的云端同步；后续可作为工具文件能力提供给模型。",
+    CloudStorageDesc: "管理聊天、技能等本地数据的云端同步和空间使用情况。",
     StorageAppSync: "应用同步",
-    StorageFutureTool: "后续工具文件能力",
+    NoImageModels: "当前没有可用图片模型",
     StorageQuotaUsage: (used: string, quota: string) =>
       `已用 ${used} / ${quota}`,
     StorageQuotaUnlimited: (used: string) => `已用 ${used} / 无限空间`,

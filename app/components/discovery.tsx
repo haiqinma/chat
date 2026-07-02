@@ -67,6 +67,7 @@ import { useSdStore } from "../store/sd";
 import { useSyncStore } from "../store/sync";
 import { fetchQuota, WebDAVQuota } from "../plugins/webdav";
 import { formatBytes } from "../utils/format";
+import { resolveImageModels } from "./sd/image-registry";
 import {
   getSkillRuntimeIssueSummary,
   getSkillRuntimeStatusOrder,
@@ -127,6 +128,7 @@ const OFFICIAL_MARKETPLACE_SKILL_PACKAGE_IDS = new Set([
   "web-research",
   "reading-summary",
 ]);
+const HIDDEN_DISCOVERY_TOOL_SERVER_IDS = new Set(["everything"]);
 
 function getInitialType(search: string): CapabilityType {
   const type = new URLSearchParams(search).get("type");
@@ -369,6 +371,10 @@ export function DiscoveryPage() {
   const capabilities = useMemo<Capability[]>(() => {
     const installedPluginIds = plugins.map((plugin) => plugin.id);
     const installedToolServerIds = Object.keys(toolConfig?.toolServers ?? {});
+    const availableImageModels = resolveImageModels(
+      models.filter((model) => model.available),
+      "generation",
+    );
     const toolPresetServers = mergeToolPresetServers(
       officialToolPresetServers,
       communityToolServers,
@@ -399,6 +405,19 @@ export function DiscoveryPage() {
           installedToolServerIds,
           toolStatuses,
         });
+        const isImageSkill = skill.launch?.type === "sd";
+        const effectiveRuntime: SkillRuntimeResult =
+          isImageSkill && availableImageModels.length === 0
+            ? {
+                status: "unavailable",
+                issues: [
+                  {
+                    type: "model",
+                    message: Locale.Discovery.NoImageModels,
+                  },
+                ],
+              }
+            : runtime;
         const runtimeSummary = getSkillRuntimeIssueSummary(runtime);
         return {
           id: `skill:${skill.id}`,
@@ -413,12 +432,14 @@ export function DiscoveryPage() {
             skillToolCount
               ? Locale.Discovery.SkillTools(skillToolCount)
               : undefined,
-            runtimeSummary || undefined,
+            getSkillRuntimeIssueSummary(effectiveRuntime) ||
+              runtimeSummary ||
+              undefined,
           ].filter(Boolean) as string[],
           status:
-            runtime.status === "ready"
+            effectiveRuntime.status === "ready"
               ? Locale.Discovery.Status.Available
-              : runtime.status === "unavailable"
+              : effectiveRuntime.status === "unavailable"
                 ? Locale.Discovery.Status.Unavailable
                 : Locale.Discovery.Status.Configurable,
           pricing: "free" as const,
@@ -430,8 +451,8 @@ export function DiscoveryPage() {
           path: Path.Skills,
           installed: true,
           skill: runtimeSkill,
-          runtimeStatus: runtime.status,
-          runtimeResult: runtime,
+          runtimeStatus: effectiveRuntime.status,
+          runtimeResult: effectiveRuntime,
         };
       })
       .sort((a, b) => {
@@ -522,40 +543,42 @@ export function DiscoveryPage() {
     const officialToolIds = new Set(
       officialToolPresetServers.map((server) => server.id),
     );
-    const toolItems: Capability[] = toolPresetServers.map((server) => {
-      const serverConfig = toolConfig?.toolServers[server.id];
-      const serverStatus = toolStatuses?.[server.id]?.status;
-      const installed = Boolean(serverConfig);
-      const status =
-        serverStatus === "active"
-          ? Locale.Discovery.Status.Enabled
-          : serverStatus === "error"
-            ? Locale.Discovery.Status.Error
-            : serverStatus === "paused"
-              ? Locale.Discovery.Status.Paused
-              : installed
-                ? Locale.Discovery.Status.Installed
-                : Locale.Discovery.Status.Configurable;
+    const toolItems: Capability[] = toolPresetServers
+      .filter((server) => !HIDDEN_DISCOVERY_TOOL_SERVER_IDS.has(server.id))
+      .map((server) => {
+        const serverConfig = toolConfig?.toolServers[server.id];
+        const serverStatus = toolStatuses?.[server.id]?.status;
+        const installed = Boolean(serverConfig);
+        const status =
+          serverStatus === "active"
+            ? Locale.Discovery.Status.Enabled
+            : serverStatus === "error"
+              ? Locale.Discovery.Status.Error
+              : serverStatus === "paused"
+                ? Locale.Discovery.Status.Paused
+                : installed
+                  ? Locale.Discovery.Status.Installed
+                  : Locale.Discovery.Status.Configurable;
 
-      return {
-        id: `tool:${server.id}`,
-        type: "tool",
-        title: server.name,
-        description: server.description,
-        highlights: server.tags
-          .slice(0, 3)
-          .map((tag) => getMarketplaceTagLabel(tag, currentLang)),
-        status,
-        pricing: "free",
-        runtime: toolRuntime,
-        source: officialToolIds.has(server.id)
-          ? Locale.Discovery.Source.Official
-          : Locale.Discovery.Source.Community,
-        path: Path.ToolMarket,
-        installed,
-        presetServer: server,
-      };
-    });
+        return {
+          id: `tool:${server.id}`,
+          type: "tool",
+          title: server.name,
+          description: server.description,
+          highlights: server.tags
+            .slice(0, 3)
+            .map((tag) => getMarketplaceTagLabel(tag, currentLang)),
+          status,
+          pricing: "free",
+          runtime: toolRuntime,
+          source: officialToolIds.has(server.id)
+            ? Locale.Discovery.Source.Official
+            : Locale.Discovery.Source.Community,
+          path: Path.ToolMarket,
+          installed,
+          presetServer: server,
+        };
+      });
 
     const toolCapabilityItems: Capability[] = [...toolItems];
 
@@ -589,11 +612,9 @@ export function DiscoveryPage() {
         type: "storage",
         title: Locale.Discovery.CloudStorageTitle,
         description: Locale.Discovery.CloudStorageDesc,
-        highlights: [
-          Locale.Discovery.StorageAppSync,
-          Locale.Discovery.StorageFutureTool,
-          storageQuotaText,
-        ].filter(Boolean) as string[],
+        highlights: [Locale.Discovery.StorageAppSync, storageQuotaText].filter(
+          Boolean,
+        ) as string[],
         status: !storageConfigured
           ? Locale.Discovery.Status.Configurable
           : storageQuotaStatus === "error"
@@ -1033,7 +1054,7 @@ export function DiscoveryPage() {
     if (item.type === "skill") {
       return item.runtimeStatus === "ready"
         ? Locale.Discovery.Use
-        : Locale.Discovery.Configure;
+        : Locale.Discovery.ConfigureAndEnable;
     }
     if (item.type === "tool") {
       if (!item.installed && item.presetServer?.configurable) {
@@ -1186,7 +1207,7 @@ export function DiscoveryPage() {
                       handleCapabilityAction(item);
                     }}
                   />
-                  {item.type === "skill" && (
+                  {item.type === "skill" && item.runtimeStatus === "ready" && (
                     <IconButton
                       icon={<EditIcon />}
                       text={Locale.Discovery.Configure}

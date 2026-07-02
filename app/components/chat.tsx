@@ -576,19 +576,22 @@ export function ChatActions(props: {
       }),
     [allAvailableModels],
   );
+  const selectableSessionModels = hasCandidateModelRestriction
+    ? sessionModels
+    : textAvailableModels;
   const models = useMemo(() => {
-    const defaultModel = sessionModels.find((m) => m.isDefault);
+    const defaultModel = selectableSessionModels.find((m) => m.isDefault);
 
     if (defaultModel) {
       const arr = [
         defaultModel,
-        ...sessionModels.filter((m) => m !== defaultModel),
+        ...selectableSessionModels.filter((m) => m !== defaultModel),
       ];
       return arr;
     } else {
-      return sessionModels;
+      return selectableSessionModels;
     }
-  }, [sessionModels]);
+  }, [selectableSessionModels]);
   const currentRuntimeModel = useMemo(
     () =>
       models.find(

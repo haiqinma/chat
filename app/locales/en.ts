@@ -812,9 +812,9 @@ const en: LocaleType = {
       "Default model service for accessing community-available models.",
     CloudStorageTitle: "Cloud Storage",
     CloudStorageDesc:
-      "Manage cloud sync for chats, skills, and local app data. It can later expose file access to models through tools.",
+      "Manage cloud sync and quota usage for chats, skills, and local app data.",
     StorageAppSync: "App sync",
-    StorageFutureTool: "Future tool file capability",
+    NoImageModels: "No image models available",
     StorageQuotaUsage: (used: string, quota: string) =>
       `${used} / ${quota} used`,
     StorageQuotaUnlimited: (used: string) => `${used} used / unlimited`,
