@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useAccessStore, useAppConfig, useChatStore } from "../store";
 import { useSkillStore } from "../store/skill";
 import { usePromptStore } from "../store/prompt";
@@ -8,7 +14,14 @@ import {
   isUcanSignPending,
   isUcanSignPendingError,
 } from "../plugins/ucan-sign-lock";
-import { getAccountWorkspaceSyncDelayMs } from "../utils/account-workspace";
+import {
+  getAccountWorkspaceInitialSyncOwner,
+  getAccountWorkspaceStatus,
+  getAccountWorkspaceSyncDelayMs,
+  isAccountWorkspaceInitialSyncPending,
+  markAccountWorkspaceSyncSettled,
+  subscribeAccountWorkspaceStatus,
+} from "../utils/account-workspace";
 
 let autoSyncInFlight = false;
 let lastAutoSyncAt = 0;
@@ -21,6 +34,11 @@ export function useAutoSync() {
   const cloudSync = useSyncStore((state) => state.cloudSync);
   const autoSyncDebounceMs = useSyncStore((state) => state.autoSyncDebounceMs);
   const autoSyncIntervalMs = useSyncStore((state) => state.autoSyncIntervalMs);
+  const workspaceStatus = useSyncExternalStore(
+    subscribeAccountWorkspaceStatus,
+    getAccountWorkspaceStatus,
+    getAccountWorkspaceStatus,
+  );
   const [authTick, setAuthTick] = useState(0);
   const canSync = cloudSync() && authTick >= 0;
   const debounceMs = autoSyncDebounceMs ?? 2000;
@@ -49,7 +67,23 @@ export function useAutoSync() {
 
   const triggerSync = useCallback(
     async (reason: string) => {
-      if (!enabled || autoSyncInFlight) return;
+      const initialWorkspaceSyncPending =
+        isAccountWorkspaceInitialSyncPending();
+      const initialSyncOwner = initialWorkspaceSyncPending
+        ? getAccountWorkspaceInitialSyncOwner()
+        : null;
+      if (!enabled) return;
+      if (autoSyncInFlight) {
+        if (initialWorkspaceSyncPending) {
+          if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+          }
+          debounceRef.current = setTimeout(() => {
+            triggerSync(`${reason}:in-flight`);
+          }, 300);
+        }
+        return;
+      }
       const workspaceSyncDelayMs = getAccountWorkspaceSyncDelayMs();
       if (workspaceSyncDelayMs > 0) {
         if (debounceRef.current) {
@@ -61,8 +95,20 @@ export function useAutoSync() {
         return;
       }
       const now = Date.now();
-      if (now - lastAutoSyncAt < AUTO_SYNC_DEDUPE_WINDOW_MS) return;
+      if (
+        !initialWorkspaceSyncPending &&
+        now - lastAutoSyncAt < AUTO_SYNC_DEDUPE_WINDOW_MS
+      )
+        return;
       if (isUcanSignPending()) {
+        if (initialWorkspaceSyncPending) {
+          if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+          }
+          debounceRef.current = setTimeout(() => {
+            triggerSync(`${reason}:sign-pending`);
+          }, 300);
+        }
         return;
       }
       if (useChatStore.getState().hasStreaming?.()) {
@@ -85,6 +131,9 @@ export function useAutoSync() {
         console.error(`[AutoSync] ${reason} failed`, e);
       } finally {
         autoSyncInFlight = false;
+        if (initialSyncOwner) {
+          markAccountWorkspaceSyncSettled(initialSyncOwner);
+        }
       }
     },
     [autoSync, debounceMs, enabled],
@@ -94,15 +143,15 @@ export function useAutoSync() {
     (reason: string) => {
       if (!enabled) return;
       const workspaceSyncDelayMs = getAccountWorkspaceSyncDelayMs();
+      const delayMs = isAccountWorkspaceInitialSyncPending()
+        ? 0
+        : Math.max(debounceMs, workspaceSyncDelayMs);
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-      debounceRef.current = setTimeout(
-        () => {
-          triggerSync(reason);
-        },
-        Math.max(debounceMs, workspaceSyncDelayMs),
-      );
+      debounceRef.current = setTimeout(() => {
+        triggerSync(reason);
+      }, delayMs);
     },
     [debounceMs, enabled, triggerSync],
   );
@@ -123,7 +172,7 @@ export function useAutoSync() {
   useEffect(() => {
     if (!enabled) return;
     triggerSync("startup");
-  }, [enabled, triggerSync]);
+  }, [enabled, triggerSync, workspaceStatus]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -147,12 +196,18 @@ export function useAutoSync() {
   }, [enabled, scheduleSync]);
 
   useEffect(() => {
-    if (enabled) return;
+    if (enabled || !hasHydrated) return;
+    if (
+      isAccountWorkspaceInitialSyncPending() &&
+      (!autoSyncEnabled || !cloudSync())
+    ) {
+      markAccountWorkspaceSyncSettled(getAccountWorkspaceInitialSyncOwner());
+    }
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
     }
-  }, [enabled]);
+  }, [autoSyncEnabled, cloudSync, enabled, hasHydrated, workspaceStatus]);
 
   useEffect(() => {
     return () => {

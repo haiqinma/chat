@@ -17,7 +17,11 @@ const ACCOUNT_WORKSPACE_SNAPSHOT_PREFIX = "accountWorkspaceSnapshot:";
 const GUEST_WORKSPACE_OWNER = "__guest__";
 const ACCOUNT_WORKSPACE_SYNC_COOLDOWN_MS = 15_000;
 
-export type AccountWorkspaceStatus = "booting" | "switching" | "ready";
+export type AccountWorkspaceStatus =
+  | "booting"
+  | "switching"
+  | "syncing"
+  | "ready";
 
 function normalizeWorkspaceOwner(account?: string | null) {
   const normalized = (account || "").trim().toLowerCase();
@@ -79,6 +83,7 @@ let hasBoundAccountWorkspaceIsolation = false;
 let workspaceSwitchChain = Promise.resolve();
 let syncSuppressedUntil = 0;
 let workspaceStatus: AccountWorkspaceStatus = "booting";
+let initialSyncOwner: string | null = null;
 const workspaceStatusListeners = new Set<() => void>();
 
 function setWorkspaceStatus(nextStatus: AccountWorkspaceStatus) {
@@ -91,44 +96,87 @@ export function getAccountWorkspaceStatus() {
   return workspaceStatus;
 }
 
+export function getAccountWorkspaceInitialSyncOwner() {
+  return initialSyncOwner;
+}
+
+export function isAccountWorkspaceInitialSyncPending() {
+  return workspaceStatus === "syncing" && !!initialSyncOwner;
+}
+
+export function markAccountWorkspaceSyncSettled(owner?: string | null) {
+  if (workspaceStatus !== "syncing") return;
+
+  const normalizedOwner = owner ? normalizeWorkspaceOwner(owner) : null;
+  if (initialSyncOwner && !normalizedOwner) return;
+  if (
+    initialSyncOwner &&
+    normalizedOwner &&
+    initialSyncOwner !== normalizedOwner
+  )
+    return;
+
+  initialSyncOwner = null;
+  setWorkspaceStatus("ready");
+}
+
 export function subscribeAccountWorkspaceStatus(listener: () => void) {
   workspaceStatusListeners.add(listener);
   return () => workspaceStatusListeners.delete(listener);
 }
 
 export function getAccountWorkspaceSyncDelayMs() {
+  if (isAccountWorkspaceInitialSyncPending()) return 0;
   return Math.max(0, syncSuppressedUntil - Date.now());
 }
 
 async function switchWorkspaceTo(owner: string) {
-  setWorkspaceStatus("switching");
   workspaceSwitchChain = workspaceSwitchChain.then(async () => {
     try {
       const normalizedOwner = normalizeWorkspaceOwner(owner);
       const storedOwner = storage.getItem(ACCOUNT_WORKSPACE_OWNER_KEY);
 
       if (!storedOwner) {
+        setWorkspaceStatus("switching");
         storage.setItem(ACCOUNT_WORKSPACE_OWNER_KEY, normalizedOwner);
         await saveWorkspaceSnapshot(normalizedOwner);
+        if (normalizedOwner !== GUEST_WORKSPACE_OWNER) {
+          initialSyncOwner = normalizedOwner;
+          setWorkspaceStatus("syncing");
+        } else {
+          initialSyncOwner = null;
+          setWorkspaceStatus("ready");
+        }
         return;
       }
 
       const currentOwner = normalizeWorkspaceOwner(storedOwner);
       if (currentOwner === normalizedOwner) {
+        if (workspaceStatus !== "syncing") {
+          setWorkspaceStatus("ready");
+        }
         return;
       }
 
+      setWorkspaceStatus("switching");
       await saveWorkspaceSnapshot(currentOwner);
-      const nextState =
-        (await loadWorkspaceSnapshot(normalizedOwner)) ||
-        createDefaultWorkspaceState();
+      const snapshot = await loadWorkspaceSnapshot(normalizedOwner);
+      const hasLocalSnapshot = !!snapshot;
+      const nextState = snapshot || createDefaultWorkspaceState();
 
       setLocalAppState(nextState);
       storage.setItem(ACCOUNT_WORKSPACE_OWNER_KEY, normalizedOwner);
       syncSuppressedUntil = Date.now() + ACCOUNT_WORKSPACE_SYNC_COOLDOWN_MS;
+      if (!hasLocalSnapshot && normalizedOwner !== GUEST_WORKSPACE_OWNER) {
+        initialSyncOwner = normalizedOwner;
+        setWorkspaceStatus("syncing");
+      } else {
+        initialSyncOwner = null;
+        setWorkspaceStatus("ready");
+      }
     } catch (error) {
       console.error("[Workspace] failed to switch account workspace", error);
-    } finally {
+      initialSyncOwner = null;
       setWorkspaceStatus("ready");
     }
   });
