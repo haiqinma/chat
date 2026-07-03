@@ -42,6 +42,7 @@ import {
   getBuiltinSkillPackageId,
   getSkillApiTools,
   getSkillBuiltInTools,
+  getSkillSessionToolbar,
   getSkillToolServers,
   isBuiltinSkillOverride,
   mergeVisibleSkills,
@@ -51,7 +52,8 @@ import { usePluginStore } from "../store/plugin";
 import { IconButton } from "./button";
 import { ErrorBoundary } from "./error";
 import { List, ListItem, Modal, showToast } from "./ui-lib";
-import { SkillConfig } from "./skill-editor";
+import { ModelConfigList } from "./model-config";
+import { RealtimeConfigList } from "./realtime-chat/realtime-config";
 import AddIcon from "../icons/add.svg";
 import BrainIcon from "../icons/brain.svg";
 import CloseIcon from "../icons/close.svg";
@@ -68,6 +70,10 @@ import { useSyncStore } from "../store/sync";
 import { fetchQuota, WebDAVQuota } from "../plugins/webdav";
 import { formatBytes } from "../utils/format";
 import { resolveImageModels } from "./sd/image-registry";
+import {
+  createDefaultRealtimeConfig,
+  type RealtimeConfig,
+} from "../store/realtime";
 import {
   getSkillRuntimeIssueSummary,
   getSkillRuntimeStatusOrder,
@@ -187,6 +193,95 @@ function isSensitiveToolConfigField(
 
 function isOfficialMarketplaceSkillPackage(skillPackage: SkillPackage) {
   return OFFICIAL_MARKETPLACE_SKILL_PACKAGE_IDS.has(skillPackage.id);
+}
+
+function DiscoverySkillSetup(props: {
+  skill: Skill;
+  runtimeResult?: SkillRuntimeResult;
+  updateSkill: (updater: (skill: Skill) => void) => void;
+}) {
+  const skill = props.skill;
+  const toolbar = getSkillSessionToolbar(skill);
+  const isRealtimeSkill = Boolean(toolbar.realtime && skill.realtimeConfig);
+  const isImageSkill = skill.launch?.type === "sd";
+  const runtimeIssues = props.runtimeResult?.issues ?? [];
+
+  const updateModelConfig = (
+    updater: (config: Skill["modelConfig"]) => void,
+  ) => {
+    const config = { ...skill.modelConfig };
+    updater(config);
+    props.updateSkill((nextSkill) => {
+      nextSkill.modelConfig = config;
+      nextSkill.syncGlobalConfig = false;
+    });
+  };
+
+  const updateRealtimeConfig = (updater: (config: RealtimeConfig) => void) => {
+    const config = createDefaultRealtimeConfig(skill.realtimeConfig);
+    updater(config);
+    props.updateSkill((nextSkill) => {
+      nextSkill.realtimeConfig = config;
+    });
+  };
+
+  return (
+    <div className={styles["skill-setup"]}>
+      <div className={styles["skill-setup-summary"]}>
+        <div className={styles["skill-setup-title"]}>{skill.name}</div>
+        <div className={styles["skill-setup-desc"]}>
+          {skill.description || Locale.Discovery.DefaultSkillDesc}
+        </div>
+        {!!skill.starters?.length && (
+          <div className={styles["skill-setup-starters"]}>
+            {skill.starters.slice(0, 3).map((starter) => (
+              <span key={starter}>{starter}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {runtimeIssues.length > 0 && (
+        <div className={styles["skill-setup-issues"]}>
+          <strong>{Locale.Discovery.SkillSetup.RuntimeIssues}</strong>
+          {runtimeIssues.map((issue) => (
+            <span key={`${issue.type}:${issue.message}`}>{issue.message}</span>
+          ))}
+        </div>
+      )}
+
+      {isRealtimeSkill ? (
+        <>
+          <div className={styles["skill-setup-hint"]}>
+            {Locale.Discovery.SkillSetup.RealtimeHint}
+          </div>
+          <List>
+            <RealtimeConfigList
+              realtimeConfig={createDefaultRealtimeConfig(skill.realtimeConfig)}
+              updateConfig={updateRealtimeConfig}
+            />
+          </List>
+        </>
+      ) : isImageSkill ? (
+        <div className={styles["skill-setup-hint"]}>
+          {Locale.Discovery.SkillSetup.ImageHint}
+        </div>
+      ) : (
+        <>
+          <div className={styles["skill-setup-hint"]}>
+            {Locale.Discovery.SkillSetup.ModelHint}
+          </div>
+          <List>
+            <ModelConfigList
+              modelConfig={{ ...skill.modelConfig }}
+              updateConfig={updateModelConfig}
+              strictModelSelection
+            />
+          </List>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function DiscoveryPage() {
@@ -655,6 +750,19 @@ export function DiscoveryPage() {
     storageQuota,
     storageQuotaStatus,
   ]);
+
+  const editingSkillRuntimeResult = useMemo(
+    () =>
+      editingSkill
+        ? capabilities.find(
+            (item) =>
+              item.type === "skill" &&
+              item.skill &&
+              String(item.skill.id) === String(editingSkill.id),
+          )?.runtimeResult
+        : undefined,
+    [capabilities, editingSkill],
+  );
 
   const marketplaceSkillTitles = useMemo(
     () =>
@@ -1280,15 +1388,15 @@ export function DiscoveryPage() {
         {editingSkill && (
           <div className="modal-mask">
             <Modal
-              title={Locale.Skill.EditModal.Title(editingSkill.builtin)}
+              title={Locale.Discovery.SkillSetup.Title}
               onClose={() => setEditingSkillId(undefined)}
             >
-              <SkillConfig
+              <DiscoverySkillSetup
                 skill={editingSkill}
+                runtimeResult={editingSkillRuntimeResult}
                 updateSkill={(updater) =>
                   skillStore.updateSkill(editingSkill.id, updater)
                 }
-                readonly={editingSkill.builtin}
               />
             </Modal>
           </div>

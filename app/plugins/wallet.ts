@@ -641,9 +641,6 @@ export async function loginWithUcan(
     localStorage.removeItem("authToken");
     emitAuthError("");
     emitAuthChange();
-    if (!options?.silent) {
-      notifySuccess(`授权成功`);
-    }
     if (options?.reload) {
       window.location.reload();
     }

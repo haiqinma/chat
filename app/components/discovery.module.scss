@@ -210,6 +210,66 @@
   opacity: 0.86;
 }
 
+.skill-setup {
+  display: grid;
+  gap: 14px;
+  min-width: min(520px, 82vw);
+}
+
+.skill-setup-summary,
+.skill-setup-hint,
+.skill-setup-issues {
+  padding: 12px;
+  border: var(--border-in-light);
+  border-radius: 10px;
+  background: var(--hover-color);
+}
+
+.skill-setup-title {
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.skill-setup-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.78;
+}
+
+.skill-setup-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+
+  span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--white);
+    font-size: 11px;
+    opacity: 0.82;
+  }
+}
+
+.skill-setup-hint {
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: 0.86;
+}
+
+.skill-setup-issues {
+  display: grid;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 1.45;
+
+  strong {
+    color: var(--black);
+  }
+}
+
 .tool-detail {
   display: grid;
   gap: 12px;

@@ -771,6 +771,16 @@ const cn = {
     ToolUserProvided: "用户自带工具配置",
     ToolUserConfigHint:
       "工具支持 cloud / native 两种运行方式。Web 版普通用户通常直接使用云端能力；桌面版或自托管环境可在本地安装、配置和管理。当前这个配置面板写入的是本地工具运行配置，请只在可信环境中使用。",
+    SkillSetup: {
+      Title: "技能配置",
+      RuntimeIssues: "需要处理",
+      RealtimeHint:
+        "实时聊天使用语音会话配置；启用后会在会话页展示实时语音入口。",
+      ModelHint:
+        "这个技能只需要确认对话模型。提示词、开场白和工具绑定由技能预设提供。",
+      ImageHint:
+        "图片技能使用当前 Router 中可用的图片模型；没有可调的发现页专属配置。",
+    },
     OpenToolManager: "打开工具管理",
     Manage: "管理",
     Configure: "配置",
