@@ -82,17 +82,6 @@ function normalizeRequestParams(
   });
 }
 
-const imageStyleParam: ImageParamSchema = {
-  name: Locale.SdPanel.ImageStyle,
-  value: "style",
-  type: "select",
-  default: "vivid",
-  options: [
-    { name: "vivid", value: "vivid" },
-    { name: "natural", value: "natural" },
-  ],
-};
-
 export const imageEndpointSchemas: Record<
   ImageEndpointType,
   ImageEndpointSchema
@@ -106,7 +95,6 @@ export const imageEndpointSchemas: Record<
           "images-generation",
           data?.specification,
         ),
-        imageStyleParam,
       ].filter(Boolean) as ImageParamSchema[],
     buildRequestBody: ({ model, params, specification }) => {
       const normalizedParams = normalizeRequestParams(
@@ -121,7 +109,6 @@ export const imageEndpointSchemas: Record<
         response_format: "b64_json",
         n: normalizedParams.n ?? 1,
         ...normalizedParams,
-        style: params.style || "vivid",
       };
     },
     resolveImageResult: resolveOpenAIImageResult,
@@ -136,7 +123,6 @@ export const imageEndpointSchemas: Record<
       [
         promptParam,
         ...getModelParams(data?.model, "images-edits", data?.specification),
-        imageStyleParam,
       ].filter(Boolean) as ImageParamSchema[],
     buildRequestBody: buildOpenAIImageEditFormData,
     resolveImageResult: resolveOpenAIImageResult,

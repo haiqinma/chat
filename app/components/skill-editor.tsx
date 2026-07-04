@@ -980,7 +980,7 @@ export function SkillPage() {
 
   const startSkill = (skill: Skill) => {
     if (skill.launch?.type === "sd") {
-      sdStore.startBlankCreation();
+      sdStore.startBlankCreation("", skill);
       navigate(Path.Sd);
       return;
     }
