@@ -74,6 +74,8 @@ import {
   createDefaultRealtimeConfig,
   type RealtimeConfig,
 } from "../store/realtime";
+import { useAllModels } from "../utils/hooks";
+import { filterModelsByCandidates } from "../utils/model";
 import {
   getSkillRuntimeIssueSummary,
   getSkillRuntimeStatusOrder,
@@ -205,6 +207,35 @@ function DiscoverySkillSetup(props: {
   const isRealtimeSkill = Boolean(toolbar.realtime && skill.realtimeConfig);
   const isImageSkill = skill.launch?.type === "sd";
   const runtimeIssues = props.runtimeResult?.issues ?? [];
+  const allModels = useAllModels();
+  const skillModelOptions = useMemo(
+    () => filterModelsByCandidates(allModels, skill.candidateModels),
+    [allModels, skill.candidateModels],
+  );
+  const imageModels = useMemo(
+    () =>
+      resolveImageModels(
+        allModels.filter((model) => model.available),
+        "generation",
+      ),
+    [allModels],
+  );
+  const selectedImageModel = useMemo(
+    () =>
+      imageModels.find((model) => model.value === skill.modelConfig.model) ??
+      imageModels[0],
+    [imageModels, skill.modelConfig.model],
+  );
+  const imageParamSchemas = useMemo(
+    () =>
+      selectedImageModel
+        ?.params({
+          ...skill.modelConfig,
+          model: selectedImageModel.value,
+        })
+        .filter((param) => param.value !== "prompt") ?? [],
+    [selectedImageModel, skill.modelConfig],
+  );
 
   const updateModelConfig = (
     updater: (config: Skill["modelConfig"]) => void,
@@ -222,6 +253,17 @@ function DiscoverySkillSetup(props: {
     updater(config);
     props.updateSkill((nextSkill) => {
       nextSkill.realtimeConfig = config;
+    });
+  };
+
+  const updateImageConfig = (
+    updater: (config: Record<string, any>) => void,
+  ) => {
+    const config = { ...skill.modelConfig } as Record<string, any>;
+    updater(config);
+    props.updateSkill((nextSkill) => {
+      nextSkill.modelConfig = config as Skill["modelConfig"];
+      nextSkill.syncGlobalConfig = false;
     });
   };
 
@@ -263,9 +305,87 @@ function DiscoverySkillSetup(props: {
           </List>
         </>
       ) : isImageSkill ? (
-        <div className={styles["skill-setup-hint"]}>
-          {Locale.Discovery.SkillSetup.ImageHint}
-        </div>
+        <>
+          <div className={styles["skill-setup-hint"]}>
+            {Locale.Discovery.SkillSetup.ImageHint}
+          </div>
+          <List>
+            <ListItem title={Locale.SdPanel.ModelSelectorTitle}>
+              <select
+                value={selectedImageModel?.value ?? ""}
+                disabled={imageModels.length === 0}
+                onChange={(event) => {
+                  const nextModel = imageModels.find(
+                    (model) => model.value === event.currentTarget.value,
+                  );
+                  if (!nextModel) return;
+                  updateImageConfig((config) => {
+                    config.model = nextModel.value;
+                    config.providerName = nextModel.providerName;
+                  });
+                }}
+              >
+                {imageModels.length === 0 ? (
+                  <option value="">{Locale.Discovery.NoImageModels}</option>
+                ) : null}
+                {imageModels.map((model) => (
+                  <option value={model.value} key={model.value}>
+                    {model.name}
+                    {model.providerName ? ` (${model.providerName})` : ""}
+                  </option>
+                ))}
+              </select>
+            </ListItem>
+            {imageParamSchemas.map((param) => (
+              <ListItem
+                title={param.name}
+                subTitle={param.sub}
+                key={param.value}
+              >
+                {param.type === "select" ? (
+                  <select
+                    value={
+                      (skill.modelConfig as Record<string, any>)[param.value] ??
+                      param.default ??
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateImageConfig((config) => {
+                        config[param.value] = event.currentTarget.value;
+                      })
+                    }
+                  >
+                    {(param.options ?? []).map((option) => (
+                      <option value={option.value} key={option.value}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={param.type === "number" ? "number" : "text"}
+                    min={param.min}
+                    max={param.max}
+                    value={
+                      (skill.modelConfig as Record<string, any>)[param.value] ??
+                      param.default ??
+                      ""
+                    }
+                    placeholder={param.placeholder}
+                    onChange={(event) =>
+                      updateImageConfig((config) => {
+                        config[param.value] =
+                          param.type === "number"
+                            ? event.currentTarget.valueAsNumber
+                            : event.currentTarget.value;
+                      })
+                    }
+                  />
+                )}
+              </ListItem>
+            ))}
+          </List>
+        </>
       ) : (
         <>
           <div className={styles["skill-setup-hint"]}>
@@ -275,6 +395,7 @@ function DiscoverySkillSetup(props: {
             <ModelConfigList
               modelConfig={{ ...skill.modelConfig }}
               updateConfig={updateModelConfig}
+              modelOptions={skillModelOptions}
               strictModelSelection
             />
           </List>

@@ -798,7 +798,7 @@ const en: LocaleType = {
       ModelHint:
         "This skill only needs a conversation model check. Prompts, starters, and tool bindings come from the skill preset.",
       ImageHint:
-        "Image skills use available image models from Router. There is no separate Discovery-only setting.",
+        "Image skills use available Router image models. Configure the model and basic generation parameters here.",
     },
     OpenToolManager: "Open Tool Manager",
     Manage: "Manage",
