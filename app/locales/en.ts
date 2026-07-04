@@ -790,6 +790,16 @@ const en: LocaleType = {
     ToolUserProvided: "User-provided tool config",
     ToolUserConfigHint:
       "Tools support both cloud and native runtimes. Web users typically use cloud-hosted tools out of the box; desktop or self-hosted environments can install, configure, and manage tools locally. This panel writes local tool runtime config, so only use it in a trusted environment.",
+    SkillSetup: {
+      Title: "Skill Configuration",
+      RuntimeIssues: "Needs attention",
+      RealtimeHint:
+        "Realtime Chat uses voice session settings. Once enabled, the realtime voice entry appears in the chat view.",
+      ModelHint:
+        "This skill only needs a conversation model check. Prompts, starters, and tool bindings come from the skill preset.",
+      ImageHint:
+        "Image skills use available Router image models. Configure the model and basic generation parameters here.",
+    },
     OpenToolManager: "Open Tool Manager",
     Manage: "Manage",
     Configure: "Configure",
