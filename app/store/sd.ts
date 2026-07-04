@@ -11,10 +11,15 @@ import {
   ImageFormMode,
 } from "@/app/components/sd/image-endpoint-schemas";
 import { resolveStoredImageUrl } from "@/app/components/sd/image-result";
-import { getDefaultImageModel } from "@/app/components/sd/image-registry";
+import {
+  getDefaultImageModel,
+  resolveImageModels,
+} from "@/app/components/sd/image-registry";
 import { getHeadersWithRouterUcan } from "@/app/client/platforms/openai";
 import { useAccessStore } from "./access";
 import Locale from "@/app/locales";
+import type { Skill } from "./skill";
+import { useAppConfig } from "./config";
 
 function normalizeSdErrorMessage(message: string) {
   const text = String(message || "");
@@ -136,7 +141,7 @@ export const useSdStore = createPersistStore<
     setCurrentModel: (model: any) => void;
     setCurrentParams: (data: any) => void;
     setCurrentSessionId: (sessionId: string) => void;
-    startBlankCreation: (prompt?: string) => void;
+    startBlankCreation: (prompt?: string, skill?: Skill) => void;
     deleteDraw: (id: string) => void;
     deleteSession: (sessionId: string) => void;
   }
@@ -318,14 +323,29 @@ export const useSdStore = createPersistStore<
       setCurrentSessionId(sessionId: string) {
         set({ currentSessionId: sessionId });
       },
-      startBlankCreation(prompt = "") {
+      startBlankCreation(prompt = "", skill?: Skill) {
+        const availableModels = (useAppConfig.getState().models ?? []).filter(
+          (model) => model.available,
+        );
+        const imageModels = resolveImageModels(availableModels, "generation");
         const currentModel = _get().currentModel;
+        const skillModel = skill?.modelConfig?.model
+          ? imageModels.find((model) => model.value === skill.modelConfig.model)
+          : undefined;
+        const matchedCurrentModel = currentModel?.value
+          ? imageModels.find((model) => model.value === currentModel.value)
+          : undefined;
+        const nextModel =
+          skillModel ?? matchedCurrentModel ?? imageModels[0] ?? currentModel;
+        const baseParams = skill?.modelConfig ?? {};
         const sessionId = nanoid();
         const currentParams = getModelParamBasicData(
-          currentModel?.params?.({
-            specification: currentModel?.specification,
+          nextModel?.params?.({
+            ...baseParams,
+            model: nextModel?.value,
+            specification: nextModel?.specification,
           }) ?? [],
-          {},
+          baseParams,
         );
         set({
           currentSessionId: sessionId,
@@ -335,6 +355,7 @@ export const useSdStore = createPersistStore<
           editSourceName: "",
           editMaskImage: "",
           editMaskName: "",
+          currentModel: nextModel,
           currentParams: {
             ...currentParams,
             prompt,

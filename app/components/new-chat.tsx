@@ -396,7 +396,7 @@ export function NewChat() {
 
     if (skill.launch?.type === "sd") {
       const input = draft.trim();
-      sdStore.startBlankCreation(input);
+      sdStore.startBlankCreation(input, skill);
       navigate(Path.Sd);
       return;
     }

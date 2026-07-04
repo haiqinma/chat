@@ -22,7 +22,6 @@ export function buildOpenAIImageEditFormData(data: {
   });
   body.append("model", data.model);
   body.append("prompt", data.params.prompt || "");
-  body.append("style", data.params.style || "vivid");
   Object.entries(normalizedParams).forEach(([key, value]) => {
     body.append(key, String(value));
   });

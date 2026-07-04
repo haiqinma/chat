@@ -39,6 +39,7 @@ const SPEC_PARAM_ORDER = [
   "width",
   "height",
   "quality",
+  "style",
   "n",
 ];
 
@@ -115,9 +116,28 @@ function defaultQualityParam(model?: string): ImageParamSchema {
   };
 }
 
+function defaultStyleParam(): ImageParamSchema {
+  return {
+    name: Locale.SdPanel.ImageStyle,
+    value: "style",
+    type: "select",
+    default: "vivid",
+    options: [
+      { name: "vivid", value: "vivid" },
+      { name: "natural", value: "natural" },
+    ],
+  };
+}
+
+function supportsLegacyStyleParam(model?: string) {
+  const normalizedModel = model?.toLowerCase() ?? "";
+  return normalizedModel === "dall-e-3";
+}
+
 function buildSpecParam(
   key: string,
   parameter: ModelParameterSpecification | undefined,
+  model?: string,
 ): ImageParamSchema | undefined {
   switch (key) {
     case "size":
@@ -128,6 +148,11 @@ function buildSpecParam(
       return enumParam(Locale.SdPanel.AspectRatio, key, parameter);
     case "quality":
       return enumParam(Locale.SdPanel.ImageQuality, key, parameter);
+    case "style":
+      return (
+        enumParam(Locale.SdPanel.ImageStyle, key, parameter) ??
+        (supportsLegacyStyleParam(model) ? defaultStyleParam() : undefined)
+      );
     case "width":
       return numberParam("Width", key, parameter);
     case "height":
@@ -147,7 +172,7 @@ export function buildImageModelParamSchemas(input: {
   const spec = endpointSpec(input.specification, input.endpointType);
   const parameters = spec?.parameters ?? {};
   const schemas = SPEC_PARAM_ORDER.map((key) =>
-    buildSpecParam(key, parameters[key]),
+    buildSpecParam(key, parameters[key], input.model),
   ).filter(Boolean) as ImageParamSchema[];
 
   if (schemas.length > 0) return schemas;
