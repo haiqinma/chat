@@ -307,6 +307,11 @@ function bindWalletListeners(provider: Eip1193Provider) {
     if (nextAccount !== lastObservedAccount) {
       const previousAccount = lastObservedAccount;
       lastObservedAccount = nextAccount;
+      if (!previousAccount || loginInFlight) {
+        localStorage.setItem("currentAccount", nextAccount);
+        emitAuthChange();
+        return;
+      }
       localStorage.setItem("currentAccount", nextAccount);
       beginAuthTransition();
       try {
@@ -326,8 +331,12 @@ function bindWalletListeners(provider: Eip1193Provider) {
           nextAccount,
           error,
         });
-        clearWalletAuthState({ clearAccount: true });
-        lastObservedAccount = "";
+        if (loginInFlight) {
+          localStorage.setItem("currentAccount", nextAccount);
+        } else {
+          clearWalletAuthState({ clearAccount: true });
+          lastObservedAccount = "";
+        }
         emitAuthChange();
       } finally {
         endAuthTransition();
@@ -584,6 +593,7 @@ export async function loginWithUcan(
     const existing = await getStoredRoot();
     const expectedIssuer = getUcanIssuer(currentAccount);
     if (existing && isStoredRootUsable(existing, currentAccount)) {
+      localStorage.setItem("currentAccount", currentAccount);
       storeUcanMeta(existing);
       emitAuthError("");
       emitAuthChange();
@@ -638,6 +648,7 @@ export async function loginWithUcan(
       throw new Error("UCAN root was not persisted");
     }
     storeUcanMeta(storedRoot);
+    localStorage.setItem("currentAccount", currentAccount);
     localStorage.removeItem("authToken");
     emitAuthError("");
     emitAuthChange();
