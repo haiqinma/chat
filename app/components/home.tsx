@@ -35,8 +35,11 @@ import { SideBar } from "./sidebar";
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
-import { getRouterClientApi } from "../client/api";
-import { supportsTextEndpoint } from "../client/api";
+import {
+  getRouterClientApi,
+  supportsImageGenerationEndpoint,
+  supportsTextEndpoint,
+} from "../client/api";
 import { useAccessStore, useSkillProviderModelsStore } from "../store";
 import {
   RouterApi,
@@ -304,6 +307,18 @@ function Screen() {
       }),
     [availableModels],
   );
+  const hasImageModels = useMemo(
+    () =>
+      availableModels.some((model) => {
+        if (!model.available) return false;
+        const tags = Array.isArray(model.tags) ? model.tags : [];
+        const endpoints = model.supportedEndpoints ?? [];
+        return (
+          tags.includes("image") || supportsImageGenerationEndpoint(endpoints)
+        );
+      }),
+    [availableModels],
+  );
   const hasConversationSessions = useMemo(
     () => sessions.some((session) => session.messages.length > 0),
     [sessions],
@@ -352,23 +367,26 @@ function Screen() {
       navigate(`${Path.Setup}?redirect=${redirect}`, { replace: true });
     };
 
-    if (
-      !hasTextModels &&
-      [Path.Home, Path.Chat, Path.NewChat].includes(location.pathname as Path)
-    ) {
+    if (!hasTextModels && location.pathname === Path.Chat) {
+      redirectToSetup();
+      return;
+    }
+
+    if (!hasTextModels && !hasImageModels && location.pathname === Path.Home) {
       redirectToSetup();
       return;
     }
 
     if (
-      hasTextModels &&
       location.pathname === Path.Home &&
-      !hasConversationSessions
+      !hasConversationSessions &&
+      (hasTextModels || hasImageModels)
     ) {
       navigate(Path.NewChat, { replace: true });
     }
   }, [
     hasConversationSessions,
+    hasImageModels,
     hasTextModels,
     isAuthorized,
     isCheckingAuth,
