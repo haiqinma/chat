@@ -15,7 +15,7 @@ import {
   initWebDavStorage,
   createWebDavClient as createSdkWebDavClient,
 } from "@yeying-community/web3-bs";
-import { getCachedUcanSession } from "@/app/plugins/ucan-session";
+import { ensureLocalUcanSession } from "@/app/plugins/ucan-session";
 import { invalidateUcanAuthorization } from "@/app/plugins/wallet";
 import {
   getCentralUcanAuthorizationHeaderForAudience,
@@ -65,12 +65,7 @@ type SyncLockMeta = {
 };
 
 type WebDavShareExpiresUnit =
-  | "minute"
-  | "hour"
-  | "day"
-  | "week"
-  | "month"
-  | "year";
+  "minute" | "hour" | "day" | "week" | "month" | "year";
 
 type WebDavShareResponse = {
   url?: string;
@@ -763,9 +758,11 @@ async function getUcanWebDavClient(store: SyncStore) {
   if (cached) {
     return cached;
   }
-  const session = await getCachedUcanSession();
+  const session = await ensureLocalUcanSession();
   if (!session) {
-    await invalidateUcanAuthorization("UCAN session is not available");
+    console.warn(
+      "[UCAN][WebDAV] local session is unavailable during sync; keep auth and retry later",
+    );
     throw new Error("UCAN session is not available");
   }
   if (root.aud && root.aud !== session.did) {

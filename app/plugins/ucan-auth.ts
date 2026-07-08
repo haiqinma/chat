@@ -5,8 +5,6 @@ export const UCAN_REAUTH_ERROR_MESSAGE = "UCAN 授权已失效，请重新连接
 const UCAN_INVALIDATION_PATTERNS = [
   "missing ucan proof chain",
   "ucan root audience mismatch",
-  "missing ucan session key",
-  "ucan session is not available",
   "ucan root is not ready",
   "ucan root capability mismatch",
   "ucan root expired",
@@ -28,9 +26,7 @@ export function getErrorMessage(error: unknown): string {
 export function shouldInvalidateUcanByError(error: unknown): boolean {
   const normalized = getErrorMessage(error).trim().toLowerCase();
   if (!normalized) return false;
-  return UCAN_INVALIDATION_PATTERNS.some((entry) =>
-    normalized.includes(entry),
-  );
+  return UCAN_INVALIDATION_PATTERNS.some((entry) => normalized.includes(entry));
 }
 
 export async function invalidateUcan(reason?: string): Promise<void> {
