@@ -259,8 +259,6 @@ export function RouterPage() {
     const params = new URLSearchParams(location.search);
     return (params.get("action") || "").trim().toLowerCase();
   }, [location.search]);
-  const canReturnToChat = tokenConfigured || tokenModels.length > 0;
-
   const updateRouterAccess = (updater: (state: typeof accessStore) => void) => {
     accessStore.update((state) => {
       state.provider = ServiceProvider.OpenAI;
@@ -493,26 +491,6 @@ export function RouterPage() {
           <div className="window-actions">
             <div className="window-action-button">
               <IconButton
-                icon={<ResetIcon />}
-                text={Locale.Router.RefreshModels}
-                bordered
-                onClick={() => void reloadModels()}
-                disabled={loadingModels}
-              />
-            </div>
-            <div className="window-action-button">
-              <IconButton
-                text={
-                  canReturnToChat
-                    ? Locale.Router.ReturnToChat
-                    : Locale.Router.ReturnToNewChat
-                }
-                bordered
-                onClick={() => navigate(redirectTarget)}
-              />
-            </div>
-            <div className="window-action-button">
-              <IconButton
                 aria={Locale.UI.Close}
                 icon={<CloseIcon />}
                 onClick={() => navigate(Path.Discovery)}
@@ -563,28 +541,6 @@ export function RouterPage() {
                 </div>
               </div>
               <div className={styles["panel-actions"]}>
-                <div className={styles["status-inline"]}>
-                  <span
-                    className={
-                      tokenConfigured
-                        ? styles["status-on"]
-                        : styles["status-off"]
-                    }
-                  >
-                    {tokenConfigured
-                      ? Locale.Router.Status.TokenReady
-                      : Locale.Router.Status.TokenMissing}
-                  </span>
-                  <span
-                    className={
-                      showUsage ? styles["status-on"] : styles["status-off"]
-                    }
-                  >
-                    {showUsage
-                      ? Locale.Router.Status.UsageReady
-                      : Locale.Router.Status.UsagePending}
-                  </span>
-                </div>
                 <div className={styles["action-pair"]}>
                   <IconButton
                     icon={<ResetIcon />}
@@ -760,6 +716,15 @@ export function RouterPage() {
                 <div className={styles["panel-subtitle"]}>
                   {Locale.Router.Models.SubTitle}
                 </div>
+              </div>
+              <div className={styles["panel-actions"]}>
+                <IconButton
+                  icon={<ResetIcon />}
+                  text={Locale.Router.RefreshModels}
+                  bordered
+                  onClick={() => void reloadModels()}
+                  disabled={loadingModels}
+                />
               </div>
             </div>
 
