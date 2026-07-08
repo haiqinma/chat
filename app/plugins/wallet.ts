@@ -17,6 +17,7 @@ import {
   classifyWalletError,
   createRootUcan,
   getStoredUcanRoot,
+  resolveUcanAuthorization,
   clearUcanSession,
   type Eip1193Provider,
   type UcanRootProof,
@@ -138,78 +139,22 @@ export function isUcanMetaAuthorized(): boolean {
   }
 }
 
-function extractUcanStatementPayload(message?: string | null) {
-  if (!message || typeof message !== "string") return null;
-  const marker = "UCAN-AUTH";
-  const index = message.indexOf(marker);
-  if (index < 0) return null;
-  const jsonStart = message.indexOf("{", index + marker.length);
-  const jsonEnd = message.lastIndexOf("}");
-  if (jsonStart < 0 || jsonEnd < jsonStart) return null;
-  const raw = message.slice(jsonStart, jsonEnd + 1).trim();
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function hasExpectedServiceHosts(root: UcanRootProof | null) {
-  if (!root?.siwe?.message) return false;
-  const statementPayload = extractUcanStatementPayload(root.siwe.message);
-  if (!statementPayload) return false;
-  const hosts =
-    statementPayload.service_hosts &&
-    typeof statementPayload.service_hosts === "object" &&
-    !Array.isArray(statementPayload.service_hosts)
-      ? (statementPayload.service_hosts as Record<string, unknown>)
-      : null;
-  if (!hosts) return false;
-  const routerHost =
-    typeof hosts.router === "string" ? hosts.router.trim() : "";
-  const webdavHost =
-    typeof hosts.webdav === "string" ? hosts.webdav.trim() : "";
-  if (!routerHost || !webdavHost) return false;
-
-  const expectedRouterHost = getRouterServiceHost();
-  const expectedWebdavHost = getWebdavServiceHost();
-  if (expectedRouterHost && routerHost !== expectedRouterHost) {
-    return false;
-  }
-  if (expectedWebdavHost && webdavHost !== expectedWebdavHost) {
-    return false;
-  }
-  return true;
-}
-
-function isRootCapMatched(root: UcanRootProof | null) {
-  if (!root) return false;
-  return (
-    getUcanCapsKey(root.cap) === getUcanRootCapsKey() &&
-    hasExpectedServiceHosts(root)
-  );
-}
-
-function isStoredRootUsable(root: UcanRootProof | null, account?: string) {
-  if (!root || typeof root.exp !== "number") {
-    return false;
-  }
-  if (root.exp <= Date.now()) {
-    return false;
-  }
-  const currentAccount = (account || getCurrentAccount() || "").trim();
-  if (!currentAccount) {
-    return false;
-  }
-  if (root.iss !== getUcanIssuer(currentAccount)) {
-    return false;
-  }
-  return isRootCapMatched(root);
+async function resolveWalletUcanAuthorization(options?: {
+  root?: UcanRootProof | null;
+  account?: string | null;
+  recoverAccountFromRoot?: boolean;
+}) {
+  return await resolveUcanAuthorization({
+    sessionId: UCAN_SESSION_ID,
+    root: options?.root,
+    currentAccount: options?.account ?? getCurrentAccount(),
+    expectedCapabilities: getUcanRootCapabilities(),
+    expectedServiceHosts: {
+      router: getRouterServiceHost(),
+      webdav: getWebdavServiceHost(),
+    },
+    recoverAccountFromRoot: options?.recoverAccountFromRoot,
+  });
 }
 
 function storeUcanMeta(root: UcanRootProof) {
@@ -284,12 +229,12 @@ function bindWalletListeners(provider: Eip1193Provider) {
       const root = await getStoredRoot();
       const current = getCurrentAccount();
       const expectedIssuer = current ? getUcanIssuer(current) : "";
-      const rootValid =
-        root &&
-        typeof root.exp === "number" &&
-        root.exp > Date.now() &&
-        (!expectedIssuer || root.iss === expectedIssuer) &&
-        isRootCapMatched(root);
+      const auth = await resolveWalletUcanAuthorization({
+        root,
+        account: current || null,
+        recoverAccountFromRoot: !expectedIssuer,
+      });
+      const rootValid = auth.status === "authorized";
 
       if (rootValid) {
         // 钱包可能只是锁定，保留已授权的 UCAN
@@ -591,10 +536,15 @@ export async function loginWithUcan(
     }
 
     const existing = await getStoredRoot();
-    const expectedIssuer = getUcanIssuer(currentAccount);
-    if (existing && isStoredRootUsable(existing, currentAccount)) {
+    const existingAuth = existing
+      ? await resolveWalletUcanAuthorization({
+          root: existing,
+          account: currentAccount,
+        })
+      : null;
+    if (existingAuth?.status === "authorized") {
       localStorage.setItem("currentAccount", currentAccount);
-      storeUcanMeta(existing);
+      storeUcanMeta(existingAuth.root);
       emitAuthError("");
       emitAuthChange();
       if (options?.reload) {
@@ -603,15 +553,9 @@ export async function loginWithUcan(
       return;
     }
     if (existing) {
-      const expired =
-        typeof existing.exp === "number" && existing.exp <= Date.now();
-      const issuerMismatch = existing.iss !== expectedIssuer;
-      const capsMismatch = !isRootCapMatched(existing);
-      if (expired || issuerMismatch || capsMismatch) {
-        await clearUcanSession(UCAN_SESSION_ID);
-        clearUcanMeta();
-        clearCachedUcanSession();
-      }
+      await clearUcanSession(UCAN_SESSION_ID);
+      clearUcanMeta();
+      clearCachedUcanSession();
     }
 
     if (!acquireUcanSignLock()) {
@@ -642,7 +586,12 @@ export async function loginWithUcan(
     const storedRoot = await getStoredRoot();
     if (
       !storedRoot ||
-      !isStoredRootUsable(storedRoot, currentAccount) ||
+      (
+        await resolveWalletUcanAuthorization({
+          root: storedRoot,
+          account: currentAccount,
+        })
+      ).status !== "authorized" ||
       storedRoot.aud !== root.aud
     ) {
       throw new Error("UCAN root was not persisted");
@@ -713,7 +662,19 @@ export async function isValidUcanAuthorization(): Promise<boolean> {
   }
   try {
     const root = await getStoredRoot();
-    return isStoredRootUsable(root);
+    const auth = await resolveWalletUcanAuthorization({
+      root,
+      recoverAccountFromRoot: true,
+    });
+    if (auth.status === "authorized") {
+      if (auth.restoredAccount && !getCurrentAccount()) {
+        localStorage.setItem("currentAccount", auth.account);
+        storeUcanMeta(auth.root);
+        console.info("[Wallet] restored current account from UCAN root");
+      }
+      return true;
+    }
+    return false;
   } catch (e) {
     return false;
   }
