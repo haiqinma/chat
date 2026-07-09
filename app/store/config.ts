@@ -10,6 +10,7 @@ import {
   DEFAULT_TTS_MODELS,
   DEFAULT_TTS_VOICE,
   DEFAULT_TTS_VOICES,
+  DEFAULT_CHAT_MODEL,
   StoreKey,
   ServiceProvider,
 } from "../constant";
@@ -66,11 +67,10 @@ export const createDefaultConfig = () => {
     dontShowMaskSplashScreen: false, // dont show skill picker when create chat
     hideBuiltinSkills: false, // dont add builtin skills
 
-    customModels: "",
     models: [] as LLMModel[],
 
     modelConfig: {
-      model: "gpt-5.1" as ModelType,
+      model: DEFAULT_CHAT_MODEL as ModelType,
       providerName: "OpenAI" as ServiceProvider,
       temperature: 0.5,
       top_p: 1,
@@ -263,10 +263,6 @@ export const useAppConfig = createPersistStore(
       const legacyState = state as ChatConfig & { hideBuiltinMasks?: boolean };
       if (legacyState.hideBuiltinSkills === undefined) {
         legacyState.hideBuiltinSkills = legacyState.hideBuiltinMasks ?? false;
-      }
-
-      if (version < 3.5) {
-        state.customModels = "claude,claude-100k";
       }
 
       if (version < 3.6) {

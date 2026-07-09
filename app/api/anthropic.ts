@@ -3,13 +3,11 @@ import {
   ANTHROPIC_BASE_URL,
   Anthropic,
   ApiPath,
-  ServiceProvider,
   ModelProvider,
 } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
-import { isModelNotavailableInServer } from "@/app/utils/model";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
 
 const ALLOWD_PATH = new Set([Anthropic.ChatPath, Anthropic.ChatPath1]);
@@ -112,46 +110,6 @@ async function request(req: NextRequest) {
     signal: controller.signal,
   };
 
-  // #1815 try to refuse some request to some models
-  if (serverConfig.customModels && req.body) {
-    try {
-      const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
-
-      const jsonBody = JSON.parse(clonedBody) as {
-        model?: string;
-        messages?: any[];
-      };
-      const firstMsg = jsonBody?.messages?.[0];
-      const preview =
-        typeof firstMsg === "object"
-          ? JSON.stringify(firstMsg).slice(0, 200)
-          : "";
-      console.log("[Anthropic] incoming model:", jsonBody?.model);
-      if (preview) console.log("[Anthropic] first message:", preview);
-
-      // not undefined and is false
-      if (
-        isModelNotavailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider.Anthropic as string,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error: true,
-            message: `you are not allowed to use ${jsonBody?.model} model`,
-          },
-          {
-            status: 403,
-          },
-        );
-      }
-    } catch (e) {
-      console.error(`[Anthropic] filter`, e);
-    }
-  }
   // console.log("[Anthropic request]", fetchOptions.headers, req.method);
   try {
     const res = await fetch(fetchUrl, fetchOptions);

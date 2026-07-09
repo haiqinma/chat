@@ -1,12 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSideConfig } from "../config/server";
-import {
-  OPENAI_BASE_URL,
-  ServiceProvider,
-  mapOpenAIModelName,
-} from "../constant";
+import { OPENAI_BASE_URL } from "../constant";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
-import { getModelProvider, isModelNotavailableInServer } from "../utils/model";
 
 const serverConfig = getServerSideConfig();
 
@@ -63,33 +58,6 @@ export async function requestOpenai(req: NextRequest) {
       "/api/azure/",
       "",
     )}?api-version=${azureApiVersion}`;
-
-    // Forward compatibility:
-    // if display_name(deployment_name) not set, and '{deploy-id}' in AZURE_URL
-    // then using default '{deploy-id}'
-    if (serverConfig.customModels && serverConfig.azureUrl) {
-      const modelName = path.split("/")[1];
-      let realDeployName = "";
-      serverConfig.customModels
-        .split(",")
-        .filter((v) => !!v && !v.startsWith("-") && v.includes(modelName))
-        .forEach((m) => {
-          const [fullName, displayName] = m.split("=");
-          const [_, providerName] = getModelProvider(fullName);
-          if (providerName === "azure" && !displayName) {
-            const [_, deployId] = (serverConfig?.azureUrl ?? "").split(
-              "deployments/",
-            );
-            if (deployId) {
-              realDeployName = deployId;
-            }
-          }
-        });
-      if (realDeployName) {
-        console.log("[Replace with DeployId", realDeployName);
-        path = path.replaceAll(modelName, realDeployName);
-      }
-    }
   }
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
@@ -111,54 +79,6 @@ export async function requestOpenai(req: NextRequest) {
     duplex: "half",
     signal: controller.signal,
   };
-
-  // #1815 try to refuse gpt4 request
-  if (serverConfig.customModels && req.body) {
-    try {
-      const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
-
-      const jsonBody = JSON.parse(clonedBody) as { model?: string };
-
-      // not undefined and is false
-      const modelName = jsonBody?.model as string;
-      const mappedModel = mapOpenAIModelName(modelName || "");
-      const blockedOriginal = isModelNotavailableInServer(
-        serverConfig.customModels,
-        modelName,
-        [
-          ServiceProvider.OpenAI,
-          ServiceProvider.Azure,
-          modelName, // support provider-unspecified model
-        ],
-      );
-      const blockedMapped =
-        mappedModel !== modelName
-          ? isModelNotavailableInServer(
-              serverConfig.customModels,
-              mappedModel,
-              [
-                ServiceProvider.OpenAI,
-                ServiceProvider.Azure,
-                mappedModel,
-              ],
-            )
-          : false;
-      if (blockedOriginal && blockedMapped) {
-        return NextResponse.json(
-          {
-            error: true,
-            message: `you are not allowed to use ${jsonBody?.model} model`,
-          },
-          {
-            status: 403,
-          },
-        );
-      }
-    } catch (e) {
-      console.error("[OpenAI] gpt4 filter", e);
-    }
-  }
 
   try {
     const res = await fetch(fetchUrl, fetchOptions);

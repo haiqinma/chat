@@ -217,8 +217,6 @@ export function NewChat() {
         resolveSkillRuntimeStatus({
           skill,
           models: config.models,
-          customModels: config.customModels,
-          accessCustomModels: accessStore.customModels,
           defaultModel: accessStore.defaultModel,
           globalModelConfig: config.modelConfig,
           installedPluginIds,
@@ -228,9 +226,7 @@ export function NewChat() {
       ]),
     );
   }, [
-    accessStore.customModels,
     accessStore.defaultModel,
-    config.customModels,
     config.modelConfig,
     config.models,
     installedToolServerIds,
@@ -281,8 +277,6 @@ export function NewChat() {
           resolveSkillRuntimeStatus({
             skill,
             models: config.models,
-            customModels: config.customModels,
-            accessCustomModels: accessStore.customModels,
             defaultModel: accessStore.defaultModel,
             globalModelConfig: config.modelConfig,
             installedPluginIds,
@@ -303,9 +297,7 @@ export function NewChat() {
         };
       }),
     [
-      accessStore.customModels,
       accessStore.defaultModel,
-      config.customModels,
       config.modelConfig,
       config.models,
       entrySkills,

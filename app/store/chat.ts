@@ -195,13 +195,13 @@ function getSummarizeModel(
   if (currentModel.startsWith("gpt") || currentModel.startsWith("chatgpt")) {
     const configStore = useAppConfig.getState();
     const accessStore = useAccessStore.getState();
+    const summarizeModelName = accessStore.summarizeModel || SUMMARIZE_MODEL;
     const allModel = collectModelsWithDefaultModel(
       configStore.models,
-      [configStore.customModels, accessStore.customModels].join(","),
       accessStore.defaultModel,
     );
     const summarizeModel = allModel.find(
-      (m) => m.name === SUMMARIZE_MODEL && m.available,
+      (m) => m.name === summarizeModelName && m.available,
     );
     if (summarizeModel) {
       return [
@@ -509,9 +509,6 @@ export const useChatStore = createPersistStore(
                 };
           const runtimeModels = collectModelsWithDefaultModel(
             config.models,
-            [config.customModels, accessStore.customModels]
-              .filter(Boolean)
-              .join(","),
             accessStore.defaultModel,
           ).filter((model) => model.available);
           const sessionModels = filterModelsByCandidates(
