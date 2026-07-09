@@ -431,8 +431,6 @@ export function DiscoveryPage() {
   const models = useAppConfig((state) => state.models);
   const hideBuiltinSkills = useAppConfig((state) => state.hideBuiltinSkills);
   const modelConfig = useAppConfig((state) => state.modelConfig);
-  const customModels = useAppConfig((state) => state.customModels);
-  const accessCustomModels = useAccessStore((state) => state.customModels);
   const defaultModel = useAccessStore((state) => state.defaultModel);
   const [toolConfig, setToolConfig] = useState<ToolConfigData>();
   const [toolStatuses, setToolStatuses] = useState<
@@ -613,8 +611,6 @@ export function DiscoveryPage() {
         const runtime = resolveSkillRuntimeStatus({
           skill: runtimeSkill,
           models,
-          customModels,
-          accessCustomModels,
           defaultModel,
           globalModelConfig: modelConfig,
           installedPluginIds,
@@ -696,8 +692,6 @@ export function DiscoveryPage() {
         const runtime = resolveSkillRuntimeStatus({
           skill,
           models,
-          customModels,
-          accessCustomModels,
           defaultModel,
           globalModelConfig: modelConfig,
           installedPluginIds,
@@ -852,11 +846,9 @@ export function DiscoveryPage() {
       ...storageItems,
     ];
   }, [
-    accessCustomModels,
     communityToolServers,
     communitySkillPackages,
     currentLang,
-    customModels,
     defaultModel,
     toolConfig?.toolServers,
     toolStatuses,

@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { supportsTextEndpoint } from "../client/api";
 import { Path } from "../constant";
 import Locale from "../locales";
 import { useAccessStore } from "../store/access";
 import { useSessionModels, useRouterTokenStatus } from "../utils/hooks";
+import { isGeneralTextChatModel } from "../utils/model";
 import { getRouterPortalPricingUrl } from "../utils/router-portal";
 import styles from "./setup-page.module.scss";
 import { IconButton } from "./button";
@@ -13,13 +13,7 @@ export function SetupPage() {
   const navigate = useNavigate();
   const accessStore = useAccessStore();
   const availableModels = useSessionModels();
-  const hasTextModels = availableModels.some((model) => {
-    const tags = Array.isArray(model.tags) ? model.tags : [];
-    if (tags.length > 0) return tags.includes("text");
-    const endpoints = model.supportedEndpoints ?? [];
-    if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-    return true;
-  });
+  const hasTextModels = availableModels.some(isGeneralTextChatModel);
   const hasRouterToken = accessStore.selectedRouterToken.trim().length > 0;
   const hasRouterApiKey = accessStore.openaiApiKey.trim().length > 0;
   const routerTokenStatus = useRouterTokenStatus();

@@ -23,7 +23,6 @@ import {
   getNativeToolBundle,
   shouldUseNativeToolBridge,
 } from "@/app/store/native-tools";
-import { collectModelsWithDefaultModel } from "@/app/utils/model";
 import {
   preProcessImageContent,
   base64Image2Blob,
@@ -936,18 +935,8 @@ export class ChatGPTApi implements LLMApi {
       let chatPath = "";
       if (normalizedModelConfig.providerName === ServiceProvider.Azure) {
         // find model, and get displayName as deployName
-        const { models: configModels, customModels: configCustomModels } =
-          useAppConfig.getState();
-        const {
-          defaultModel,
-          customModels: accessCustomModels,
-          useCustomConfig,
-        } = useAccessStore.getState();
-        const models = collectModelsWithDefaultModel(
-          configModels,
-          [configCustomModels, accessCustomModels].join(","),
-          defaultModel,
-        );
+        const { models } = useAppConfig.getState();
+        const { useCustomConfig } = useAccessStore.getState();
         const model = models.find(
           (model) =>
             model.name === normalizedModelConfig.model &&
@@ -984,9 +973,7 @@ export class ChatGPTApi implements LLMApi {
           ]
         : tools;
       let requestPayload:
-        | RequestPayload
-        | DalleRequestPayload
-        | Record<string, any>;
+        RequestPayload | DalleRequestPayload | Record<string, any>;
 
       if (useImageGenerationEndpoint) {
         const prompt = getMessageTextContent(
@@ -1563,8 +1550,8 @@ export class ChatGPTApi implements LLMApi {
     }
 
     const preferredOrder = [
-      "gpt-5.1",
-      "gpt-5-chat",
+      "gpt-5.4",
+      "gpt-5.4-mini",
       "deepseek-chat",
       "deepseek-reasoner",
       "claude-haiku-4-5-20251001",
@@ -1572,8 +1559,8 @@ export class ChatGPTApi implements LLMApi {
       "gemini-3-pro-preview",
     ];
     const displayNameMap: Record<string, string> = {
-      "gpt-5.1": "GPT-5.1",
-      "gpt-5-chat": "GPT-5 Chat",
+      "gpt-5.4": "GPT-5.4",
+      "gpt-5.4-mini": "GPT-5.4 Mini",
       "deepseek-chat": "DeepSeek Chat",
       "deepseek-reasoner": "DeepSeek Reasoner",
       "claude-haiku-4-5-20251001": "Claude Haiku 4.5 (20251001)",

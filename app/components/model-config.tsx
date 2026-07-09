@@ -5,7 +5,6 @@ import {
   selectPreferredTextEndpoint,
   supportsImageEditEndpoint,
   supportsImageGenerationEndpoint,
-  supportsTextEndpoint,
 } from "../client/api";
 import {
   getTextModelParameterSpecification,
@@ -21,7 +20,11 @@ import { ListItem, Select } from "./ui-lib";
 import { useAllModels } from "../utils/hooks";
 import { groupBy } from "lodash-es";
 import styles from "./model-config.module.scss";
-import { getModelProvider, normalizeProviderName } from "../utils/model";
+import {
+  getModelProvider,
+  isGeneralTextChatModel,
+  normalizeProviderName,
+} from "../utils/model";
 
 export function ModelConfigList(props: {
   modelConfig: ModelConfig;
@@ -70,10 +73,9 @@ export function ModelConfigList(props: {
   const textModelOptions = useMemo(
     () =>
       allModels.filter((model) => {
-        if (!model.available) return false;
+        if (!isGeneralTextChatModel(model)) return false;
         const runtimeModel = model as LLMModel;
         const endpoints = runtimeModel.supportedEndpoints ?? [];
-        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
         const tags = Array.isArray(runtimeModel.tags) ? runtimeModel.tags : [];
         const imageOnly =
           tags.includes("image") ||

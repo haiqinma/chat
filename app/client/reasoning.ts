@@ -21,6 +21,14 @@ function normalizeTags(tags?: readonly string[]) {
   return Array.isArray(tags) ? tags.map((tag) => tag.toLowerCase()) : [];
 }
 
+function isQwenReasoningModel(model: string) {
+  return (
+    model.startsWith("qwen3") ||
+    model.startsWith("qwq-") ||
+    model.startsWith("qvq-")
+  );
+}
+
 function isAnthropicAdaptiveThinkingModel(model: string) {
   return (
     model.includes("opus-4-6") ||
@@ -82,18 +90,12 @@ export function isReasoningCapableModel(
     );
   }
   if (
-    model.startsWith("qwen3") ||
-    model.startsWith("qwq-") ||
-    model.startsWith("qvq-") ||
+    isQwenReasoningModel(model) ||
     providers.some(
       (provider) => provider.includes("qwen") || provider.includes("alibaba"),
     )
   ) {
-    return (
-      model.startsWith("qwen3") ||
-      model.startsWith("qwq-") ||
-      model.startsWith("qvq-")
-    );
+    return isQwenReasoningModel(model);
   }
   return false;
 }
@@ -169,11 +171,16 @@ export function applyOpenAICompatibleReasoning(
   config: LLMConfig,
 ) {
   const provider = normalizeProvider(config.ownedBy || config.providerName);
+  const model = normalizeModel(config.model);
   if (provider.includes("deepseek")) {
     applyDeepSeekReasoning(payload, config);
     return;
   }
-  if (provider.includes("qwen") || provider.includes("alibaba")) {
+  if (
+    provider.includes("qwen") ||
+    provider.includes("alibaba") ||
+    isQwenReasoningModel(model)
+  ) {
     applyQwenReasoning(payload, config);
     return;
   }

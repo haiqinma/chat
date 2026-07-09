@@ -1,6 +1,7 @@
 import {
   getMessageImages,
   getMessageTextContent,
+  getMessageTextContentWithoutThinking,
   getMessageContentLength,
   safeLocalStorage,
   trimTopic,
@@ -191,17 +192,27 @@ function getSummarizeModel(
   currentModel: string,
   providerName: string,
 ): string[] {
+  const configStore = useAppConfig.getState();
+  const accessStore = useAccessStore.getState();
+  const summarizeModelName = accessStore.summarizeModel || SUMMARIZE_MODEL;
+  const allModel = collectModelsWithDefaultModel(
+    configStore.models,
+    accessStore.defaultModel,
+  );
+  const configuredSummarizeModel = allModel.find(
+    (m) => m.name === summarizeModelName && m.available,
+  );
+  if (configuredSummarizeModel) {
+    return [
+      configuredSummarizeModel.name,
+      configuredSummarizeModel.provider?.providerName as string,
+    ];
+  }
+
   // if it is using gpt-* models, force to use 4o-mini to summarize
   if (currentModel.startsWith("gpt") || currentModel.startsWith("chatgpt")) {
-    const configStore = useAppConfig.getState();
-    const accessStore = useAccessStore.getState();
-    const allModel = collectModelsWithDefaultModel(
-      configStore.models,
-      [configStore.customModels, accessStore.customModels].join(","),
-      accessStore.defaultModel,
-    );
     const summarizeModel = allModel.find(
-      (m) => m.name === SUMMARIZE_MODEL && m.available,
+      (m) => m.name === summarizeModelName && m.available,
     );
     if (summarizeModel) {
       return [
@@ -222,7 +233,8 @@ function getSummarizeModel(
 
 function countMessages(msgs: RequestMessage[]) {
   return msgs.reduce(
-    (pre, cur) => pre + estimateTokenLength(getMessageTextContent(cur)),
+    (pre, cur) =>
+      pre + estimateTokenLength(getMessageTextContentWithoutThinking(cur)),
     0,
   );
 }
@@ -242,7 +254,7 @@ function estimateMessageContextCost(message: RequestMessage): number {
 }
 
 function toTextOnlyMessage(message: RequestMessage): RequestMessage | null {
-  const text = getMessageTextContent(message).trim();
+  const text = getMessageTextContentWithoutThinking(message).trim();
   if (!text) return null;
   return {
     role: message.role,
@@ -509,9 +521,6 @@ export const useChatStore = createPersistStore(
                 };
           const runtimeModels = collectModelsWithDefaultModel(
             config.models,
-            [config.customModels, accessStore.customModels]
-              .filter(Boolean)
-              .join(","),
             accessStore.defaultModel,
           ).filter((model) => model.available);
           const sessionModels = filterModelsByCandidates(

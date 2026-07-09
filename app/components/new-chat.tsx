@@ -9,7 +9,6 @@ import SendWhiteIcon from "../icons/send-white.svg";
 import DeleteIcon from "../icons/delete.svg";
 
 import { useNavigate } from "react-router-dom";
-import { supportsTextEndpoint } from "../client/api";
 import {
   getStoredUserSkills,
   getLaunchableSkills,
@@ -27,7 +26,11 @@ import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { safeLocalStorage } from "../utils";
 import { useSessionModels } from "../utils/hooks";
-import { getModelProvider, normalizeProviderName } from "../utils/model";
+import {
+  getModelProvider,
+  isGeneralTextChatModel,
+  normalizeProviderName,
+} from "../utils/model";
 import { isGeneralChatSkill } from "../utils/plain-chat";
 import { ServiceProvider } from "../constant";
 import { useAccessStore } from "../store/access";
@@ -214,8 +217,6 @@ export function NewChat() {
         resolveSkillRuntimeStatus({
           skill,
           models: config.models,
-          customModels: config.customModels,
-          accessCustomModels: accessStore.customModels,
           defaultModel: accessStore.defaultModel,
           globalModelConfig: config.modelConfig,
           installedPluginIds,
@@ -225,9 +226,7 @@ export function NewChat() {
       ]),
     );
   }, [
-    accessStore.customModels,
     accessStore.defaultModel,
-    config.customModels,
     config.modelConfig,
     config.models,
     installedToolServerIds,
@@ -278,8 +277,6 @@ export function NewChat() {
           resolveSkillRuntimeStatus({
             skill,
             models: config.models,
-            customModels: config.customModels,
-            accessCustomModels: accessStore.customModels,
             defaultModel: accessStore.defaultModel,
             globalModelConfig: config.modelConfig,
             installedPluginIds,
@@ -300,9 +297,7 @@ export function NewChat() {
         };
       }),
     [
-      accessStore.customModels,
       accessStore.defaultModel,
-      config.customModels,
       config.modelConfig,
       config.models,
       entrySkills,
@@ -314,14 +309,7 @@ export function NewChat() {
   );
   const availableModels = useSessionModels();
   const textAvailableModels = useMemo(
-    () =>
-      availableModels.filter((model) => {
-        const tags = Array.isArray(model.tags) ? model.tags : [];
-        if (tags.length > 0) return tags.includes("text");
-        const endpoints = model.supportedEndpoints ?? [];
-        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-        return true;
-      }),
+    () => availableModels.filter(isGeneralTextChatModel),
     [availableModels],
   );
 

@@ -1,6 +1,7 @@
 import { ServiceProvider } from "../constant";
 import { LLMModel, LLMModelProvider, ModelCandidate } from "../client/api";
 import { isReasoningCapableModel } from "../client/reasoning";
+import { supportsTextEndpoint } from "../client/endpoints";
 
 const CustomSeq = {
   val: -1000, //To ensure the custom model located at front, start from -1000, refer to constant.ts
@@ -276,10 +277,26 @@ export function filterModelsByCandidates(
   );
 }
 
-export function collectModelTable(
-  models: readonly LLMModel[],
-  customModels: string,
-) {
+export function isReasoningOnlyModel(model: Pick<LLMModel, "tags">): boolean {
+  const tags = (model.tags ?? []).map((tag) => tag.trim().toLowerCase());
+
+  return tags.includes("reasoning") && !tags.includes("text");
+}
+
+export function isGeneralTextChatModel(model: LLMModel): boolean {
+  if (!model.available) return false;
+  if (isReasoningOnlyModel(model)) return false;
+
+  const tags = Array.isArray(model.tags) ? model.tags : [];
+  if (tags.length > 0) return tags.includes("text");
+
+  const endpoints = model.supportedEndpoints ?? [];
+  if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
+
+  return true;
+}
+
+export function collectModelTable(models: readonly LLMModel[]) {
   const modelTable: Record<
     string,
     {
@@ -305,81 +322,14 @@ export function collectModelTable(
     };
   });
 
-  // server custom models
-  customModels
-    .split(",")
-    .filter((v) => !!v && v.length > 0)
-    .forEach((m) => {
-      const available = !m.startsWith("-");
-      const nameConfig =
-        m.startsWith("+") || m.startsWith("-") ? m.slice(1) : m;
-      let [name, displayName] = nameConfig.split("=");
-
-      // enable or disable all models
-      if (name === "all") {
-        Object.values(modelTable).forEach(
-          (model) => (model.available = available),
-        );
-      } else {
-        // 1. find model by name, and set available value
-        const [customModelName, customProviderName] = getModelProvider(name);
-        let count = 0;
-        for (const fullName in modelTable) {
-          const [modelName, providerName] = getModelProvider(fullName);
-          if (
-            customModelName == modelName &&
-            (customProviderName === undefined ||
-              normalizeProviderId(customProviderName) ===
-                normalizeProviderId(providerName))
-          ) {
-            count += 1;
-            modelTable[fullName]["available"] = available;
-            // swap name and displayName for volcengine
-            if (
-              normalizeProviderId(providerName) ===
-              normalizeProviderId(ServiceProvider.Volcengine)
-            ) {
-              [name, displayName] = [displayName, modelName];
-              modelTable[fullName]["name"] = name;
-            }
-            if (displayName) {
-              modelTable[fullName]["displayName"] = displayName;
-            }
-          }
-        }
-        // 2. if model not exists, create new model with available value
-        if (count === 0) {
-          let [customModelName, customProviderName] = getModelProvider(name);
-          const provider = normalizeModelProvider(
-            customProviderName || customModelName,
-          );
-          // swap name and displayName for volcengine
-          if (
-            displayName &&
-            provider.providerName == ServiceProvider.Volcengine
-          ) {
-            [customModelName, displayName] = [displayName, customModelName];
-          }
-          modelTable[`${customModelName}@${provider?.id}`] = {
-            name: customModelName,
-            displayName: displayName || customModelName,
-            available,
-            provider, // Use optional chaining
-            sorted: CustomSeq.next(`${customModelName}@${provider?.id}`),
-          };
-        }
-      }
-    });
-
   return modelTable;
 }
 
 export function collectModelTableWithDefaultModel(
   models: readonly LLMModel[],
-  customModels: string,
   defaultModel: string,
 ) {
-  let modelTable = collectModelTable(models, customModels);
+  let modelTable = collectModelTable(models);
   if (defaultModel && defaultModel !== "") {
     if (defaultModel.includes("@")) {
       const [modelName, providerName] = getModelProvider(defaultModel);
@@ -407,11 +357,8 @@ export function collectModelTableWithDefaultModel(
 /**
  * Generate full model table.
  */
-export function collectModels(
-  models: readonly LLMModel[],
-  customModels: string,
-) {
-  const modelTable = collectModelTable(models, customModels);
+export function collectModels(models: readonly LLMModel[]) {
+  const modelTable = collectModelTable(models);
   let allModels = Object.values(modelTable);
 
   allModels = sortModelTable(allModels);
@@ -421,85 +368,12 @@ export function collectModels(
 
 export function collectModelsWithDefaultModel(
   models: readonly LLMModel[],
-  customModels: string,
   defaultModel: string,
 ) {
-  const modelTable = collectModelTableWithDefaultModel(
-    models,
-    customModels,
-    defaultModel,
-  );
+  const modelTable = collectModelTableWithDefaultModel(models, defaultModel);
   let allModels = Object.values(modelTable);
 
   allModels = sortModelTable(allModels);
 
   return allModels;
-}
-
-export function isModelAvailableInServer(
-  customModels: string,
-  modelName: string,
-  providerName: string,
-) {
-  const fullName = `${modelName}@${
-    normalizeProviderId(providerName) ?? providerName
-  }`;
-  const modelTable = collectModelTable([], customModels);
-  return modelTable[fullName]?.available === false;
-}
-
-/**
- * Check if the model name is a GPT-4 related model
- *
- * @param modelName The name of the model to check
- * @returns True if the model is a GPT-4 related model (excluding gpt-4o-mini)
- */
-export function isGPT4Model(modelName: string): boolean {
-  return (
-    (modelName.startsWith("gpt-4") ||
-      modelName.startsWith("chatgpt-4o") ||
-      modelName.startsWith("o1")) &&
-    !modelName.startsWith("gpt-4o-mini")
-  );
-}
-
-/**
- * Checks if a model is not available on any of the specified providers in the server.
- *
- * @param {string} customModels - A string of custom models, comma-separated.
- * @param {string} modelName - The name of the model to check.
- * @param {string|string[]} providerNames - A string or array of provider names to check against.
- *
- * @returns {boolean} True if the model is not available on any of the specified providers, false otherwise.
- */
-export function isModelNotavailableInServer(
-  customModels: string,
-  modelName: string,
-  providerNames: string | string[],
-): boolean {
-  // Check DISABLE_GPT4 environment variable
-  if (
-    ["1", "true"].includes(
-      process.env.DISABLE_GPT4?.trim().toLowerCase() ?? "",
-    ) &&
-    isGPT4Model(modelName.toLowerCase())
-  ) {
-    return true;
-  }
-
-  const modelTable = collectModelTable([], customModels);
-
-  const providerNamesArray = Array.isArray(providerNames)
-    ? providerNames
-    : [providerNames];
-  for (const providerName of providerNamesArray) {
-    // if model provider is volcengine, use model config name to check if not avaliable
-    if (providerName === ServiceProvider.Volcengine) {
-      return !Object.values(modelTable).filter((v) => v.name === modelName)?.[0]
-        ?.available;
-    }
-    const fullName = `${modelName}@${providerName.toLowerCase()}`;
-    if (modelTable?.[fullName]?.available === true) return false;
-  }
-  return true;
 }

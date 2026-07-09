@@ -64,11 +64,10 @@ export type RuntimePublicConfig = BuildConfig & {
   template: string;
   needCode: boolean;
   hideUserApiKey: boolean;
-  disableGPT4: boolean;
   hideBalanceQuery: boolean;
   disableFastLink: boolean;
-  customModels: string;
   defaultModel: string;
+  summarizeModel: string;
   visionModels: string;
   enableTools: boolean;
   routerBackendUrl: string;
@@ -143,11 +142,10 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     template: process.env.DEFAULT_INPUT_TEMPLATE ?? DEFAULT_INPUT_TEMPLATE,
     needCode: serverConfig.needCode,
     hideUserApiKey: serverConfig.hideUserApiKey,
-    disableGPT4: serverConfig.disableGPT4,
     hideBalanceQuery: serverConfig.hideBalanceQuery,
     disableFastLink: serverConfig.disableFastLink,
-    customModels: serverConfig.customModels,
     defaultModel: serverConfig.defaultModel,
+    summarizeModel: serverConfig.summarizeModel,
     visionModels: serverConfig.visionModels,
     enableTools: serverConfig.enableTools,
     routerBackendUrl,

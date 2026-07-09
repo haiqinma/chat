@@ -17,21 +17,11 @@ export function useAllModels() {
   const accessStore = useAccessStore();
 
   return useMemo(() => {
-    const customModels = [config.customModels, accessStore.customModels]
-      .filter((item) => !!item && item.length > 0)
-      .join(",");
-
     return collectModelsWithDefaultModel(
       config.models,
-      customModels,
       accessStore.defaultModel,
     );
-  }, [
-    config.models,
-    config.customModels,
-    accessStore.customModels,
-    accessStore.defaultModel,
-  ]);
+  }, [config.models, accessStore.defaultModel]);
 }
 
 export function useSkillProviderModels() {

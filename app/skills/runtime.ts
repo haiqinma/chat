@@ -18,11 +18,7 @@ import {
 export type SkillRuntimeStatus = "ready" | "needs_config" | "unavailable";
 
 export type SkillRuntimeIssueType =
-  | "model"
-  | "api_tool"
-  | "tool_missing"
-  | "tool_inactive"
-  | "realtime";
+  "model" | "api_tool" | "tool_missing" | "tool_inactive" | "realtime";
 
 export type SkillRuntimeIssue = {
   type: SkillRuntimeIssueType;
@@ -75,8 +71,6 @@ function hasRouterRealtimeToken(apiKey?: string) {
 export function resolveSkillRuntimeStatus(params: {
   skill: Skill;
   models: readonly LLMModel[];
-  customModels?: string;
-  accessCustomModels?: string;
   defaultModel?: string;
   globalModelConfig: ModelConfig;
   installedPluginIds?: readonly string[];
@@ -86,8 +80,6 @@ export function resolveSkillRuntimeStatus(params: {
   const {
     skill,
     models,
-    customModels,
-    accessCustomModels,
     defaultModel,
     globalModelConfig,
     installedPluginIds,
@@ -97,7 +89,6 @@ export function resolveSkillRuntimeStatus(params: {
 
   const runtimeModels = collectModelsWithDefaultModel(
     models,
-    [customModels, accessCustomModels].filter(Boolean).join(","),
     defaultModel ?? "",
   ).filter((model) => model.available);
   const candidateModels = normalizeModelCandidates(skill.candidateModels);

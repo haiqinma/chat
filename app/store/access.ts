@@ -177,10 +177,9 @@ export const createDefaultAccessState = () => {
     needCode: true,
     hideUserApiKey: false,
     hideBalanceQuery: false,
-    disableGPT4: false,
     disableFastLink: false,
-    customModels: "",
     defaultModel: "",
+    summarizeModel: "",
     visionModels: "",
 
     // tts config
@@ -335,10 +334,9 @@ export const useAccessStore = createPersistStore(
             needCode: res.needCode,
             hideUserApiKey: res.hideUserApiKey,
             hideBalanceQuery: res.hideBalanceQuery,
-            disableGPT4: res.disableGPT4,
             disableFastLink: res.disableFastLink,
-            customModels: res.customModels,
             defaultModel: res.defaultModel,
+            summarizeModel: res.summarizeModel,
             visionModels: res.visionModels,
             // keep router defaults if server config doesn't specify
             useCustomConfig: true,

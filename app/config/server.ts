@@ -1,6 +1,5 @@
 import md5 from "spark-md5";
 import { DEFAULT_GA_ID } from "../constant";
-import { isGPT4Model } from "../utils/model";
 
 declare global {
   namespace NodeJS {
@@ -18,11 +17,10 @@ declare global {
       BUILD_APP?: string; // is building desktop app
 
       HIDE_USER_API_KEY?: string; // disable user's api key input
-      DISABLE_GPT4?: string; // allow user to use gpt-4 or not
       ENABLE_BALANCE_QUERY?: string; // allow user to query balance or not
       DISABLE_FAST_LINK?: string; // disallow parse settings from url or not
-      CUSTOM_MODELS?: string; // to control custom models
       DEFAULT_MODEL?: string; // to control default model in every new chat window
+      SUMMARIZE_MODEL?: string; // to control default summary/compression model
       VISION_MODELS?: string; // to control vision models
 
       // stability only
@@ -173,16 +171,9 @@ export const getServerSideConfig = () => {
     );
   }
 
-  const disableGPT4 = isEnabledEnv(process.env.DISABLE_GPT4);
-  let customModels = process.env.CUSTOM_MODELS ?? "";
   let defaultModel = process.env.DEFAULT_MODEL ?? "";
+  let summarizeModel = process.env.SUMMARIZE_MODEL ?? "";
   let visionModels = process.env.VISION_MODELS ?? "";
-
-  if (disableGPT4) {
-    if (defaultModel && isGPT4Model(defaultModel)) {
-      defaultModel = "";
-    }
-  }
 
   const isStability = !!process.env.STABILITY_API_KEY;
 
@@ -324,11 +315,10 @@ export const getServerSideConfig = () => {
     isVercel: isEnabledEnv(process.env.VERCEL),
 
     hideUserApiKey: isEnabledEnv(process.env.HIDE_USER_API_KEY),
-    disableGPT4,
     hideBalanceQuery: !isEnabledEnv(process.env.ENABLE_BALANCE_QUERY),
     disableFastLink: isEnabledEnv(process.env.DISABLE_FAST_LINK),
-    customModels,
     defaultModel,
+    summarizeModel,
     visionModels,
     enableTools: isEnabledEnv(process.env.ENABLE_TOOLS),
     web_dav_backend_base_url: webdavBackendBaseUrl,

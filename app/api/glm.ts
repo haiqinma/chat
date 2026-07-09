@@ -1,14 +1,8 @@
 import { getServerSideConfig } from "@/app/config/server";
-import {
-  CHATGLM_BASE_URL,
-  ApiPath,
-  ModelProvider,
-  ServiceProvider,
-} from "@/app/constant";
+import { CHATGLM_BASE_URL, ApiPath, ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/api/auth";
-import { isModelNotavailableInServer } from "@/app/utils/model";
 
 const serverConfig = getServerSideConfig();
 
@@ -79,36 +73,6 @@ async function request(req: NextRequest) {
     signal: controller.signal,
   };
 
-  // #1815 try to refuse some request to some models
-  if (serverConfig.customModels && req.body) {
-    try {
-      const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
-
-      const jsonBody = JSON.parse(clonedBody) as { model?: string };
-
-      // not undefined and is false
-      if (
-        isModelNotavailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider.ChatGLM as string,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error: true,
-            message: `you are not allowed to use ${jsonBody?.model} model`,
-          },
-          {
-            status: 403,
-          },
-        );
-      }
-    } catch (e) {
-      console.error(`[GLM] filter`, e);
-    }
-  }
   try {
     const res = await fetch(fetchUrl, fetchOptions);
 
