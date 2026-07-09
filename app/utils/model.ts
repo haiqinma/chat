@@ -1,6 +1,7 @@
 import { ServiceProvider } from "../constant";
 import { LLMModel, LLMModelProvider, ModelCandidate } from "../client/api";
 import { isReasoningCapableModel } from "../client/reasoning";
+import { supportsTextEndpoint } from "../client/endpoints";
 
 const CustomSeq = {
   val: -1000, //To ensure the custom model located at front, start from -1000, refer to constant.ts
@@ -274,6 +275,25 @@ export function filterModelsByCandidates(
       matchesModelCandidate(model, candidate),
     ),
   );
+}
+
+export function isReasoningOnlyModel(model: Pick<LLMModel, "tags">): boolean {
+  const tags = (model.tags ?? []).map((tag) => tag.trim().toLowerCase());
+
+  return tags.includes("reasoning") && !tags.includes("text");
+}
+
+export function isGeneralTextChatModel(model: LLMModel): boolean {
+  if (!model.available) return false;
+  if (isReasoningOnlyModel(model)) return false;
+
+  const tags = Array.isArray(model.tags) ? model.tags : [];
+  if (tags.length > 0) return tags.includes("text");
+
+  const endpoints = model.supportedEndpoints ?? [];
+  if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
+
+  return true;
 }
 
 export function collectModelTable(

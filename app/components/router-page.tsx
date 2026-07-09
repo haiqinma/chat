@@ -72,6 +72,9 @@ function isImageModel(model: LLMModel) {
 }
 
 function isTextModel(model: LLMModel) {
+  const tags = getModelTags(model);
+  if (tags.length > 0) return tags.includes("text");
+
   return supportsTextEndpoint(model.supportedEndpoints);
 }
 

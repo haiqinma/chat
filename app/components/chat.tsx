@@ -134,7 +134,6 @@ import {
   MultimodalContent,
   normalizeSupportedEndpoints,
   selectPreferredRequestEndpoint,
-  supportsTextEndpoint,
 } from "../client/api";
 import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
@@ -142,6 +141,7 @@ import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 import { isEmpty } from "lodash-es";
 import {
   getModelProvider,
+  isGeneralTextChatModel,
   matchesModelCandidate,
   normalizeModelCandidates,
   normalizeProviderName,
@@ -566,14 +566,7 @@ export function ChatActions(props: {
   const sessionModels = useSessionModels(sessionCandidateModels);
   const hasCandidateModelRestriction = sessionCandidateModels.length > 0;
   const textAvailableModels = useMemo(
-    () =>
-      allAvailableModels.filter((model) => {
-        const tags = Array.isArray(model.tags) ? model.tags : [];
-        if (tags.length > 0) return tags.includes("text");
-        const endpoints = model.supportedEndpoints ?? [];
-        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-        return true;
-      }),
+    () => allAvailableModels.filter(isGeneralTextChatModel),
     [allAvailableModels],
   );
   const selectableSessionModels = hasCandidateModelRestriction
@@ -657,8 +650,7 @@ export function ChatActions(props: {
     ? "standard"
     : "auto";
   const storedQuality = sessionSkill.modelConfig?.quality as
-    | ImageQuality
-    | undefined;
+    ImageQuality | undefined;
   const currentQuality =
     storedQuality && qualityOptions.includes(storedQuality)
       ? storedQuality
@@ -1158,14 +1150,7 @@ function ChatView() {
   const sessionModels = useSessionModels(sessionCandidateModels);
   const hasCandidateModelRestriction = sessionCandidateModels.length > 0;
   const textAvailableModels = useMemo(
-    () =>
-      allAvailableModels.filter((model) => {
-        const tags = Array.isArray(model.tags) ? model.tags : [];
-        if (tags.length > 0) return tags.includes("text");
-        const endpoints = model.supportedEndpoints ?? [];
-        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-        return true;
-      }),
+    () => allAvailableModels.filter(isGeneralTextChatModel),
     [allAvailableModels],
   );
 
@@ -2096,8 +2081,7 @@ function ChatView() {
                                       10,
                                     );
                                     let newContent:
-                                      | string
-                                      | MultimodalContent[] = newMessage;
+                                      string | MultimodalContent[] = newMessage;
                                     const attachments =
                                       getMessageAttachments(message);
                                     if (attachments.length > 0) {

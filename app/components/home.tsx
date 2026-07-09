@@ -38,7 +38,6 @@ import { getClientConfig } from "../config/client";
 import {
   getRouterClientApi,
   supportsImageGenerationEndpoint,
-  supportsTextEndpoint,
 } from "../client/api";
 import { useAccessStore, useSkillProviderModelsStore } from "../store";
 import {
@@ -66,6 +65,7 @@ import {
   subscribeAccountWorkspaceStatus,
 } from "../utils/account-workspace";
 import { useSessionModels } from "../utils/hooks";
+import { isGeneralTextChatModel } from "../utils/model";
 import { useChatStore } from "../store/chat";
 
 const loadFunc = async () => {
@@ -296,15 +296,7 @@ function Screen() {
     isAuthorized && workspaceStatus === "ready",
   );
   const hasTextModels = useMemo(
-    () =>
-      availableModels.some((model) => {
-        if (!model.available) return false;
-        const tags = Array.isArray(model.tags) ? model.tags : [];
-        if (tags.length > 0) return tags.includes("text");
-        const endpoints = model.supportedEndpoints ?? [];
-        if (endpoints.length > 0) return supportsTextEndpoint(endpoints);
-        return true;
-      }),
+    () => availableModels.some(isGeneralTextChatModel),
     [availableModels],
   );
   const hasImageModels = useMemo(
