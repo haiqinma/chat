@@ -30,6 +30,7 @@ import {
   streamWithThink,
 } from "@/app/utils/chat";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
+import { isPlainChatLikeSkill } from "@/app/utils/plain-chat";
 import { DalleStyle, ImageQuality, ModelSize } from "@/app/typing";
 
 import {
@@ -892,13 +893,20 @@ export class ChatGPTApi implements LLMApi {
       let tools: any[] = [];
       let funcs: Record<string, Function> = {};
       const sessionSkill = useChatStore.getState().currentSession().skill;
-      const skillApiTools = getSkillApiTools(sessionSkill);
-      const skillToolServers = getSkillToolServers(sessionSkill);
-      const skillBuiltInTools = getSkillBuiltInTools(sessionSkill);
+      const isPlainChat = isPlainChatLikeSkill(sessionSkill);
+      const skillApiTools = isPlainChat ? [] : getSkillApiTools(sessionSkill);
+      const skillToolServers = isPlainChat
+        ? []
+        : getSkillToolServers(sessionSkill);
+      const skillBuiltInTools = isPlainChat
+        ? []
+        : getSkillBuiltInTools(sessionSkill);
       const allowNativeToolBridge = allowSkillNativeToolBridge(sessionSkill);
+      const hasExplicitToolServers = skillToolServers.length > 0;
       if (shouldStream) {
         const toolPair = (await getNativeToolBundle(skillApiTools, {
           includeToolServers:
+            hasExplicitToolServers &&
             allowNativeToolBridge &&
             shouldUseNativeToolBridge({
               providerName: normalizedModelConfig.providerName,

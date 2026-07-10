@@ -22,8 +22,8 @@
                     "modelSelector": true,
                     "imageUpload": true,
                     "imageParams": false,
-                    "plugins": true,
-                    "tools": true,
+                    "plugins": false,
+                    "tools": false,
                     "shortcutKeys": true,
                     "realtime": false
                 }
@@ -253,8 +253,8 @@
                     "modelSelector": true,
                     "imageUpload": true,
                     "imageParams": false,
-                    "plugins": true,
-                    "tools": true,
+                    "plugins": false,
+                    "tools": false,
                     "shortcutKeys": true,
                     "realtime": false
                 }

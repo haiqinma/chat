@@ -10,6 +10,7 @@ import { createPersistStore } from "../utils/store";
 import {
   disablePlainChatReasoning,
   isLegacyPlainChatSkill,
+  isPlainChatLikeSkill,
 } from "../utils/plain-chat";
 
 export type BuiltInSkillToolType = "web_search";
@@ -90,10 +91,17 @@ export const DEFAULT_SESSION_TOOLBAR: Required<SkillSessionToolbarConfig> = {
 };
 
 export function getSkillSessionToolbar(skill: Skill) {
-  return {
+  const toolbar = {
     ...DEFAULT_SESSION_TOOLBAR,
     ...skill.ui?.sessionToolbar,
   };
+
+  if (isPlainChatLikeSkill(skill)) {
+    toolbar.plugins = false;
+    toolbar.tools = false;
+  }
+
+  return toolbar;
 }
 
 export const DEFAULT_SKILL_STATE = {
