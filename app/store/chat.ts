@@ -382,8 +382,13 @@ function fillTemplateWith(input: string, modelConfig: ModelConfig) {
   return output;
 }
 
-async function getToolSystemPrompt(): Promise<string> {
-  const tools = await getAllTools();
+async function getToolSystemPrompt(toolServerIds: string[]): Promise<string> {
+  const selectedToolServerIds = new Set(toolServerIds);
+  if (selectedToolServerIds.size === 0) return "";
+
+  const tools = (await getAllTools()).filter((tool) =>
+    selectedToolServerIds.has(tool.clientId),
+  );
 
   let toolsStr = "";
 
@@ -680,7 +685,7 @@ export const useChatStore = createPersistStore(
 
         get().updateStat(message, targetSession);
 
-        void get().checkToolJson(message);
+        void get().checkToolJson(message, targetSession);
 
         get().summarizeSession(false, targetSession);
       },
@@ -901,7 +906,11 @@ export const useChatStore = createPersistStore(
           (session.skill.modelConfig.model.startsWith("gpt-") ||
             session.skill.modelConfig.model.startsWith("chatgpt-"));
 
-        const toolRuntimeEnabled = await isToolRuntimeEnabled();
+        const skillToolServerIds = isPlainChatLikeSkill(session.skill)
+          ? []
+          : (session.skill.tools?.toolServers ?? []);
+        const toolRuntimeEnabled =
+          skillToolServerIds.length > 0 && (await isToolRuntimeEnabled());
         const nativeToolBridgeEnabled = shouldUseNativeToolBridge({
           providerName: resolveRuntimeModelRouting(
             modelConfig.model,
@@ -914,7 +923,7 @@ export const useChatStore = createPersistStore(
         });
         const toolSystemPrompt =
           toolRuntimeEnabled && !nativeToolBridgeEnabled
-            ? await getToolSystemPrompt()
+            ? await getToolSystemPrompt(skillToolServerIds)
             : "";
 
         var systemPrompts: ChatMessage[] = [];
@@ -1203,14 +1212,24 @@ export const useChatStore = createPersistStore(
       },
 
       /** check if the message contains tool JSON and execute the tool action */
-      async checkToolJson(message: ChatMessage) {
+      async checkToolJson(
+        message: ChatMessage,
+        targetSession: ChatSession = get().currentSession(),
+      ) {
+        if (isPlainChatLikeSkill(targetSession.skill)) return;
+
+        const allowedToolServerIds = new Set(
+          targetSession.skill.tools?.toolServers ?? [],
+        );
+        if (allowedToolServerIds.size === 0) return;
+
         const toolRuntimeEnabled = await isToolRuntimeEnabled();
         if (!toolRuntimeEnabled) return;
         const content = getMessageTextContent(message);
         if (isToolJson(content)) {
           try {
             const toolRequest = extractToolJson(content);
-            if (toolRequest) {
+            if (toolRequest && allowedToolServerIds.has(toolRequest.clientId)) {
               console.debug("[Tool Request]", toolRequest);
 
               executeToolAction(toolRequest.clientId, toolRequest.request)

@@ -24,6 +24,7 @@ import { ANTHROPIC_BASE_URL } from "@/app/constant";
 import { getMessageTextContent, isVisionCapableModel } from "@/app/utils";
 import { preProcessImageContent, stream } from "@/app/utils/chat";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
+import { isPlainChatLikeSkill } from "@/app/utils/plain-chat";
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
 import { applyMessagesReasoning } from "../reasoning";
@@ -384,10 +385,15 @@ export class ClaudeApi implements LLMApi {
     if (shouldStream) {
       let index = -1;
       const sessionSkill = useChatStore.getState().currentSession().skill;
-      const skillApiTools = getSkillApiTools(sessionSkill);
-      const skillToolServers = getSkillToolServers(sessionSkill);
+      const isPlainChat = isPlainChatLikeSkill(sessionSkill);
+      const skillApiTools = isPlainChat ? [] : getSkillApiTools(sessionSkill);
+      const skillToolServers = isPlainChat
+        ? []
+        : getSkillToolServers(sessionSkill);
+      const hasExplicitToolServers = skillToolServers.length > 0;
       const [tools, funcs] = await getNativeToolBundle(skillApiTools, {
         includeToolServers:
+          hasExplicitToolServers &&
           allowSkillNativeToolBridge(sessionSkill) &&
           shouldUseNativeToolBridge({
             providerName: options.config.providerName,

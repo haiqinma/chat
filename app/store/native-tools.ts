@@ -54,16 +54,18 @@ export async function getNativeToolBundle(
     return [tools, funcs];
   }
 
+  const selectedToolServerIds = new Set(options.toolServerIds ?? []);
+  if (selectedToolServerIds.size === 0) {
+    return [tools, funcs];
+  }
+
   const toolRuntimeEnabled = await isToolRuntimeEnabled();
   if (!toolRuntimeEnabled) {
     return [tools, funcs];
   }
 
-  const selectedToolServerIds = new Set(options.toolServerIds ?? []);
-  const toolClients = (await getAllTools()).filter(
-    (client) =>
-      selectedToolServerIds.size === 0 ||
-      selectedToolServerIds.has(client.clientId),
+  const toolClients = (await getAllTools()).filter((client) =>
+    selectedToolServerIds.has(client.clientId),
   );
 
   toolClients.forEach((client) => {

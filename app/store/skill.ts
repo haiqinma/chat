@@ -10,6 +10,7 @@ import { createPersistStore } from "../utils/store";
 import {
   disablePlainChatReasoning,
   isLegacyPlainChatSkill,
+  isPlainChatLikeSkill,
 } from "../utils/plain-chat";
 
 export type BuiltInSkillToolType = "web_search";
@@ -90,10 +91,17 @@ export const DEFAULT_SESSION_TOOLBAR: Required<SkillSessionToolbarConfig> = {
 };
 
 export function getSkillSessionToolbar(skill: Skill) {
-  return {
+  const toolbar = {
     ...DEFAULT_SESSION_TOOLBAR,
     ...skill.ui?.sessionToolbar,
   };
+
+  if (isPlainChatLikeSkill(skill)) {
+    toolbar.plugins = false;
+    toolbar.tools = false;
+  }
+
+  return toolbar;
 }
 
 export const DEFAULT_SKILL_STATE = {
@@ -336,7 +344,7 @@ export const useSkillStore = createPersistStore(
   (set, get) => ({
     create(skill?: Partial<Skill>) {
       const bucket = resolveSkillBucket(get(), skill);
-      const records = get()[bucket];
+      const records = { ...get()[bucket] };
       const id = nanoid();
       records[id] = {
         ...createEmptySkill(),
@@ -353,7 +361,7 @@ export const useSkillStore = createPersistStore(
     updateSkill(id: string, updater: (skill: Skill) => void) {
       const bucket =
         get().skills[id] !== undefined ? "skills" : "builtinOverrides";
-      const records = get()[bucket];
+      const records = { ...get()[bucket] };
       const skill = records[id];
       if (!skill) return;
       const updatedSkill = { ...skill };
@@ -364,11 +372,11 @@ export const useSkillStore = createPersistStore(
     },
     delete(id: string) {
       if (get().skills[id] !== undefined) {
-        const skills = get().skills;
+        const skills = { ...get().skills };
         delete skills[id];
         set(() => ({ skills }));
       } else {
-        const builtinOverrides = get().builtinOverrides;
+        const builtinOverrides = { ...get().builtinOverrides };
         delete builtinOverrides[id];
         set(() => ({ builtinOverrides }));
       }
