@@ -19,6 +19,7 @@ import {
   getAccountWorkspaceStatus,
   getAccountWorkspaceSyncDelayMs,
   isAccountWorkspaceInitialSyncPending,
+  markAccountWorkspaceSyncFailed,
   markAccountWorkspaceSyncSettled,
   subscribeAccountWorkspaceStatus,
 } from "../utils/account-workspace";
@@ -121,19 +122,25 @@ export function useAutoSync() {
         return;
       }
       autoSyncInFlight = true;
+      let initialSyncSucceeded = false;
       try {
-        await autoSync({ interactive: false });
+        const syncResult = await autoSync({ interactive: false });
+        if (syncResult === false) return;
+        initialSyncSucceeded = true;
         lastAutoSyncAt = Date.now();
       } catch (e) {
         if (isUcanSignPendingError(e)) {
           return;
         }
         console.error(`[AutoSync] ${reason} failed`, e);
-      } finally {
-        autoSyncInFlight = false;
         if (initialSyncOwner) {
+          markAccountWorkspaceSyncFailed(initialSyncOwner);
+        }
+      } finally {
+        if (initialSyncOwner && initialSyncSucceeded) {
           markAccountWorkspaceSyncSettled(initialSyncOwner);
         }
+        autoSyncInFlight = false;
       }
     },
     [autoSync, debounceMs, enabled],

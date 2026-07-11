@@ -426,7 +426,7 @@ export const useSyncStore = createPersistStore(
       return client;
     },
 
-    async sync(options?: { interactive?: boolean }) {
+    async sync(options?: { interactive?: boolean }): Promise<boolean> {
       const provider = get().provider;
       const config = get()[provider];
       const interactive = options?.interactive ?? false;
@@ -446,7 +446,7 @@ export const useSyncStore = createPersistStore(
       ) {
         if (isCentralModeEnabled()) {
           if (!isCentralUcanAuthorized()) {
-            return;
+            return false;
           }
         } else {
           const [session, authorized] = await Promise.all([
@@ -454,7 +454,7 @@ export const useSyncStore = createPersistStore(
             isValidUcanAuthorization(),
           ]);
           if (!session || !authorized) {
-            return;
+            return false;
           }
         }
       }
@@ -523,6 +523,7 @@ export const useSyncStore = createPersistStore(
           throw e;
         }
       });
+      return true;
     },
 
     async check() {

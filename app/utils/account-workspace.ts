@@ -18,10 +18,7 @@ const GUEST_WORKSPACE_OWNER = "__guest__";
 const ACCOUNT_WORKSPACE_SYNC_COOLDOWN_MS = 15_000;
 
 export type AccountWorkspaceStatus =
-  | "booting"
-  | "switching"
-  | "syncing"
-  | "ready";
+  "booting" | "switching" | "syncing" | "error" | "ready";
 
 function normalizeWorkspaceOwner(account?: string | null) {
   const normalized = (account || "").trim().toLowerCase();
@@ -120,6 +117,28 @@ export function markAccountWorkspaceSyncSettled(owner?: string | null) {
   setWorkspaceStatus("ready");
 }
 
+export function markAccountWorkspaceSyncFailed(owner?: string | null) {
+  if (workspaceStatus !== "syncing") return;
+
+  const normalizedOwner = owner ? normalizeWorkspaceOwner(owner) : null;
+  if (initialSyncOwner && normalizedOwner !== initialSyncOwner) return;
+
+  initialSyncOwner = null;
+  setWorkspaceStatus("error");
+}
+
+export function retryAccountWorkspaceSync() {
+  const owner = getCurrentAccountOwner();
+  if (owner === GUEST_WORKSPACE_OWNER) {
+    initialSyncOwner = null;
+    setWorkspaceStatus("ready");
+    return;
+  }
+
+  initialSyncOwner = owner;
+  setWorkspaceStatus("syncing");
+}
+
 export function subscribeAccountWorkspaceStatus(listener: () => void) {
   workspaceStatusListeners.add(listener);
   return () => workspaceStatusListeners.delete(listener);
@@ -152,7 +171,7 @@ async function switchWorkspaceTo(owner: string) {
 
       const currentOwner = normalizeWorkspaceOwner(storedOwner);
       if (currentOwner === normalizedOwner) {
-        if (workspaceStatus !== "syncing") {
+        if (workspaceStatus !== "syncing" && workspaceStatus !== "error") {
           setWorkspaceStatus("ready");
         }
         return;
@@ -177,7 +196,7 @@ async function switchWorkspaceTo(owner: string) {
     } catch (error) {
       console.error("[Workspace] failed to switch account workspace", error);
       initialSyncOwner = null;
-      setWorkspaceStatus("ready");
+      setWorkspaceStatus("error");
     }
   });
 
