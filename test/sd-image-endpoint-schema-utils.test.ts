@@ -25,7 +25,7 @@ describe("image endpoint schema utils", () => {
     expect(body.get("prompt")).toBe("edit this image");
     expect(body.get("size")).toBe("1024x1024");
     expect(body.get("quality")).toBe("high");
-    expect(body.get("style")).toBe("natural");
+    expect(body.get("style")).toBeNull();
     const imageFile = body.get("image") as File;
     const maskFile = body.get("mask") as File;
 
