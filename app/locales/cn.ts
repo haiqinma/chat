@@ -6,6 +6,11 @@ const isApp = !!getClientConfig()?.isApp;
 
 const cn = {
   WIP: "该功能仍在开发中……",
+  Bootstrap: {
+    ModelsFailed: "模型加载失败，请检查 Router 配置后重试。",
+    WorkspaceSyncFailed: "账户数据同步失败，请重试。",
+    Retry: "重新加载",
+  },
   Error: {
     Mermaid: "Mermaid 语法有误，已保留源码。",
     Unauthorized: isApp

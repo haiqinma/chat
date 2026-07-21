@@ -7,6 +7,12 @@ const ENTER_KEY = "Enter";
 const isApp = !!getClientConfig()?.isApp;
 const en: LocaleType = {
   WIP: "Coming Soon...",
+  Bootstrap: {
+    ModelsFailed:
+      "Failed to load models. Check Router configuration and retry.",
+    WorkspaceSyncFailed: "Failed to sync account data. Please retry.",
+    Retry: "Reload",
+  },
   Error: {
     Mermaid: "Mermaid syntax error. Source code is preserved.",
     Unauthorized: isApp

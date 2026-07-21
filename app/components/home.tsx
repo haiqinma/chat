@@ -21,7 +21,7 @@ import dynamic from "next/dynamic";
 import { Path, SlotID } from "../constant";
 import { ErrorBoundary } from "./error";
 
-import { getISOLang } from "../locales";
+import Locale, { getISOLang } from "../locales";
 
 import {
   HashRouter as Router,
@@ -62,11 +62,14 @@ import { useAutoSync } from "../hooks/useAutoSync";
 import { notifyErrorWithOptions } from "../plugins/show_window";
 import {
   getAccountWorkspaceStatus,
+  retryAccountWorkspaceSync,
   subscribeAccountWorkspaceStatus,
 } from "../utils/account-workspace";
 import { useSessionModels } from "../utils/hooks";
 import { isGeneralTextChatModel } from "../utils/model";
 import { useChatStore } from "../store/chat";
+import { IconButton } from "./button";
+import ReloadIcon from "../icons/reload.svg";
 
 const loadFunc = async () => {
   try {
@@ -183,24 +186,6 @@ const DiscoveryPage = dynamic(
   },
 );
 
-let authenticatedBootstrapModelsReady = false;
-const authenticatedBootstrapListeners = new Set<() => void>();
-
-function setAuthenticatedBootstrapModelsReady(nextReady: boolean) {
-  if (authenticatedBootstrapModelsReady === nextReady) return;
-  authenticatedBootstrapModelsReady = nextReady;
-  authenticatedBootstrapListeners.forEach((listener) => listener());
-}
-
-function subscribeAuthenticatedBootstrapModelsReady(listener: () => void) {
-  authenticatedBootstrapListeners.add(listener);
-  return () => authenticatedBootstrapListeners.delete(listener);
-}
-
-function getAuthenticatedBootstrapModelsReady() {
-  return authenticatedBootstrapModelsReady;
-}
-
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -292,9 +277,11 @@ function Screen() {
   const isSd = location.pathname === Path.Sd;
   const isSdNew = location.pathname === Path.SdNew;
   const isMobileScreen = useMobileScreen();
-  const modelsReady = useAuthenticatedBootstrap(
-    isAuthorized && workspaceStatus === "ready",
-  );
+  const {
+    ready: modelsReady,
+    error: modelsError,
+    retry: retryModels,
+  } = useAuthenticatedBootstrap(isAuthorized && workspaceStatus === "ready");
   const hasTextModels = useMemo(
     () => availableModels.some(isGeneralTextChatModel),
     [availableModels],
@@ -425,9 +412,16 @@ function Screen() {
   if (isCheckingAuth) {
     return <Loading noLogo />;
   }
-  if (isAuthorized && (workspaceStatus !== "ready" || !modelsReady)) {
+  if (isAuthorized && workspaceStatus === "error") {
+    return <WorkspaceSyncError onRetry={retryAccountWorkspaceSync} />;
+  }
+  if (isAuthorized && workspaceStatus !== "ready") {
     return <Loading noLogo />;
   }
+  if (isAuthorized && modelsError) {
+    return <BootstrapError onRetry={retryModels} />;
+  }
+  if (isAuthorized && !modelsReady) return <Loading noLogo />;
   const renderContent = () => {
     if (isAuth) return <AuthPage />;
     if (!isAuthorized) return <AuthPage />;
@@ -527,6 +521,40 @@ function useUcanAuthState() {
   return state;
 }
 
+function BootstrapError(props: { onRetry: () => void }) {
+  return (
+    <div className={clsx("no-dark", styles["loading-content"])}>
+      <div className={styles["bootstrap-error"]}>
+        <div>{Locale.Bootstrap.ModelsFailed}</div>
+        <IconButton
+          icon={<ReloadIcon />}
+          text={Locale.Bootstrap.Retry}
+          type="primary"
+          bordered
+          onClick={props.onRetry}
+        />
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceSyncError(props: { onRetry: () => void }) {
+  return (
+    <div className={clsx("no-dark", styles["loading-content"])}>
+      <div className={styles["bootstrap-error"]}>
+        <div>{Locale.Bootstrap.WorkspaceSyncFailed}</div>
+        <IconButton
+          icon={<ReloadIcon />}
+          text={Locale.Bootstrap.Retry}
+          type="primary"
+          bordered
+          onClick={props.onRetry}
+        />
+      </div>
+    </div>
+  );
+}
+
 function useAuthenticatedBootstrap(enabled: boolean) {
   const mergeModels = useAppConfig((state) => state.mergeModels);
   const selectedRouterToken = useAccessStore((state) =>
@@ -537,11 +565,14 @@ function useAuthenticatedBootstrap(enabled: boolean) {
   const setSkillProviderModels = useSkillProviderModelsStore(
     (state) => state.setModels,
   );
-  const modelsReady = useSyncExternalStore(
-    subscribeAuthenticatedBootstrapModelsReady,
-    getAuthenticatedBootstrapModelsReady,
-    getAuthenticatedBootstrapModelsReady,
-  );
+  const [retryCount, setRetryCount] = useState(0);
+  const bootstrapKey = enabled
+    ? `${routerApiKey}:${routerBaseUrl}:${selectedRouterToken}:${retryCount}`
+    : "disabled";
+  const [bootstrapState, setBootstrapState] = useState<{
+    key: string;
+    status: "ready" | "error";
+  }>();
 
   useAutoSync();
 
@@ -577,25 +608,32 @@ function useAuthenticatedBootstrap(enabled: boolean) {
   }, [ensureRouterToken, mergeModels, setSkillProviderModels]);
 
   useEffect(() => {
-    if (!enabled) {
-      setAuthenticatedBootstrapModelsReady(false);
-      return;
-    }
+    if (!enabled) return;
     let cancelled = false;
-    setAuthenticatedBootstrapModelsReady(false);
     loadModels()
+      .then(() => {
+        if (!cancelled) {
+          setBootstrapState({ key: bootstrapKey, status: "ready" });
+        }
+      })
       .catch((error) => {
         console.warn("[Models] initial load failed", error);
-      })
-      .finally(() => {
         if (!cancelled) {
-          setAuthenticatedBootstrapModelsReady(true);
+          setBootstrapState({ key: bootstrapKey, status: "error" });
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [enabled, loadModels, routerApiKey, routerBaseUrl, selectedRouterToken]);
+  }, [
+    bootstrapKey,
+    enabled,
+    loadModels,
+    retryCount,
+    routerApiKey,
+    routerBaseUrl,
+    selectedRouterToken,
+  ]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -625,7 +663,20 @@ function useAuthenticatedBootstrap(enabled: boolean) {
     initToolRuntime();
   }, [enabled]);
 
-  return modelsReady;
+  const modelsReady =
+    enabled &&
+    bootstrapState?.key === bootstrapKey &&
+    bootstrapState.status === "ready";
+  const modelsError =
+    enabled &&
+    bootstrapState?.key === bootstrapKey &&
+    bootstrapState.status === "error";
+
+  return {
+    ready: modelsReady,
+    error: modelsError,
+    retry: () => setRetryCount((count) => count + 1),
+  };
 }
 
 export function Home() {

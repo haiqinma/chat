@@ -1249,7 +1249,7 @@ export function DiscoveryPage() {
       skill.packageId = item.skillPackage.id;
 
       if (item.runtimeStatus === "ready") {
-        startSkill(skill);
+        startSkill(ensureSkillConfigRecord(skill));
       } else {
         openSkillConfig(ensureSkillConfigRecord(skill));
       }
@@ -1273,6 +1273,9 @@ export function DiscoveryPage() {
 
   const getActionText = (item: Capability) => {
     if (item.type === "skill") {
+      if (!item.installed && item.runtimeStatus === "ready") {
+        return Locale.Discovery.Enable;
+      }
       return item.runtimeStatus === "ready"
         ? Locale.Discovery.Use
         : Locale.Discovery.ConfigureAndEnable;
