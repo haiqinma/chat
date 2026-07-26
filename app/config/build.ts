@@ -3,13 +3,19 @@ function isEnabledEnv(value?: string): boolean {
   return normalized === "1" || normalized === "true";
 }
 
+function normalizeBuildVersion(value?: string) {
+  const version = value?.trim().replace(/^v/i, "");
+  return version || "";
+}
+
 function readBuildVersion() {
+  const buildVersion = normalizeBuildVersion(process.env.BUILD_VERSION);
+  if (buildVersion) return buildVersion;
+
   const fs = (process as any).getBuiltinModule?.("fs") as
-    | typeof import("fs")
-    | undefined;
+    typeof import("fs") | undefined;
   const path = (process as any).getBuiltinModule?.("path") as
-    | typeof import("path")
-    | undefined;
+    typeof import("path") | undefined;
   if (!fs || !path) {
     throw Error("[Build Config] Node built-in modules are not available");
   }
@@ -19,7 +25,7 @@ function readBuildVersion() {
     version?: string;
   };
 
-  return packageJson.version?.trim() || "0.0.0";
+  return normalizeBuildVersion(packageJson.version) || "0.0.0";
 }
 
 export const getBuildConfig = () => {

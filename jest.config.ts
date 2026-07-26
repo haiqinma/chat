@@ -21,7 +21,6 @@ const config = {
     "^@yeying-community/web3-bs$":
       "<rootDir>/node_modules/@yeying-community/web3-bs/dist/web3-bs.umd.js",
   },
-  extensionsToTreatAsEsm: [".ts", ".tsx"],
   injectGlobals: true,
 };
 
