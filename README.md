@@ -17,6 +17,7 @@ Chat（UCAN 定制版）
 - 用户使用手册：`docs/用户使用手册.md`
 - 常见问题：`docs/常见问题.md`
 - 网页版与桌面版产品定位：`docs/网页版与桌面版产品定位.md`
+- Tauri 桌面端打包发布说明：`docs/Tauri桌面端迁移清单.md`
 - 网页版主链路验收清单：`docs/网页版主链路验收清单.md`
 - AI Native 能力分层架构：`docs/AI-Native能力分层架构.md`
 - 架构 / 部署 / 安全清单：`docs/架构部署安全清单.md`
@@ -84,9 +85,11 @@ cp .env.build.template .env.build
    - `ROUTER_PORTAL_TOKEN_URL`：Router 令牌页地址（可选，默认继承 `ROUTER_PORTAL_URL`）
    - `ROUTER_PORTAL_RECHARGE_URL`：Router 充值页地址（可选，默认继承 `ROUTER_PORTAL_TOKEN_URL`）
    - `CENTRAL_UCAN_APP_ID`：中心化 UCAN 应用 AppId（在 Node 应用市场发布后获得）
+   - `CENTRAL_UCAN_REDIRECT_URI`：中心化 UCAN 授权回调地址；Tauri 本地包通常是 `http://tauri.localhost/central-ucan-callback.html`
    - `UCAN_LOGIN_FORCE_MODE`：登录路径强制模式（`auto`/`wallet`/`central`，默认 `auto`）
    - `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（按需配置，不含路径）
    - `WEBDAV_BACKEND_PREFIX`：WebDAV 路径前缀（默认 `/dav`，可选修改）
+   - `WEBDAV_APP_ID`：WebDAV/UCAN 应用空间 ID；桌面包如需复用本地 web 版数据，通常设置为 `localhost-3020`
    - 以及你实际使用的 provider 配置（如 OpenAI / Gemini / Anthropic / Volcengine 等）
 3. 如需调整构建细节变量，配置 `.env.build`：
    - `DISABLE_CHUNK`
@@ -172,6 +175,38 @@ bash scripts/package.sh export v1.2.3
 bash scripts/package.sh app
 bash scripts/package.sh app-release
 ```
+
+# 桌面本地包快速验证
+
+本地桌面包依赖 Node / Router / Warehouse 三个外部服务，不是离线后端。常用本地配置如下：
+
+```dotenv
+ROUTER_BACKEND_URL=http://127.0.0.1:3011
+WEBDAV_BACKEND_BASE_URL=http://127.0.0.1:6065
+WEBDAV_BACKEND_PREFIX=/dav
+WEBDAV_APP_ID=localhost-3020
+CENTRAL_UCAN_AUTH_BASE_URL=http://127.0.0.1:8100
+CENTRAL_UCAN_APP_ID=<Node 中发布的 Chat 应用 ID>
+CENTRAL_UCAN_REDIRECT_URI=http://tauri.localhost/central-ucan-callback.html
+UCAN_LOGIN_FORCE_MODE=auto
+```
+
+修改这些前端公开配置后，需要重新打包桌面应用：
+
+```bash
+npm run app:build
+open src-tauri/target/release/bundle/macos/Chat.app
+```
+
+本地验证顺序：
+
+1. 登录后确认能拿到 Router 令牌，并能正常调用大模型。
+2. 进入发现页的云端存储，点击“检查连接”和“立即同步”。
+3. 回到聊天首页，确认左侧会话列表能从 Warehouse/WebDAV 恢复。
+
+如果云端存储正常但会话列表为空，优先检查 `WEBDAV_APP_ID` 是否和网页版同一个应用空间一致，例如 `localhost-3020`。如果桌面端 WebDAV 请求失败，优先确认 Warehouse CORS 是否允许 `tauri://localhost`。
+
+完整说明见：`docs/Tauri桌面端迁移清单.md`
 
 # 工具
 
