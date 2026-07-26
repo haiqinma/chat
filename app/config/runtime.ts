@@ -77,8 +77,10 @@ export type RuntimePublicConfig = BuildConfig & {
   webdavBackendBaseUrl: string;
   webdavBackendPrefix: string;
   webdavBackendUrl: string;
+  webdavAppId: string;
   centralUcanAuthBaseUrl: string;
   centralUcanAppId: string;
+  centralUcanRedirectUri: string;
   ucanLoginForceMode: UcanLoginForceMode;
   marketplaceSkillPackagesUrl: string;
   marketplaceToolPackagesUrl: string;
@@ -155,9 +157,11 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     webdavBackendBaseUrl,
     webdavBackendPrefix,
     webdavBackendUrl: joinBasePrefix(webdavBackendBaseUrl, webdavBackendPrefix),
+    webdavAppId: process.env.WEBDAV_APP_ID?.trim() || "",
     centralUcanAuthBaseUrl:
       process.env.CENTRAL_UCAN_AUTH_BASE_URL?.trim() || "http://127.0.0.1:8100",
     centralUcanAppId: process.env.CENTRAL_UCAN_APP_ID?.trim() || "",
+    centralUcanRedirectUri: process.env.CENTRAL_UCAN_REDIRECT_URI?.trim() || "",
     ucanLoginForceMode: normalizeUcanLoginForceMode(
       process.env.UCAN_LOGIN_FORCE_MODE,
     ),

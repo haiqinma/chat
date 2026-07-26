@@ -46,6 +46,11 @@ const cn = {
     CentralExchangeFailed: (error: string) => `中心化授权码兑换失败: ${error}`,
     CentralRequestCreated: "已创建中心化授权请求，跳转认证页",
     CentralRequestFailed: (error: string) => `创建中心化授权请求失败: ${error}`,
+    CentralTotpTitle: "动态验证码授权",
+    CentralTotpDescription: "输入认证器中的 6 位动态验证码完成授权。",
+    CentralTotpInput: "6 位动态验证码",
+    CentralTotpSubmit: "验证并登录",
+    CentralTotpInvalid: "请输入 6 位动态验证码",
     WalletMismatch: {
       Title: "账户不一致",
       Description: "应用地址和钱包地址不一致，请选择登录方式。",
