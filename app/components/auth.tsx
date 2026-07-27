@@ -1,6 +1,7 @@
 import styles from "./auth.module.scss";
 import { IconButton } from "./button";
 import { useState, useEffect, useRef, type FocusEvent } from "react";
+import { createRoot } from "react-dom/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import Locale from "../locales";
@@ -21,6 +22,8 @@ import {
 } from "../plugins/wallet";
 import {
   applyCentralAuthorizeExchange,
+  approveCentralAuthorizeRequest,
+  type CentralAuthorizeRequestResult,
   createCentralAuthorizeRequest,
   exchangeCentralAuthorizeCode,
   getCentralAppId,
@@ -102,8 +105,15 @@ function normalizeRedirectPath(raw: string | null | undefined) {
 }
 
 function getCentralRedirectUri() {
+  const configured = getClientConfig()?.centralUcanRedirectUri?.trim();
+  if (configured) return configured;
   if (typeof window === "undefined") return "";
   return `${window.location.origin}/central-ucan-callback.html`;
+}
+
+function formatCentralAuthError(error: unknown, redirectUri: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  return redirectUri ? `${message} (redirectUri: ${redirectUri})` : message;
 }
 
 function getUcanLoginForceMode(): UcanLoginForceMode {
@@ -187,6 +197,148 @@ function showWalletMismatchDecision(
   });
 }
 
+function normalizeTotpCode(raw: string) {
+  return raw.replace(/[^0-9]/g, "").slice(0, 6);
+}
+
+function CentralTotpCodePrompt(props: {
+  request: CentralAuthorizeRequestResult;
+  onCancel: () => void;
+  onSubmit: (code: string) => void;
+}) {
+  const [code, setCode] = useState("");
+  const normalizedCode = normalizeTotpCode(code);
+  const canSubmit = normalizedCode.length === 6;
+
+  const submit = () => {
+    if (!canSubmit) {
+      notifyInfo(Locale.Auth.CentralTotpInvalid);
+      return;
+    }
+    props.onSubmit(normalizedCode);
+  };
+
+  return (
+    <div className={styles["central-totp-prompt"]}>
+      <div className={styles["central-totp-header"]}>
+        <div className={styles["central-totp-title"]}>
+          {Locale.Auth.CentralTotpTitle}
+        </div>
+        <button
+          type="button"
+          className={styles["central-totp-close"]}
+          onClick={props.onCancel}
+          aria-label={Locale.UI.Cancel}
+          title={Locale.UI.Cancel}
+        >
+          <ClearIcon />
+        </button>
+      </div>
+      <div className={styles["central-totp-tip"]}>
+        {Locale.Auth.CentralTotpDescription}
+      </div>
+      <div className={styles["central-totp-meta"]}>
+        {props.request.appName || "Chat"} · {props.request.subjectHint}
+      </div>
+      <div className={styles["central-totp-row"]}>
+        <label>{Locale.Auth.CentralTotpInput}</label>
+        <input
+          className={styles["central-totp-input"]}
+          value={normalizedCode}
+          autoFocus
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          autoComplete="one-time-code"
+          aria-label={Locale.Auth.CentralTotpInput}
+          placeholder={Locale.Auth.CentralTotpInput}
+          onChange={(event) => setCode(normalizeTotpCode(event.target.value))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              submit();
+            }
+          }}
+        />
+      </div>
+      <div className={styles["central-totp-actions"]}>
+        <IconButton
+          text={Locale.UI.Cancel}
+          onClick={props.onCancel}
+          bordered
+          shadow
+        />
+        <IconButton
+          text={Locale.Auth.CentralTotpSubmit}
+          type="primary"
+          disabled={!canSubmit}
+          onClick={submit}
+          bordered
+          shadow
+        />
+      </div>
+    </div>
+  );
+}
+
+function CentralTotpCodeDialog(props: {
+  request: CentralAuthorizeRequestResult;
+  onCancel: () => void;
+  onSubmit: (code: string) => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        props.onCancel();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props]);
+
+  return (
+    <div
+      className={styles["central-totp-mask"]}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          props.onCancel();
+        }
+      }}
+    >
+      <CentralTotpCodePrompt {...props} />
+    </div>
+  );
+}
+
+function requestCentralTotpCode(
+  request: CentralAuthorizeRequestResult,
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const closeDialog = () => {
+      root.unmount();
+      container.remove();
+    };
+    const settle = (code: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(code);
+      closeDialog();
+    };
+    root.render(
+      <CentralTotpCodeDialog
+        request={request}
+        onCancel={() => settle(null)}
+        onSubmit={(code) => settle(code)}
+      />,
+    );
+  });
+}
+
 export function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -204,11 +356,15 @@ export function AuthPage() {
   const walletAccountInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (getClientConfig()?.isApp) {
+    const config = getClientConfig();
+    const params = new URLSearchParams(location.search);
+    const hasCentralCallbackCode = Boolean((params.get("code") || "").trim());
+    const hasCentralAuthConfig = Boolean(config?.centralUcanAppId?.trim());
+    if (config?.isApp && !hasCentralCallbackCode && !hasCentralAuthConfig) {
       navigate(Path.Settings);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +429,9 @@ export function AuthPage() {
         navigate(`${Path.Auth}?redirect=${target}`, { replace: true });
         window.dispatchEvent(new Event(UCAN_AUTH_EVENT));
       } catch (error) {
-        const message = Locale.Auth.CentralExchangeFailed(String(error));
+        const message = Locale.Auth.CentralExchangeFailed(
+          formatCentralAuthError(error, redirectUri),
+        );
         notifyError(message);
       } finally {
         setCentralLoading(false);
@@ -309,9 +467,35 @@ export function AuthPage() {
       setUcanAuthMode(UCAN_AUTH_MODE_CENTRAL, { emit: false });
       storage.setItem("currentAccount", address);
       notifySuccess(Locale.Auth.CentralRequestCreated);
+      if (getClientConfig()?.isApp) {
+        const code = await requestCentralTotpCode(request);
+        if (!code) {
+          notifyInfo(Locale.Auth.LoginCancelled);
+          return;
+        }
+        const approved = await approveCentralAuthorizeRequest({
+          requestId: request.requestId,
+          code,
+        });
+        const result = await exchangeCentralAuthorizeCode({
+          code: approved.authorizationCode,
+          appId: getCentralAppId(),
+          redirectUri,
+        });
+        applyCentralAuthorizeExchange(result, { emit: false });
+        notifySuccess(Locale.Auth.CentralLoginSuccess);
+        const target = encodeURIComponent(redirectPath);
+        navigate(`${Path.Auth}?redirect=${target}`, { replace: true });
+        window.dispatchEvent(new Event(UCAN_AUTH_EVENT));
+        return;
+      }
       window.location.href = request.verifyUrl;
     } catch (error) {
-      notifyError(Locale.Auth.CentralRequestFailed(String(error)));
+      notifyError(
+        Locale.Auth.CentralRequestFailed(
+          formatCentralAuthError(error, redirectUri),
+        ),
+      );
     } finally {
       setCentralLoading(false);
     }

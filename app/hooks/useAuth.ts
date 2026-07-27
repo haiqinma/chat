@@ -1,6 +1,7 @@
 // hooks/useAuth.ts
 import { useEffect, useState } from "react";
 import { getClientConfig } from "../config/client";
+import { isCentralModeEnabled } from "../plugins/central-ucan";
 import { isValidUcanAuthorization, UCAN_AUTH_EVENT } from "../plugins/wallet";
 import { notifyError } from "../plugins/show_window";
 
@@ -16,7 +17,10 @@ export function useAuth(options?: { notify?: boolean }) {
     const shouldNotifyWalletMissing = shouldNotify && loginMode === "wallet";
     const check = async () => {
       const token = ++checkToken;
-      if (localStorage.getItem("hasConnectedWallet") === "false") {
+      if (
+        !isCentralModeEnabled() &&
+        localStorage.getItem("hasConnectedWallet") === "false"
+      ) {
         if (!cancelled && token === checkToken) {
           if (shouldNotifyWalletMissing) {
             notifyError("未检测到钱包，请先安装并连接钱包");

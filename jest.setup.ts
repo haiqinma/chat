@@ -1,6 +1,5 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
-import { jest } from "@jest/globals";
 import { TextDecoder, TextEncoder } from "node:util";
 
 Object.assign(globalThis, {
@@ -16,8 +15,8 @@ process.on("unhandledRejection", (reason) => {
   throw reason instanceof Error ? reason : new Error(String(reason));
 });
 
-global.fetch = jest.fn(() =>
-  Promise.resolve({
+global.fetch = (() => {
+  return Promise.resolve({
     ok: true,
     status: 200,
     json: () => Promise.resolve([]),
@@ -32,5 +31,5 @@ global.fetch = jest.fn(() =>
     blob: () => Promise.resolve(new Blob()),
     formData: () => Promise.resolve(new FormData()),
     text: () => Promise.resolve(""),
-  } as Response),
-);
+  } as Response);
+}) as typeof fetch;

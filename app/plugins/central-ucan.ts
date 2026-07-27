@@ -111,9 +111,17 @@ export type CentralAuthorizeExchangeResult = {
   issuedAt: number;
 };
 
+export type CentralAuthorizeApproveResult = {
+  requestId: string;
+  appName: string;
+  approvedAt: number;
+  authorizationCode: string;
+  authorizationCodeExpiresAt: number;
+  redirectTo: string;
+};
+
 export type UcanAuthMode =
-  | typeof UCAN_AUTH_MODE_WALLET
-  | typeof UCAN_AUTH_MODE_CENTRAL;
+  typeof UCAN_AUTH_MODE_WALLET | typeof UCAN_AUTH_MODE_CENTRAL;
 
 type HttpError = Error & {
   status?: number;
@@ -506,14 +514,18 @@ async function issueCentralUcanByAudience(input: {
       );
       throw createHttpError(message, response.status);
     }
-    const data = parseEnvelope<CentralIssueResult>(text, "中心化签发 UCAN 失败");
+    const data = parseEnvelope<CentralIssueResult>(
+      text,
+      "中心化签发 UCAN 失败",
+    );
     const token = String(data.ucan || "").trim();
     if (!token) {
       throw new Error("中心化签发 UCAN 返回为空");
     }
     const payload = decodeJwtPayload(token);
-    const audience = String(data.audience || payload?.aud || normalizedAudience)
-      .trim();
+    const audience = String(
+      data.audience || payload?.aud || normalizedAudience,
+    ).trim();
     const capabilities = normalizeUcanCapabilities(
       (data.capabilities && data.capabilities.length
         ? data.capabilities
@@ -631,7 +643,10 @@ export function getUcanAuthMode(): UcanAuthMode {
   return UCAN_AUTH_MODE_WALLET;
 }
 
-export function setUcanAuthMode(mode: UcanAuthMode, options?: { emit?: boolean }) {
+export function setUcanAuthMode(
+  mode: UcanAuthMode,
+  options?: { emit?: boolean },
+) {
   if (typeof localStorage !== "undefined") {
     localStorage.setItem(UCAN_AUTH_MODE_KEY, mode);
   }
@@ -644,9 +659,10 @@ export function isCentralModeEnabled() {
   return getUcanAuthMode() === UCAN_AUTH_MODE_CENTRAL;
 }
 
-export function clearCentralUcanAuth(
-  options?: { preserveMode?: boolean; emit?: boolean },
-) {
+export function clearCentralUcanAuth(options?: {
+  preserveMode?: boolean;
+  emit?: boolean;
+}) {
   centralIssuePromises.clear();
   clearCentralSessionTokenCache();
   if (typeof localStorage !== "undefined") {
@@ -671,7 +687,9 @@ export function getCentralAccount(): string {
 
 export function getCentralUcanToken(): string | null {
   if (typeof localStorage === "undefined") return null;
-  const legacyToken = (localStorage.getItem(CENTRAL_UCAN_TOKEN_KEY) || "").trim();
+  const legacyToken = (
+    localStorage.getItem(CENTRAL_UCAN_TOKEN_KEY) || ""
+  ).trim();
   if (legacyToken) {
     const storedExpiresAt = parseStoredExpireAt(CENTRAL_UCAN_EXPIRES_AT_KEY);
     const payload = decodeJwtPayload(legacyToken);
@@ -829,6 +847,40 @@ export async function createCentralAuthorizeRequest(input: {
   return parseEnvelope<CentralAuthorizeRequestResult>(
     text,
     "创建中心化授权请求失败",
+  );
+}
+
+export async function approveCentralAuthorizeRequest(input: {
+  requestId: string;
+  code: string;
+  baseUrl?: string;
+}): Promise<CentralAuthorizeApproveResult> {
+  const response = await fetch(
+    buildApiUrl("/api/v1/public/auth/totp/authorize/approve", input.baseUrl),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        requestId: input.requestId,
+        code: input.code,
+      }),
+    },
+  );
+  const text = await response.text();
+  if (!response.ok) {
+    let message = `中心化授权验证失败: ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as Envelope<unknown>;
+      if (parsed?.message) message = parsed.message;
+    } catch {
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+  return parseEnvelope<CentralAuthorizeApproveResult>(
+    text,
+    "中心化授权验证失败",
   );
 }
 

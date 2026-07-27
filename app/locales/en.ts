@@ -52,6 +52,12 @@ const en: LocaleType = {
       "Centralized authorization request created. Redirecting...",
     CentralRequestFailed: (error: string) =>
       `Failed to create centralized authorization request: ${error}`,
+    CentralTotpTitle: "TOTP Authorization",
+    CentralTotpDescription:
+      "Enter the 6-digit code from your authenticator to finish sign-in.",
+    CentralTotpInput: "6-digit code",
+    CentralTotpSubmit: "Verify and Sign In",
+    CentralTotpInvalid: "Enter the 6-digit authenticator code",
     WalletMismatch: {
       Title: "Account mismatch",
       Description:

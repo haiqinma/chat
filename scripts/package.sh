@@ -178,6 +178,7 @@ print_package_config() {
   echo "  build_entry: ${build_entry}"
   echo "  effective_BUILD_MODE: ${effective_build_mode}"
   echo "  effective_BUILD_APP: ${effective_build_app}"
+  echo "  BUILD_VERSION: ${BUILD_VERSION:-}"
   echo "  DISABLE_CHUNK: ${DISABLE_CHUNK:-0}"
   echo "  TAURI_SIGNING_PRIVATE_KEY: ${TAURI_SIGNING_PRIVATE_KEY:+[set]}"
   echo "  TAURI_SIGNING_PRIVATE_KEY_PATH: ${TAURI_SIGNING_PRIVATE_KEY_PATH:-}"
@@ -450,6 +451,7 @@ PROJECT_NAME="$(node -p "require('./package.json').name || 'app'")"
 SHORT_HASH="$(git rev-parse --short=7 HEAD)"
 PACKAGE_NAME="${PROJECT_NAME}-${MODE}-${TARGET_TAG}-${SHORT_HASH}"
 PACKAGE_DIR="${OUTPUT_DIR}/${PACKAGE_NAME}"
+export BUILD_VERSION="${TARGET_TAG#v}"
 
 print_package_config
 

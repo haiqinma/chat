@@ -384,3 +384,130 @@
     }
   }
 }
+
+.central-totp-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(4px);
+}
+
+.central-totp-prompt {
+  width: 380px;
+  max-width: calc(100vw - 56px);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #d7e4fb;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+  box-shadow:
+    0 10px 24px rgba(25, 76, 151, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.central-totp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.central-totp-title {
+  color: #233750;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.central-totp-close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #456486;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: #e9f1ff;
+  }
+}
+
+.central-totp-tip {
+  color: #55708f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.central-totp-meta {
+  color: #456486;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.central-totp-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 8px;
+
+  label {
+    color: #456486;
+    font-size: 12px;
+  }
+}
+
+.central-totp-input {
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #c7d9f5;
+  background: #fff;
+  color: #233750;
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+
+  &:focus {
+    border-color: #6a97dd;
+    box-shadow: 0 0 0 2px rgba(106, 151, 221, 0.15);
+  }
+}
+
+.central-totp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .central-totp-prompt {
+    width: min(320px, calc(100vw - 56px));
+  }
+
+  .central-totp-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

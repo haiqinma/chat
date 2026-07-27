@@ -2,6 +2,11 @@ name: Release App
 
 on:
   workflow_dispatch:
+    inputs:
+      build_version:
+        description: Optional desktop version, for example v0.0.63
+        required: false
+        type: string
   release:
     types: [published]
 
@@ -21,8 +26,8 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install Rust 1.86.0
-        uses: dtolnay/rust-toolchain@1.86.0
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
 
@@ -34,8 +39,15 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Import Apple signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
       - name: Build release bundle
         env:
+          BUILD_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.build_version }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -45,6 +57,12 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run app:build:release
+
+      - name: Verify macOS installer
+        run: |
+          codesign --verify --deep --strict --verbose=2 src-tauri/target/release/bundle/macos/Chat.app
+          hdiutil verify src-tauri/target/release/bundle/macos/*.dmg
+          spctl --assess --type open --context context:primary-signature --verbose=4 src-tauri/target/release/bundle/macos/*.dmg
 
       - name: Generate updater manifest
         if: github.event_name == 'release'
@@ -106,8 +124,8 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install Rust 1.86.0
-        uses: dtolnay/rust-toolchain@1.86.0
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
 
@@ -121,6 +139,7 @@ jobs:
 
       - name: Build Windows verification bundle
         env:
+          BUILD_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.build_version }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run app:build:release
@@ -152,8 +171,8 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install Rust 1.86.0
-        uses: dtolnay/rust-toolchain@1.86.0
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-gnu
 
@@ -176,6 +195,7 @@ jobs:
 
       - name: Build Ubuntu verification bundle
         env:
+          BUILD_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.build_version }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run app:build:release
