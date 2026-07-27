@@ -3,7 +3,7 @@ import { StoreKey } from "../constant";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
 import { getClientConfig } from "../config/client";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { isDesktopAppRuntime } from "../tauri";
 import { adapter, getOperationId } from "../utils";
 import { useAccessStore } from "./access";
