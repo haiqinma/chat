@@ -148,9 +148,20 @@ bash scripts/starter.sh start
 ## 健康检查
 
 ```bash
-ss -ltnp | rg -n ":3020"
-curl -s -o /dev/null -w "http=%{http_code} time=%{time_total}\n" http://127.0.0.1:3020/
+scripts/health-check.sh
+scripts/health-check.sh --level liveness
+scripts/health-check.sh --level all --base-url http://127.0.0.1:3020
+scripts/health-check.sh --level readiness --format json
 ```
+
+默认无参数等同于 `--level readiness`，服务地址默认读取 `HEALTH_BASE_URL`，未设置时使用 `http://127.0.0.1:${PORT:-3020}`。
+
+- `liveness`：检查 `.chat.pid` / 本地监听进程，必要时回退到 HTTP 根路径。
+- `readiness`：在存活检查基础上检查 `GET /` 和 `GET /health/ready`。
+- `dependency`：检查 `ROUTER_BACKEND_URL` 与 `WEBDAV_BACKEND_BASE_URL`；未配置时标记 `SKIP`，配置后不可达标记 `FAIL`。
+- `all`：按 `liveness -> readiness -> dependency` 顺序执行完整检查。
+
+常用参数：`--timeout <seconds>`、`--retries <count>`、`--interval <seconds>`、`--wait <seconds>`、`--config <path>`、`--format text|json`、`--quiet`。
 
 验证静态资源缓存（生产应为长缓存）：
 

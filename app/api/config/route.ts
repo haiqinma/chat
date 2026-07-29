@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
-import { unstable_noStore as noStore } from "next/cache";
 
 import { getRuntimePublicConfig } from "../../config/runtime";
 
-async function handle() {
-  if (process.env.BUILD_MODE !== "export") {
-    noStore();
-  }
-  return NextResponse.json(getRuntimePublicConfig());
+function handle() {
+  return NextResponse.json(getRuntimePublicConfig(), {
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 export const GET = handle;
 export const POST = handle;
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";

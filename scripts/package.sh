@@ -213,6 +213,7 @@ copy_standalone_artifacts() {
   local static_dir="${ROOT_DIR}/.next/static"
   local public_dir="${ROOT_DIR}/public"
   local starter_script="${ROOT_DIR}/scripts/starter.sh"
+  local health_check_script="${ROOT_DIR}/scripts/health-check.sh"
 
   if [ ! -d "${standalone_dir}" ]; then
     echo "Error: ${standalone_dir} not found. Build may have failed." >&2
@@ -221,6 +222,11 @@ copy_standalone_artifacts() {
 
   if [ ! -f "${starter_script}" ]; then
     echo "Error: ${starter_script} not found." >&2
+    exit 1
+  fi
+
+  if [ ! -f "${health_check_script}" ]; then
+    echo "Error: ${health_check_script} not found." >&2
     exit 1
   fi
 
@@ -247,7 +253,9 @@ copy_standalone_artifacts() {
 
   mkdir -p "${PACKAGE_DIR}/scripts"
   cp "${starter_script}" "${PACKAGE_DIR}/scripts/starter.sh"
+  cp "${health_check_script}" "${PACKAGE_DIR}/scripts/health-check.sh"
   chmod +x "${PACKAGE_DIR}/scripts/starter.sh"
+  chmod +x "${PACKAGE_DIR}/scripts/health-check.sh"
 }
 
 copy_export_artifacts() {
