@@ -276,6 +276,13 @@ export function SideBar(props: { className?: string }) {
         subTitle={show ? "" : undefined}
         extra={
           <>
+            <Link to={Path.Help}>
+              <IconButton
+                aria={Locale.Help.Title}
+                icon={<span className={styles["help-icon"]}>?</span>}
+                shadow
+              />
+            </Link>
             <Link to={Path.Settings}>
               <IconButton
                 aria={Locale.Settings.Title}

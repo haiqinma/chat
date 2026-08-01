@@ -11,6 +11,13 @@ const cn = {
     WorkspaceSyncFailed: "账户数据同步失败，请重试。",
     Retry: "重新加载",
   },
+  Help: {
+    Title: "帮助",
+    SubTitle: "Chat 使用指南",
+    Search: "搜索登录、模型、同步等问题",
+    Contents: "目录",
+    NoResults: "没有找到相关内容",
+  },
   Error: {
     Mermaid: "Mermaid 语法有误，已保留源码。",
     Unauthorized: isApp
