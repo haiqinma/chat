@@ -124,6 +124,9 @@ const Artifacts = dynamic(async () => (await import("./artifacts")).Artifacts, {
 const Settings = dynamic(async () => (await import("./settings")).Settings, {
   loading: () => <Loading noLogo />,
 });
+const HelpPage = dynamic(async () => (await import("./help-page")).HelpPage, {
+  loading: () => <Loading noLogo />,
+});
 const RouterPage = dynamic(
   async () => (await import("./router-page")).RouterPage,
   {
@@ -274,6 +277,7 @@ function Screen() {
   const isArtifact = location.pathname.includes(Path.Artifacts);
   const isHome = location.pathname === Path.Home;
   const isAuth = location.pathname === Path.Auth;
+  const isHelp = location.pathname === Path.Help;
   const isSd = location.pathname === Path.Sd;
   const isSdNew = location.pathname === Path.SdNew;
   const isMobileScreen = useMobileScreen();
@@ -308,7 +312,9 @@ function Screen() {
     if (isCheckingAuth) return;
 
     const isAllowedPath = (pathname: string) =>
-      pathname === Path.Auth || pathname.startsWith(Path.Artifacts);
+      pathname === Path.Auth ||
+      pathname === Path.Help ||
+      pathname.startsWith(Path.Artifacts);
 
     const resolveRedirectTarget = () => {
       const params = new URLSearchParams(location.search);
@@ -409,6 +415,16 @@ function Screen() {
       </Routes>
     );
   }
+  if (
+    isHelp &&
+    (isCheckingAuth ||
+      !isAuthorized ||
+      workspaceStatus !== "ready" ||
+      modelsError ||
+      !modelsReady)
+  ) {
+    return <HelpPage />;
+  }
   if (isCheckingAuth) {
     return <Loading noLogo />;
   }
@@ -424,6 +440,7 @@ function Screen() {
   if (isAuthorized && !modelsReady) return <Loading noLogo />;
   const renderContent = () => {
     if (isAuth) return <AuthPage />;
+    if (isHelp && !isAuthorized) return <HelpPage />;
     if (!isAuthorized) return <AuthPage />;
     if (isSd) return <Sd />;
     if (isSdNew) return <Navigate to={Path.Sd} replace />;
@@ -446,6 +463,7 @@ function Screen() {
               <Route path={Path.SearchChat} element={<SearchChat />} />
               <Route path={Path.Chat} element={<Chat />} />
               <Route path={Path.Settings} element={<Settings />} />
+              <Route path={Path.Help} element={<HelpPage />} />
               <Route path={Path.Router} element={<RouterPage />} />
               <Route path={Path.Storage} element={<StoragePage />} />
               <Route path={Path.Discovery} element={<DiscoveryPage />} />

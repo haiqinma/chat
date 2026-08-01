@@ -56,6 +56,7 @@ export enum Path {
   Chat = "/chat",
   Setup = "/setup",
   Settings = "/settings",
+  Help = "/help",
   Router = "/router",
   Storage = "/storage",
   Discovery = "/discovery",

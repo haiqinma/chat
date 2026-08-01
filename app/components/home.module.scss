@@ -95,6 +95,20 @@
   }
 }
 
+.help-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1.3px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--black);
+}
+
 .window-content {
   flex: 1;
   width: auto;

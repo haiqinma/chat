@@ -13,6 +13,13 @@ const en: LocaleType = {
     WorkspaceSyncFailed: "Failed to sync account data. Please retry.",
     Retry: "Reload",
   },
+  Help: {
+    Title: "Help",
+    SubTitle: "Chat user guide",
+    Search: "Search sign-in, models, sync, and more",
+    Contents: "Contents",
+    NoResults: "No matching content found",
+  },
   Error: {
     Mermaid: "Mermaid syntax error. Source code is preserved.",
     Unauthorized: isApp
