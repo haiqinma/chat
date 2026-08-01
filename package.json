@@ -27,7 +27,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@jest/globals": "^30.4.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@next/third-parties": "^16.2.9",
+    "@next/third-parties": "^16.2.12",
     "@svgr/webpack": "^8.1.0",
     "@tauri-apps/plugin-clipboard-manager": "2.3.2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
@@ -57,7 +57,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.15.1",
+    "react-router-dom": "^7.18.1",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "remark-breaks": "^4.0.0",
@@ -91,7 +91,7 @@
     "chokidar-cli": "^3.0.0",
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
-    "eslint": "^10.7.0",
+    "eslint": "^10.8.0",
     "eslint-config-next": "^16.2.10",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.1.3",
@@ -104,7 +104,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "webpack": "^5.107.2"
+    "webpack": "^5.109.0"
   },
   "overrides": {
     "@hono/node-server": "1.19.14",
