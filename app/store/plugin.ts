@@ -1,12 +1,15 @@
-import OpenAPIClientAxios from "openapi-client-axios";
 import { StoreKey } from "../constant";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
 import { getClientConfig } from "../config/client";
-import * as yaml from "js-yaml";
-import { isDesktopAppRuntime } from "../tauri";
-import { adapter, getOperationId } from "../utils";
 import { useAccessStore } from "./access";
+import {
+  createOpenApiRuntime,
+  getOperationId,
+  OpenApiRuntime,
+  operationToToolParameters,
+  parseOpenApiDefinition,
+} from "../utils/openapi";
 
 const isApp = () => getClientConfig()?.isApp !== false;
 
@@ -33,7 +36,7 @@ export type FunctionToolItem = {
 };
 
 type FunctionToolServiceItem = {
-  api: OpenAPIClientAxios;
+  api: OpenApiRuntime;
   length: number;
   tools: FunctionToolItem[];
   funcs: Record<string, Function>;
@@ -53,7 +56,7 @@ export const FunctionToolService = {
           ? `Bearer ${plugin?.authToken}`
           : plugin?.authToken;
     const authLocation = plugin?.authLocation || "header";
-    const definition = yaml.load(plugin.content) as any;
+    const definition = parseOpenApiDefinition(plugin.content);
     const serverURL = definition?.servers?.[0]?.url;
     const baseURL = !isApp() ? "/api/proxy" : serverURL;
     const headers: Record<string, string | undefined> = {
@@ -69,83 +72,37 @@ export const FunctionToolService = {
         headers[headerName] = `Bearer ${openaiApiKey}`;
       }
     }
-    const api = new OpenAPIClientAxios({
-      definition: yaml.load(plugin.content) as any,
-      axiosConfigDefaults: {
-        adapter: (isDesktopAppRuntime() ? adapter : ["xhr"]) as any,
-        baseURL,
-        headers,
-      },
+    const api = createOpenApiRuntime({
+      definition,
+      baseURL,
+      headers,
     });
-    try {
-      api.initSync();
-    } catch (e) {}
     const operations = api.getOperations();
     return (this.tools[plugin.id] = {
       api,
       length: operations.length,
       tools: operations.map((o) => {
-        // @ts-ignore
-        const parameters = o?.requestBody?.content["application/json"]
-          ?.schema || {
-          type: "object",
-          properties: {},
-        };
-        if (!parameters["required"]) {
-          parameters["required"] = [];
-        }
-        if (o.parameters instanceof Array) {
-          o.parameters.forEach((p) => {
-            // @ts-ignore
-            if (p?.in == "query" || p?.in == "path") {
-              // const name = `${p.in}__${p.name}`
-              // @ts-ignore
-              const name = p?.name;
-              parameters["properties"][name] = {
-                // @ts-ignore
-                type: p.schema.type,
-                // @ts-ignore
-                description: p.description,
-              };
-              // @ts-ignore
-              if (p.required) {
-                parameters["required"].push(name);
-              }
-            }
-          });
-        }
         return {
           type: "function",
           function: {
             name: getOperationId(o),
             description: o.description || o.summary,
-            parameters: parameters,
+            parameters: operationToToolParameters(o),
           },
         } as FunctionToolItem;
       }),
-      funcs: operations.reduce((s, o) => {
-        // @ts-ignore
-        s[getOperationId(o)] = function (args) {
-          const parameters: Record<string, any> = {};
-          if (o.parameters instanceof Array) {
-            o.parameters.forEach((p) => {
-              // @ts-ignore
-              parameters[p?.name] = args[p?.name];
-              // @ts-ignore
-              delete args[p?.name];
-            });
-          }
+      funcs: operations.reduce<Record<string, Function>>((s, o) => {
+        s[getOperationId(o)] = function (args: Record<string, any>) {
+          const extra = {
+            query: {} as Record<string, any>,
+            body: {} as Record<string, any>,
+          };
           if (authLocation == "query") {
-            parameters[headerName] = tokenValue;
+            extra.query[headerName] = tokenValue;
           } else if (authLocation == "body") {
-            args[headerName] = tokenValue;
+            extra.body[headerName] = tokenValue;
           }
-          // @ts-ignore if o.operationId is null, then using o.path and o.method
-          return api.client.paths[o.path][o.method](
-            parameters,
-            args,
-            api.axiosConfigDefaults,
-          );
+          return api.callOperation(o, args, extra);
         };
         return s;
       }, {}),
@@ -260,8 +217,10 @@ export const usePluginStore = createPersistStore(
                 const plugin = state.create(item);
                 state.updatePlugin(plugin.id, (plugin) => {
                   const tool = FunctionToolService.add(plugin, true);
-                  plugin.title = tool.api.definition.info.title;
-                  plugin.version = tool.api.definition.info.version;
+                  plugin.title =
+                    tool.api.definition.info?.title || plugin.title;
+                  plugin.version =
+                    tool.api.definition.info?.version || plugin.version;
                   plugin.builtin = true;
                 });
               });
