@@ -431,6 +431,21 @@ npm run app:build:release
 - `TAURI_SIGNING_PRIVATE_KEY`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
+`TAURI_SIGNING_PRIVATE_KEY` 必须只保存生成出来的私钥字符串本身，例如：
+
+```bash
+cat ~/.tauri/chat-updater.key
+```
+
+不要包含以下内容：
+
+- `TAURI_SIGNING_PRIVATE_KEY=` 或 `export TAURI_SIGNING_PRIVATE_KEY=...`
+- `#` 注释或任何说明文字
+- `Private:` / `Public:` 等命令输出标签
+- 公钥内容或对私钥文件再次执行 base64 后的内容
+
+如果 CI 报 `failed to decode base64 key: Invalid symbol 35`，其中 `35` 是 `#` 的字符码，通常表示 GitHub Secret 里在私钥字符串后面混入了 `#...` 注释。
+
 发布任务中注入环境变量后，再执行：
 
 ```bash
