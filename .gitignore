@@ -55,3 +55,7 @@ masks.json
 .env.local
 /output/
 build.mode
+
+# config backup local files
+scripts/backup.conf
+scripts/.passphrase-file

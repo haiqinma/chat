@@ -14,6 +14,7 @@ INTERVAL="${HEALTH_INTERVAL:-2}"
 FORMAT="${HEALTH_FORMAT:-text}"
 CONFIG_PATH="${HEALTH_CONFIG:-}"
 BASE_URL="${HEALTH_BASE_URL:-}"
+LOGFILE=""
 CHECK_PORT=""
 WAIT_SECONDS="0"
 QUIET="0"
@@ -29,6 +30,46 @@ FAILED=0
 SKIPPED=0
 FRAMEWORK_ERROR=0
 TIMED_OUT=0
+
+init_log_file() {
+  local logfile_name=$1
+  local logfile_dir="/opt/logs"
+
+  LOGFILE="${logfile_dir}/${logfile_name}"
+  if ! mkdir -p "${logfile_dir}" 2>/dev/null || ! touch "${LOGFILE}" 2>/dev/null; then
+    LOGFILE=""
+    return 0
+  fi
+
+  local filesize=0
+  filesize=$(stat -c "%s" "${LOGFILE}" 2>/dev/null || echo 0)
+  if [[ "${filesize}" -ge 1048576 ]]; then
+    printf 'clear old logs at %s to avoid log file too big\n' "$(date)" > "${LOGFILE}"
+  fi
+}
+
+write_log() {
+  local stream="$1"
+  shift
+  local line
+  line="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+
+  if [ -n "${LOGFILE}" ]; then
+    printf '%s\n' "${line}" >> "${LOGFILE}"
+  fi
+
+  if [ "${stream}" = "stderr" ]; then
+    printf '%s\n' "${line}" >&2
+  fi
+}
+
+log() {
+  write_log stdout "$@"
+}
+
+log_err() {
+  write_log stderr "$@"
+}
 
 usage() {
   cat <<'EOF'
@@ -54,8 +95,8 @@ EOF
 }
 
 usage_error() {
-  echo "Usage error: $*" >&2
-  echo "Run scripts/health-check.sh --help for usage." >&2
+  log_err "Usage error: $*"
+  log_err "Run scripts/health-check.sh --help for usage."
   exit 2
 }
 
@@ -160,13 +201,15 @@ load_env_file() {
   fi
 
   if [ ! -f "${path}" ]; then
-    echo "Framework error: config file not found: ${path}" >&2
+    log_err "Framework error: config file not found: ${path}"
     exit 3
   fi
 
   if [ "${VERBOSE}" = "1" ]; then
-    echo "Loading config: ${path}" >&2
+    log_err "Loading config: ${path}"
   fi
+
+  log "Loading config: ${path}"
 
   set +u
   set -a
@@ -265,6 +308,8 @@ record_check() {
   CHECK_NAMES+=("${name}")
   CHECK_MESSAGES+=("${message}")
   CHECK_DURATIONS+=("${duration}")
+
+  log "check=${name} status=${status} message=${message} duration_ms=${duration}"
 
   case "${status}" in
     PASS) PASSED=$((PASSED + 1)) ;;
@@ -628,10 +673,15 @@ run_with_wait() {
 }
 
 main() {
+  init_log_file "health-check-chat.log"
+  log "health check started args=$*"
+
   parse_args "$@"
   validate_args
   load_env_file
   setup_defaults
+
+  log "health check configured level=${LEVEL} format=${FORMAT} base_url=${BASE_URL} timeout=${TIMEOUT} retries=${RETRIES} interval=${INTERVAL} wait=${WAIT_SECONDS}"
 
   local started_at started_ms finished_ms duration status exit_code wait_rc
   started_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -656,6 +706,8 @@ main() {
   else
     print_text_result "${status}" "${duration}"
   fi
+
+  log "health check finished status=${status} passed=${PASSED} warned=${WARNED} failed=${FAILED} skipped=${SKIPPED} duration_ms=${duration} exit_code=${exit_code}"
 
   exit "${exit_code}"
 }

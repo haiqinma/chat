@@ -1,0 +1,8 @@
+# BACKUP_CONF_FLAG: "True" or "False". When set to "True", config backup is enabled.
+BACKUP_CONF_FLAG="True"
+
+# BACKUP_CONF_PREFIX: backup file prefix. It can be empty; test environments may use "test-".
+BACKUP_CONF_PREFIX=""
+
+# BACKUP_CONF_SUFFIX: backup file suffix.
+BACKUP_CONF_SUFFIX=".conf.tar.gz.gpg"
