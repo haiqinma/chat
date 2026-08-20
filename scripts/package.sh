@@ -214,6 +214,9 @@ copy_standalone_artifacts() {
   local public_dir="${ROOT_DIR}/public"
   local starter_script="${ROOT_DIR}/scripts/starter.sh"
   local health_check_script="${ROOT_DIR}/scripts/health-check.sh"
+  local backup_conf_template="${ROOT_DIR}/scripts/backup.conf.template"
+  local config_backup_script="${ROOT_DIR}/scripts/config_backup.sh"
+  local passphrase_file_template="${ROOT_DIR}/scripts/.passphrase-file.template"
 
   if [ ! -d "${standalone_dir}" ]; then
     echo "Error: ${standalone_dir} not found. Build may have failed." >&2
@@ -227,6 +230,21 @@ copy_standalone_artifacts() {
 
   if [ ! -f "${health_check_script}" ]; then
     echo "Error: ${health_check_script} not found." >&2
+    exit 1
+  fi
+
+  if [ ! -f "${backup_conf_template}" ]; then
+    echo "Error: ${backup_conf_template} not found." >&2
+    exit 1
+  fi
+
+  if [ ! -f "${config_backup_script}" ]; then
+    echo "Error: ${config_backup_script} not found." >&2
+    exit 1
+  fi
+
+  if [ ! -f "${passphrase_file_template}" ]; then
+    echo "Error: ${passphrase_file_template} not found." >&2
     exit 1
   fi
 
@@ -254,8 +272,12 @@ copy_standalone_artifacts() {
   mkdir -p "${PACKAGE_DIR}/scripts"
   cp "${starter_script}" "${PACKAGE_DIR}/scripts/starter.sh"
   cp "${health_check_script}" "${PACKAGE_DIR}/scripts/health-check.sh"
+  cp "${backup_conf_template}" "${PACKAGE_DIR}/scripts/backup.conf.template"
+  cp "${config_backup_script}" "${PACKAGE_DIR}/scripts/config_backup.sh"
+  cp "${passphrase_file_template}" "${PACKAGE_DIR}/scripts/.passphrase-file.template"
   chmod +x "${PACKAGE_DIR}/scripts/starter.sh"
   chmod +x "${PACKAGE_DIR}/scripts/health-check.sh"
+  chmod +x "${PACKAGE_DIR}/scripts/config_backup.sh"
 }
 
 copy_export_artifacts() {
