@@ -1,12 +1,36 @@
 import { spawn } from "node:child_process";
-import { existsSync, promises as fs } from "node:fs";
+import { existsSync, promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
 import tauriConfig from "../src-tauri/tauri.conf.json" with { type: "json" };
 
 const rootDir = process.cwd();
 const releaseMode = process.argv.includes("--release-updater");
-const tempConfigPath = path.join(rootDir, "src-tauri", "tauri.release.conf.json");
+const tempConfigPath = path.join(
+  rootDir,
+  "src-tauri",
+  "tauri.release.conf.json",
+);
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return;
+  for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!match || process.env[match[1]] !== undefined) continue;
+    let value = match[2];
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[match[1]] = value;
+  }
+}
+
+loadEnvFile(path.join(rootDir, ".env"));
+loadEnvFile(path.join(rootDir, ".env.build"));
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -22,7 +46,11 @@ function run(command, args, options = {}) {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`${command} ${args.join(" ")} failed with exit code ${code}`));
+        reject(
+          new Error(
+            `${command} ${args.join(" ")} failed with exit code ${code}`,
+          ),
+        );
       }
     });
 
@@ -68,7 +96,12 @@ function resolveArch() {
 }
 
 function normalizeVersion(value) {
-  return value?.trim().replace(/^refs\/tags\//, "").replace(/^v/i, "") || "";
+  return (
+    value
+      ?.trim()
+      .replace(/^refs\/tags\//, "")
+      .replace(/^v/i, "") || ""
+  );
 }
 
 function isSemverVersion(value) {
@@ -139,7 +172,10 @@ function validateInlineSigningKey() {
   }
 
   const decodedKey = Buffer.from(compactKey, "base64").toString("utf8");
-  if (!decodedKey.startsWith("untrusted comment:") || !decodedKey.includes("secret key")) {
+  if (
+    !decodedKey.startsWith("untrusted comment:") ||
+    !decodedKey.includes("secret key")
+  ) {
     throw new Error(
       "TAURI_SIGNING_PRIVATE_KEY does not look like a Tauri updater private key. Check that you did not paste the public key, double-base64 the key file, or include command output text.",
     );
@@ -169,6 +205,35 @@ function validateReleaseSigningEnv() {
 
 function readEnv(name) {
   return process.env[name]?.trim() || "";
+}
+
+function validateDesktopAuthConfig() {
+  // Static desktop builds cannot receive public config from a running Next server.
+  // Validate the Node identity authorization values before producing an unusable application.
+  if (readEnv("UCAN_LOGIN_FORCE_MODE").toLowerCase() === "wallet") {
+    return;
+  }
+
+  const required = [
+    ["CENTRAL_UCAN_AUTH_BASE_URL", readEnv("CENTRAL_UCAN_AUTH_BASE_URL")],
+    ["CENTRAL_UCAN_APP_ID", readEnv("CENTRAL_UCAN_APP_ID")],
+    ["CENTRAL_UCAN_REDIRECT_URI", readEnv("CENTRAL_UCAN_REDIRECT_URI")],
+  ];
+  const missing = required.filter(([, value]) => !value).map(([name]) => name);
+  if (missing.length > 0) {
+    throw new Error(
+      `Desktop build requires Node identity login config: ${missing.join(", ")}. ` +
+        "Set UCAN_LOGIN_FORCE_MODE=wallet to explicitly disable passkey login.",
+    );
+  }
+
+  const expectedRedirectUri =
+    "http://tauri.localhost/central-ucan-callback.html";
+  if (readEnv("CENTRAL_UCAN_REDIRECT_URI") !== expectedRedirectUri) {
+    throw new Error(
+      `CENTRAL_UCAN_REDIRECT_URI must be ${expectedRedirectUri} for a Tauri desktop build.`,
+    );
+  }
 }
 
 function requireMacosReleaseConfig() {
@@ -204,9 +269,7 @@ async function withTemporaryTauriConfig(buildVersion, callback) {
   if (releaseMode) {
     config.bundle = {
       createUpdaterArtifacts: true,
-      ...(process.platform === "linux"
-        ? { targets: ["deb", "appimage"] }
-        : {}),
+      ...(process.platform === "linux" ? { targets: ["deb", "appimage"] } : {}),
     };
   }
 
@@ -283,7 +346,9 @@ async function ensureMacosAppSignature(appPath) {
     return;
   }
 
-  console.warn("[Tauri] macOS app signature incomplete; applying ad-hoc signature");
+  console.warn(
+    "[Tauri] macOS app signature incomplete; applying ad-hoc signature",
+  );
   await run("codesign", ["--force", "--deep", "--sign", "-", appPath]);
 
   const adHocVerify = await runCapture("codesign", [
@@ -339,12 +404,7 @@ async function signAndNotarizeDmg(dmgPath) {
 
   const config = requireMacosReleaseConfig();
 
-  await run("codesign", [
-    "--force",
-    "--sign",
-    config.signingIdentity,
-    dmgPath,
-  ]);
+  await run("codesign", ["--force", "--sign", config.signingIdentity, dmgPath]);
 
   const signature = await runCapture("codesign", [
     "--verify",
@@ -353,7 +413,9 @@ async function signAndNotarizeDmg(dmgPath) {
   ]);
 
   if (signature.code !== 0) {
-    throw new Error(`DMG signature verification failed:\n${signature.output.trim()}`);
+    throw new Error(
+      `DMG signature verification failed:\n${signature.output.trim()}`,
+    );
   }
 
   await run("xcrun", [
@@ -381,7 +443,9 @@ async function signAndNotarizeDmg(dmgPath) {
   ]);
 
   if (assess.code !== 0) {
-    throw new Error(`DMG Gatekeeper assessment failed:\n${assess.output.trim()}`);
+    throw new Error(
+      `DMG Gatekeeper assessment failed:\n${assess.output.trim()}`,
+    );
   }
 }
 
@@ -389,8 +453,22 @@ async function buildDmg(buildVersion) {
   const productName = tauriConfig.productName;
   const version = buildVersion;
   const arch = resolveArch();
-  const macosDir = path.join(rootDir, "src-tauri", "target", "release", "bundle", "macos");
-  const dmgDir = path.join(rootDir, "src-tauri", "target", "release", "bundle", "dmg");
+  const macosDir = path.join(
+    rootDir,
+    "src-tauri",
+    "target",
+    "release",
+    "bundle",
+    "macos",
+  );
+  const dmgDir = path.join(
+    rootDir,
+    "src-tauri",
+    "target",
+    "release",
+    "bundle",
+    "dmg",
+  );
   const bundleScript = path.join(dmgDir, "bundle_dmg.sh");
   const iconPath = path.join(dmgDir, "icon.icns");
   const appName = `${productName}.app`;
@@ -417,7 +495,10 @@ async function buildDmg(buildVersion) {
   await rebuildMacosUpdaterArchive(macosDir, appName);
 
   if (!existsSync(bundleScript)) {
-    const stagingDir = path.join(macosDir, `.dmg-stage-${productName}-${version}-${arch}`);
+    const stagingDir = path.join(
+      macosDir,
+      `.dmg-stage-${productName}-${version}-${arch}`,
+    );
     await fs.rm(stagingDir, { recursive: true, force: true });
     await fs.mkdir(stagingDir, { recursive: true });
 
@@ -475,10 +556,15 @@ async function buildDmg(buildVersion) {
   await signAndNotarizeDmg(dmgPath);
 }
 
-const releaseSigningKeySource = releaseMode ? validateReleaseSigningEnv() : null;
+const releaseSigningKeySource = releaseMode
+  ? validateReleaseSigningEnv()
+  : null;
 const macosReleaseConfig =
-  releaseMode && process.platform === "darwin" ? requireMacosReleaseConfig() : null;
+  releaseMode && process.platform === "darwin"
+    ? requireMacosReleaseConfig()
+    : null;
 
+validateDesktopAuthConfig();
 await run("npm", ["run", "skill"]);
 
 const buildVersion = resolveBuildVersion();
@@ -486,10 +572,14 @@ process.env.BUILD_VERSION = buildVersion;
 console.log(`[Tauri] desktop app version ${buildVersion}`);
 
 if (releaseMode) {
-  console.log(`[Tauri] updater release build enabled via ${releaseSigningKeySource}`);
+  console.log(
+    `[Tauri] updater release build enabled via ${releaseSigningKeySource}`,
+  );
 
   if (macosReleaseConfig) {
-    console.log(`[Tauri] macOS release signing identity ${macosReleaseConfig.signingIdentity}`);
+    console.log(
+      `[Tauri] macOS release signing identity ${macosReleaseConfig.signingIdentity}`,
+    );
   }
 
   await withTemporaryTauriConfig(buildVersion, async (configPath) => {
