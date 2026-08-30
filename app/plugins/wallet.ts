@@ -576,12 +576,15 @@ export async function loginWithUcan(
       capabilities: rootCapabilities,
     });
     const root = await createRootUcan({
-      provider: providerInstance,
-      address: currentAccount,
+      proof: {
+        type: "siwe",
+        provider: providerInstance,
+        address: currentAccount,
+        statement: rootStatement,
+      },
       sessionId: UCAN_SESSION_ID,
       session,
       capabilities: rootCapabilities,
-      statement: rootStatement,
     });
     const storedRoot = await getStoredRoot();
     if (

@@ -18,6 +18,12 @@ const CENTRAL_UCAN_TOKENS_KEY = "centralUcanTokensV1";
 const CENTRAL_SESSION_TOKEN_KEY = "centralIssueSessionToken";
 const CENTRAL_SESSION_EXPIRES_AT_KEY = "centralIssueSessionExpiresAt";
 const CENTRAL_SUBJECT_KEY = "centralAuthSubject";
+const CENTRAL_IDENTITY_DID_KEY = "centralIdentityDid";
+const CENTRAL_WALLET_ADDRESS_KEY = "centralWalletAddress";
+const CENTRAL_IDENTITY_CREDENTIALS_KEY = "centralIdentityCredentials";
+const CENTRAL_AUTHORIZE_SESSION_PREFIX = "centralIdentityAuthorizeSession:";
+const CURRENT_IDENTITY_DID_KEY = "currentIdentityDid";
+const CURRENT_WALLET_ADDRESS_KEY = "currentWalletAddress";
 const TOKEN_SKEW_MS = 5 * 1000;
 
 type Envelope<T> = {
@@ -80,44 +86,42 @@ type CentralIssueResult = {
 export type CentralAuthorizeRequestResult = {
   requestId: string;
   status: string;
-  subject: string;
-  subjectHint: string;
   appId: string;
+  appName?: string;
   redirectUri: string;
   state?: string;
   audience: string;
-  capabilities: UcanCapability[];
-  appName: string;
-  createdAt: number;
-  expiresAt: number;
+  nonce?: string;
+  scopes: string[];
+  expiresAt: string | number;
   verifyUrl: string;
+  codeChallengeMethod?: string;
 };
 
 export type CentralAuthorizeExchangeResult = {
   requestId: string;
-  subject: string;
   appId: string;
   redirectUri: string;
   state?: string;
-  token: string;
-  expiresAt: number;
-  refreshExpiresAt: number;
-  ucan: string;
-  issuer: string;
-  audience: string;
-  capabilities: UcanCapability[];
-  notBefore: number;
-  ucanExpiresAt: number;
-  issuedAt: number;
-};
-
-export type CentralAuthorizeApproveResult = {
-  requestId: string;
-  appName: string;
-  approvedAt: number;
-  authorizationCode: string;
-  authorizationCodeExpiresAt: number;
-  redirectTo: string;
+  did: string;
+  walletIdentityId?: string;
+  walletAddress?: string;
+  scopes: string[];
+  credentials?: Array<{
+    type: string;
+    credentialId: string;
+    credential: string;
+  }>;
+  issuedAt?: string | number;
+  token?: string;
+  expiresAt?: number;
+  refreshExpiresAt?: number;
+  ucan?: string;
+  issuer?: string;
+  audience?: string;
+  capabilities?: UcanCapability[];
+  notBefore?: number;
+  ucanExpiresAt?: number;
 };
 
 export type UcanAuthMode =
@@ -129,6 +133,14 @@ type HttpError = Error & {
 
 let centralSessionPromise: Promise<string> | null = null;
 const centralIssuePromises = new Map<string, Promise<CentralUcanTokenRecord>>();
+
+export type CentralAuthorizeSession = {
+  state: string;
+  codeVerifier: string;
+  codeChallenge: string;
+  redirectPath: string;
+  createdAt: number;
+};
 
 function emitAuthChange() {
   if (typeof window === "undefined") return;
@@ -159,6 +171,80 @@ function decodeJwtPayload(token: string): DecodedJwtPayload | null {
   if (!text) return null;
   try {
     return JSON.parse(text) as DecodedJwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+function encodeBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function randomBase64Url(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return encodeBase64Url(bytes);
+}
+
+async function sha256Base64Url(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return encodeBase64Url(new Uint8Array(digest));
+}
+
+function getAuthorizeSessionKey(state: string): string {
+  return `${CENTRAL_AUTHORIZE_SESSION_PREFIX}${state}`;
+}
+
+export async function createCentralAuthorizeSession(
+  redirectPath: string,
+): Promise<CentralAuthorizeSession> {
+  const state = randomBase64Url(24);
+  const codeVerifier = randomBase64Url(48);
+  const session: CentralAuthorizeSession = {
+    state,
+    codeVerifier,
+    codeChallenge: await sha256Base64Url(codeVerifier),
+    redirectPath,
+    createdAt: Date.now(),
+  };
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(
+      getAuthorizeSessionKey(state),
+      JSON.stringify(session),
+    );
+  }
+  return session;
+}
+
+export function consumeCentralAuthorizeSession(
+  state?: string | null,
+): CentralAuthorizeSession | null {
+  const normalizedState = String(state || "").trim();
+  if (!normalizedState || typeof localStorage === "undefined") return null;
+  const key = getAuthorizeSessionKey(normalizedState);
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  localStorage.removeItem(key);
+  try {
+    const parsed = JSON.parse(raw) as CentralAuthorizeSession;
+    if (
+      parsed?.state !== normalizedState ||
+      !parsed.codeVerifier ||
+      !parsed.redirectPath
+    ) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -671,6 +757,11 @@ export function clearCentralUcanAuth(options?: {
     localStorage.removeItem(CENTRAL_ACCESS_TOKEN_KEY);
     localStorage.removeItem(CENTRAL_ACCESS_EXPIRES_AT_KEY);
     localStorage.removeItem(CENTRAL_SUBJECT_KEY);
+    localStorage.removeItem(CENTRAL_IDENTITY_DID_KEY);
+    localStorage.removeItem(CENTRAL_WALLET_ADDRESS_KEY);
+    localStorage.removeItem(CENTRAL_IDENTITY_CREDENTIALS_KEY);
+    localStorage.removeItem(CURRENT_IDENTITY_DID_KEY);
+    localStorage.removeItem(CURRENT_WALLET_ADDRESS_KEY);
     if (!options?.preserveMode) {
       localStorage.removeItem(UCAN_AUTH_MODE_KEY);
     }
@@ -682,7 +773,22 @@ export function clearCentralUcanAuth(options?: {
 
 export function getCentralAccount(): string {
   if (typeof localStorage === "undefined") return "";
-  return (localStorage.getItem(CENTRAL_SUBJECT_KEY) || "").trim();
+  return (
+    localStorage.getItem(CENTRAL_WALLET_ADDRESS_KEY) ||
+    localStorage.getItem(CENTRAL_IDENTITY_DID_KEY) ||
+    localStorage.getItem(CENTRAL_SUBJECT_KEY) ||
+    ""
+  ).trim();
+}
+
+export function getCentralIdentityDid(): string {
+  if (typeof localStorage === "undefined") return "";
+  return (localStorage.getItem(CENTRAL_IDENTITY_DID_KEY) || "").trim();
+}
+
+export function getCentralWalletAddress(): string {
+  if (typeof localStorage === "undefined") return "";
+  return (localStorage.getItem(CENTRAL_WALLET_ADDRESS_KEY) || "").trim();
 }
 
 export function getCentralUcanToken(): string | null {
@@ -737,7 +843,9 @@ export function getCentralAccessToken(): string | null {
 
 export function isCentralUcanAuthorized(): boolean {
   if (!isCentralModeEnabled()) return false;
-  return Boolean(getCentralAccessToken() && getCentralAccount());
+  return Boolean(
+    getCentralIdentityDid() || (getCentralAccessToken() && getCentralAccount()),
+  );
 }
 
 export function getCentralUcanAuthorizationHeader(): string | null {
@@ -804,32 +912,34 @@ export function getCentralUcanExpiresAt(): number | null {
 }
 
 export async function createCentralAuthorizeRequest(input: {
-  address: string;
   appId?: string;
   redirectUri: string;
   state?: string;
-  audience?: string;
-  capabilities?: UcanCapability[];
+  codeChallenge: string;
+  codeChallengeMethod?: "S256";
+  scopes?: string[];
   appName?: string;
-  requestTtlMs?: number;
   baseUrl?: string;
 }): Promise<CentralAuthorizeRequestResult> {
   const resolvedAppId = resolveCentralAppId(input.appId);
   const response = await fetch(
-    buildApiUrl("/api/v1/public/auth/totp/authorize/request", input.baseUrl),
+    buildApiUrl("/api/v1/public/identity/authorize/request", input.baseUrl),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
-        address: input.address,
         appId: resolvedAppId,
         redirectUri: input.redirectUri,
         state: input.state || undefined,
-        audience: input.audience || undefined,
-        capabilities: input.capabilities || undefined,
+        codeChallenge: input.codeChallenge,
+        codeChallengeMethod: input.codeChallengeMethod || "S256",
+        scopes: input.scopes || [
+          "identity.basic",
+          "identity.wallet",
+          "identity.username",
+        ],
         appName: input.appName || undefined,
-        requestTtlMs: input.requestTtlMs,
       }),
     },
   );
@@ -846,41 +956,7 @@ export async function createCentralAuthorizeRequest(input: {
   }
   return parseEnvelope<CentralAuthorizeRequestResult>(
     text,
-    "创建中心化授权请求失败",
-  );
-}
-
-export async function approveCentralAuthorizeRequest(input: {
-  requestId: string;
-  code: string;
-  baseUrl?: string;
-}): Promise<CentralAuthorizeApproveResult> {
-  const response = await fetch(
-    buildApiUrl("/api/v1/public/auth/totp/authorize/approve", input.baseUrl),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        requestId: input.requestId,
-        code: input.code,
-      }),
-    },
-  );
-  const text = await response.text();
-  if (!response.ok) {
-    let message = `中心化授权验证失败: ${response.status}`;
-    try {
-      const parsed = JSON.parse(text) as Envelope<unknown>;
-      if (parsed?.message) message = parsed.message;
-    } catch {
-      if (text) message = text;
-    }
-    throw new Error(message);
-  }
-  return parseEnvelope<CentralAuthorizeApproveResult>(
-    text,
-    "中心化授权验证失败",
+    "创建钱包身份授权请求失败",
   );
 }
 
@@ -888,11 +964,12 @@ export async function exchangeCentralAuthorizeCode(input: {
   code: string;
   appId?: string;
   redirectUri: string;
+  codeVerifier: string;
   baseUrl?: string;
 }): Promise<CentralAuthorizeExchangeResult> {
   const resolvedAppId = resolveCentralAppId(input.appId);
   const response = await fetch(
-    buildApiUrl("/api/v1/public/auth/totp/authorize/exchange", input.baseUrl),
+    buildApiUrl("/api/v1/public/identity/authorize/exchange", input.baseUrl),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -901,6 +978,7 @@ export async function exchangeCentralAuthorizeCode(input: {
         code: input.code,
         appId: resolvedAppId,
         redirectUri: input.redirectUri,
+        codeVerifier: input.codeVerifier,
       }),
     },
   );
@@ -928,25 +1006,51 @@ export function applyCentralAuthorizeExchange(
   centralIssuePromises.clear();
   clearCentralSessionTokenCache();
   if (typeof localStorage !== "undefined") {
-    persistLegacyToken(result.ucan, result.ucanExpiresAt);
-    localStorage.setItem(CENTRAL_ACCESS_TOKEN_KEY, result.token);
-    localStorage.setItem(CENTRAL_SUBJECT_KEY, result.subject);
-    localStorage.setItem("currentAccount", result.subject);
-    storeExpireAt(CENTRAL_ACCESS_EXPIRES_AT_KEY, result.expiresAt);
-    persistCentralUcanToken({
-      token: result.ucan,
-      audience: result.audience,
-      capabilities: normalizeUcanCapabilities(result.capabilities || [], {
-        includeLegacyAliases: false,
-      }) as UcanCapability[],
-      capsKey: buildCapsKey(result.capabilities || []),
-      expiresAt:
-        normalizeEpochMs(result.ucanExpiresAt) ||
-        parseTokenExpiry(result.ucan) ||
-        Date.now(),
-      notBefore: normalizeEpochMs(result.notBefore),
-      issuedAt: normalizeEpochMs(result.issuedAt) || Date.now(),
-    });
+    const did = String(result.did || "").trim();
+    const walletAddress = String(result.walletAddress || "").trim();
+    if (did) {
+      localStorage.setItem(CENTRAL_IDENTITY_DID_KEY, did);
+      localStorage.setItem(CURRENT_IDENTITY_DID_KEY, did);
+      localStorage.removeItem(CENTRAL_SUBJECT_KEY);
+    }
+    if (walletAddress) {
+      localStorage.setItem(CENTRAL_WALLET_ADDRESS_KEY, walletAddress);
+      localStorage.setItem(CURRENT_WALLET_ADDRESS_KEY, walletAddress);
+      localStorage.setItem("currentAccount", walletAddress);
+    }
+    if (result.credentials) {
+      localStorage.setItem(
+        CENTRAL_IDENTITY_CREDENTIALS_KEY,
+        JSON.stringify(result.credentials),
+      );
+    }
+    if (result.token) {
+      localStorage.setItem(CENTRAL_ACCESS_TOKEN_KEY, result.token);
+      storeExpireAt(CENTRAL_ACCESS_EXPIRES_AT_KEY, result.expiresAt);
+    } else {
+      localStorage.removeItem(CENTRAL_ACCESS_TOKEN_KEY);
+      localStorage.removeItem(CENTRAL_ACCESS_EXPIRES_AT_KEY);
+    }
+    if (result.ucan && result.audience) {
+      persistLegacyToken(result.ucan, result.ucanExpiresAt);
+      persistCentralUcanToken({
+        token: result.ucan,
+        audience: result.audience,
+        capabilities: normalizeUcanCapabilities(result.capabilities || [], {
+          includeLegacyAliases: false,
+        }) as UcanCapability[],
+        capsKey: buildCapsKey(result.capabilities || []),
+        expiresAt:
+          normalizeEpochMs(result.ucanExpiresAt) ||
+          parseTokenExpiry(result.ucan) ||
+          Date.now(),
+        notBefore: normalizeEpochMs(result.notBefore),
+        issuedAt: normalizeEpochMs(result.issuedAt) || Date.now(),
+      });
+    } else {
+      clearLegacyUcanToken();
+      clearCentralUcanTokenStore();
+    }
   }
   setUcanAuthMode(UCAN_AUTH_MODE_CENTRAL, { emit: false });
   if (options?.emit !== false) {

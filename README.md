@@ -14,25 +14,16 @@ Chat（UCAN 定制版）
 
 # 文档索引
 
+完整文档索引和治理建议见：`docs/README.md`
+
+高频入口：
+
 - 用户使用手册：`docs/用户使用手册.md`
 - 常见问题：`docs/常见问题.md`
-- 网页版与桌面版产品定位：`docs/网页版与桌面版产品定位.md`
-- Tauri 桌面端打包发布说明：`docs/Tauri桌面端迁移清单.md`
-- 网页版主链路验收清单：`docs/网页版主链路验收清单.md`
 - AI Native 能力分层架构：`docs/AI-Native能力分层架构.md`
-- 架构 / 部署 / 安全清单：`docs/架构部署安全清单.md`
 - 运行时配置与发包：`docs/运行时配置与发包.md`
-- 模型端点选择与支持机制：`docs/模型端点选择与支持机制.md`
-- 容器与布局样式方案：`docs/容器与布局样式方案.md`
-- 用户登录方案：`docs/用户登录方案.md`
-- 数据同步：`docs/数据同步方案.md`
-- 技能发布、上线、配置与使用流程：`docs/技能发布上线配置使用流程.md`
-- 市场后端与技能运行配置方案：`docs/市场后端与技能运行配置方案.md`
-- Cloudflare Pages 部署指南：`docs/CloudflarePages部署指南.md`
-- Vercel 使用说明：`docs/Vercel使用说明.md`
-- 文生图与上传图片聊天工作流实现说明：`docs/文生图与上传图片聊天工作流实现说明.md`
-- 工具启用机制与演进：`docs/工具启用机制与演进.md`
-- 新增翻译指南：`docs/新增翻译指南.md`
+- Tauri 桌面端打包发布说明：`docs/Tauri桌面端迁移清单.md`
+- Skill / Tool 运行机制：`docs/Chat Skill与Tool运行机制.md`
 
 # 环境要求
 
@@ -231,7 +222,10 @@ standalone 如需启用工具能力：
 
 `marketplace` 仓库管理 Tool/Skill 的可发现定义，例如名称、描述、启动命令和配置项 schema。standalone 当前实例的工具启用状态、用户自带 Key 和运行时参数写入 `data/tool_config.json`，也可以通过 `TOOL_CONFIG_PATH` 指定自定义路径。真实 Key 不应放进源码目录或 marketplace 数据。
 
-更完整的说明见：`docs/工具启用机制与演进.md`
+更完整的说明见：
+
+- `docs/Chat Skill与Tool运行机制.md`
+- `docs/工具启用机制与演进.md`
 
 # 贡献指南
 

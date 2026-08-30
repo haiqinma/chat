@@ -1,6 +1,4 @@
 import { useDebouncedCallback } from "use-debounce";
-import OpenAPIClientAxios from "openapi-client-axios";
-import * as yaml from "js-yaml";
 import { PLUGINS_REPO_URL } from "../constant";
 import { IconButton } from "./button";
 import { ErrorBoundary } from "./error";
@@ -29,6 +27,7 @@ import Locale from "../locales";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import clsx from "clsx";
+import { parseOpenApiDefinition } from "../utils/openapi";
 
 export function PluginPage() {
   const navigate = useNavigate();
@@ -60,25 +59,15 @@ export function PluginPage() {
   const onChangePlugin = useDebouncedCallback((editingPlugin, e) => {
     const content = e.target.innerText;
     try {
-      const api = new OpenAPIClientAxios({
-        definition: yaml.load(content) as any,
-      });
-      api
-        .init()
-        .then(() => {
-          if (content != editingPlugin.content) {
-            pluginStore.updatePlugin(editingPlugin.id, (plugin) => {
-              plugin.content = content;
-              const tool = FunctionToolService.add(plugin, true);
-              plugin.title = tool.api.definition.info.title;
-              plugin.version = tool.api.definition.info.version;
-            });
-          }
-        })
-        .catch((e) => {
-          console.error(e);
-          showToast(Locale.Plugin.EditModal.Error);
+      parseOpenApiDefinition(content);
+      if (content != editingPlugin.content) {
+        pluginStore.updatePlugin(editingPlugin.id, (plugin) => {
+          plugin.content = content;
+          const tool = FunctionToolService.add(plugin, true);
+          plugin.title = tool.api.definition.info?.title || plugin.title;
+          plugin.version = tool.api.definition.info?.version || plugin.version;
         });
+      }
     } catch (e) {
       console.error(e);
       showToast(Locale.Plugin.EditModal.Error);
@@ -108,8 +97,8 @@ export function PluginPage() {
         pluginStore.updatePlugin(editingPlugin.id, (plugin) => {
           plugin.content = content;
           const tool = FunctionToolService.add(plugin, true);
-          plugin.title = tool.api.definition.info.title;
-          plugin.version = tool.api.definition.info.version;
+          plugin.title = tool.api.definition.info?.title || plugin.title;
+          plugin.version = tool.api.definition.info?.version || plugin.version;
         });
       })
       .catch((e) => {

@@ -35,16 +35,16 @@ const en: LocaleType = {
   Auth: {
     Return: "Return",
     Title: "Sign In",
-    Tips: "Authorize with your blockchain address",
-    SubTips: "Use wallet signature or centralized UCAN authorization",
-    Input: "Enter or select blockchain address",
+    Tips: "Authorize with your wallet identity",
+    SubTips: "Use the wallet extension or local passkey authorization",
+    Input: "Enter or select wallet account address",
     Confirm: "Sign In",
     Later: "Later",
     Processing: "Processing...",
     EmptyHistory: "No recent addresses",
     ClearSelection: "Clear current selection",
     ExpandAccountList: "Expand address list",
-    MissingAccount: "Enter or select a blockchain address first",
+    MissingAccount: "Enter or select a wallet account address first",
     MissingWalletAccount: "No wallet account found",
     LoginCancelled: "Sign-in cancelled",
     SwitchToAppAccount:
@@ -52,27 +52,27 @@ const en: LocaleType = {
     WalletLoginFailed: (error: string) => `Wallet sign-in failed: ${error}`,
     MissingRouterAudience:
       "Cannot resolve Router audience. Check ROUTER_BACKEND_URL",
-    CentralLoginSuccess: "Centralized UCAN sign-in succeeded",
+    CentralLoginSuccess: "Wallet identity sign-in succeeded",
     CentralExchangeFailed: (error: string) =>
-      `Failed to exchange centralized authorization code: ${error}`,
+      `Failed to exchange wallet identity authorization code: ${error}`,
     CentralRequestCreated:
-      "Centralized authorization request created. Redirecting...",
+      "Wallet identity authorization request created. Redirecting...",
     CentralRequestFailed: (error: string) =>
-      `Failed to create centralized authorization request: ${error}`,
-    CentralTotpTitle: "TOTP Authorization",
+      `Failed to create wallet identity authorization request: ${error}`,
+    CentralTotpTitle: "Passkey Authorization",
     CentralTotpDescription:
-      "Enter the 6-digit code from your authenticator to finish sign-in.",
+      "Use your local passkey to finish wallet identity authorization.",
     CentralTotpInput: "6-digit code",
     CentralTotpSubmit: "Verify and Sign In",
     CentralTotpInvalid: "Enter the 6-digit authenticator code",
     WalletMismatch: {
-      Title: "Account mismatch",
+      Title: "Wallet account mismatch",
       Description:
-        "The app address and wallet address do not match. Choose how to sign in.",
+        "The selected wallet account and current wallet extension account do not match. Choose how to sign in.",
       App: "App",
       Wallet: "Wallet",
       Switch: "Switch in wallet",
-      UseWallet: "Use wallet address",
+      UseWallet: "Use wallet account",
     },
     TopTips:
       "🥳 Chat AI launch promotion: Instantly unlock the latest models like qwen3.7-plus, deepseek-v4-pro, gpt-5.5, claude-4.8!",
