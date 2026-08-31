@@ -25,7 +25,7 @@
   "dependencies": {
     "@fortaine/fetch-event-source": "^3.0.6",
     "@hello-pangea/dnd": "^18.0.1",
-    "@jest/globals": "^30.4.1",
+    "@jest/globals": "^30.5.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@next/third-parties": "^16.2.12",
     "@svgr/webpack": "^8.1.0",
@@ -37,7 +37,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "@yeying-community/web3-bs": "1.0.26",
-    "axios": "^1.16.1",
+    "axios": "^1.20.0",
     "clsx": "^2.1.1",
     "csstype": "^3.2.3",
     "emoji-picker-react": "^4.19.1",
@@ -56,7 +56,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.18.2",
+    "react-router-dom": "^7.18.3",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "remark-breaks": "^4.0.0",
@@ -69,7 +69,7 @@
     "unified": "^11.0.5",
     "use-debounce": "^10.1.1",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
@@ -97,7 +97,7 @@
     "husky": "^9.1.7",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
-    "lint-staged": "^17.0.7",
+    "lint-staged": "^17.4.1",
     "prettier": "^3.9.5",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.0",
