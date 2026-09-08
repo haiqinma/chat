@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import userGuide from "../../docs/用户使用手册.md";
+import userGuide from "../../docs/10-user/用户使用手册.md";
 import { Path } from "../constant";
 import CloseIcon from "../icons/close.svg";
 import Locale from "../locales";
