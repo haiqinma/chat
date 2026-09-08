@@ -115,6 +115,12 @@ main() {
   exit_code=0
   cp "${real_path}/.env" "$tmp_dir/.env" || exit_code=1
 
+  for nginx_conf in /etc/nginx/conf.d/chat.conf /etc/nginx/conf.d/test-chat.conf; do
+    if [[ -f "$nginx_conf" ]]; then
+      cp "$nginx_conf" "$tmp_dir/$(basename "$nginx_conf")" || exit_code=1
+    fi
+  done
+
   if [[ "$exit_code" -eq 0 ]]; then
     gpg --batch --yes --symmetric --cipher-algo AES256 \
       --passphrase-file "$PASSPHRASE_FILE" \
