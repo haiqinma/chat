@@ -36,10 +36,10 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| `config_backup.sh` | 备份当前部署目录的 `.env`，并在存在时一起备份 `/etc/nginx/conf.d/chat.conf`、`/etc/nginx/conf.d/test-chat.conf`；产物会使用 GPG 加密后写入 `/opt/backup`。 |
+| `config_backup.sh` | 备份当前部署目录的 `.env`，并在存在时一起备份 `/etc/nginx/conf.d/chat.conf`、`/etc/nginx/conf.d/test-chat.conf`；从 `/data/${MODULE_NAME}/backup.conf` 读取备份配置、从 `/data/${MODULE_NAME}/.passphrase-file` 读取 GPG passphrase，产物会加密后写入 `/opt/backup`。 |
 | `copy-for-upgrade.sh` | 升级过程中将当前版本的配置复制到目标版本目录；目前会把与 `scripts` 同级的 `.env` 复制到目标目录并覆盖目标 `.env`，成功返回 `0`。 |
-| `backup.conf.template` | `config_backup.sh` 的备份配置模板，用于控制是否启用配置备份、备份文件名前缀和后缀。 |
-| `.passphrase-file.template` | `config_backup.sh` 使用的 GPG passphrase 文件模板，实际使用时应复制为 `.passphrase-file` 并填写加密口令。 |
+| `backup.conf.template` | `config_backup.sh` 的备份配置模板，用于控制是否启用配置备份、备份文件名前缀和后缀；实际使用时应复制为 `/data/${MODULE_NAME}/backup.conf`。 |
+| `.passphrase-file.template` | `config_backup.sh` 使用的 GPG passphrase 文件模板，实际使用时应复制为 `/data/${MODULE_NAME}/.passphrase-file` 并填写加密口令。 |
 
 ## Git 与发布辅助
 
@@ -54,4 +54,4 @@
 - Shell 脚本通常可直接执行，新增脚本应使用明确的参数校验和非零错误返回码。
 - `.mjs` 脚本通常由 `package.json` 中的 npm scripts 调用，也可以在满足依赖和环境变量后直接用 `node` 执行。
 - 部署、备份和升级脚本依赖部署目录中的 `.env`，执行前应确认目标目录和权限正确。
-- 生产相关脚本涉及 `/opt/logs`、`/opt/backup`、`/etc/nginx` 等系统路径时，调用方需要具备相应读写权限。
+- 生产相关脚本涉及 `/data/${MODULE_NAME}`、`/opt/logs`、`/opt/backup`、`/etc/nginx` 等系统路径时，调用方需要具备相应读写权限。
