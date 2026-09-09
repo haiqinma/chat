@@ -24,8 +24,8 @@
 
 | 阶段 | 架构目标 | 产品重点 | 关键文档 |
 | --- | --- | --- | --- |
-| P0 当前基线 | 稳定 Web / standalone 主链路，明确 Web 与 Desktop 边界 | 登录、Router 模型、会话、同步、基础 Skill 安装可用 | [用户登录方案](./用户登录方案.md)、[数据同步方案](./数据同步方案.md)、[网页版主链路验收清单](./网页版主链路验收清单.md) |
-| P1 Skill / Tool 闭环 | Skill 声明依赖，Tool Runtime 在支持环境中可配置、可发现、可排障 | 用户能理解技能可用性，缺模型/工具/存储时有明确补齐路径 | [技能规范](./技能规范.md)、[Chat Skill 与 Tool 运行机制](./Chat%20Skill与Tool运行机制.md)、[工具启用机制与演进](./工具启用机制与演进.md) |
+| P0 当前基线 | 稳定 Web / standalone 主链路，明确 Web 与 Desktop 边界 | 登录、Router 模型、会话、同步、基础 Skill 安装可用 | [用户登录方案](../30-architecture/用户登录方案.md)、[数据同步方案](../30-architecture/数据同步方案.md)、[网页版主链路验收清单](../40-development/网页版主链路验收清单.md) |
+| P1 Skill / Tool 闭环 | Skill 声明依赖，Tool Runtime 在支持环境中可配置、可发现、可排障 | 用户能理解技能可用性，缺模型/工具/存储时有明确补齐路径 | [技能规范](../60-skills-marketplace/技能规范.md)、[Chat Skill 与 Tool 运行机制](../60-skills-marketplace/Chat%20Skill与Tool运行机制.md)、[工具启用机制与演进](../60-skills-marketplace/工具启用机制与演进.md) |
 | P2 Marketplace 治理 | 市场从静态清单演进为发现、安装、授权、版本和下架闭环 | 技能发布、审核、升级、灰度和运行配置可治理 | [技能发布、上线、配置与使用流程](./技能发布上线配置使用流程.md)、[市场后端与技能运行配置方案](./市场后端与技能运行配置方案.md) |
 | P3 Knowledge / Agent Run | Chat 作为用户入口，Knowledge 承担 AgentRun、Artifact 和 provenance | 长任务、文件产物、知识库引用和同步流程可追踪 | [Chat 与 Knowledge Agent Run 集成方案](./Chat与Knowledge%20Agent%20Run集成方案.md) |
 | P4 多端能力扩展 | 桌面端按独立安全边界增加本地能力，不反向污染 Web 主链 | 本地文件、命令、系统集成按需开放并可审计 | [Tauri 桌面端打包发布说明](./Tauri桌面端迁移清单.md)、[网页版与桌面版产品定位](./网页版与桌面版产品定位.md) |
