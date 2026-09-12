@@ -3,8 +3,8 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_CONF_FILE="${SCRIPT_DIR}/backup.conf"
-PASSPHRASE_FILE="${SCRIPT_DIR}/.passphrase-file"
+BACKUP_CONF_FILE=""
+PASSPHRASE_FILE=""
 BACKUP_DIR="/opt/backup"
 LOGFILE=""
 
@@ -66,12 +66,14 @@ cleanup_path() {
 }
 
 main() {
-  local real_path deploy_name module_name backup_name backup_path tmp_dir exit_code
+  local real_path deploy_name MODULE_NAME backup_name backup_path tmp_dir exit_code
 
   real_path="$(realpath "${SCRIPT_DIR}/..")"
   deploy_name="$(basename "$real_path")"
-  module_name="$(get_module_name "$deploy_name")"
-  init_log_file "config-backup-${module_name}.log"
+  MODULE_NAME="$(get_module_name "$deploy_name")"
+  BACKUP_CONF_FILE="/data/${MODULE_NAME}/backup.conf"
+  PASSPHRASE_FILE="/data/${MODULE_NAME}/.passphrase-file"
+  init_log_file "config-backup-${MODULE_NAME}.log"
 
   if ! load_backup_conf; then
     return 1
@@ -114,6 +116,12 @@ main() {
 
   exit_code=0
   cp "${real_path}/.env" "$tmp_dir/.env" || exit_code=1
+
+  for nginx_conf in /etc/nginx/conf.d/chat.conf /etc/nginx/conf.d/test-chat.conf; do
+    if [[ -f "$nginx_conf" ]]; then
+      cp "$nginx_conf" "$tmp_dir/$(basename "$nginx_conf")" || exit_code=1
+    fi
+  done
 
   if [[ "$exit_code" -eq 0 ]]; then
     gpg --batch --yes --symmetric --cipher-algo AES256 \
