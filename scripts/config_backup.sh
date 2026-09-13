@@ -51,11 +51,12 @@ load_backup_conf() {
 
 get_module_name() {
   local deploy_name=$1
+  local module_name=$deploy_name
   if [[ "$deploy_name" =~ ^(.+)-v[^-]+-[^-]{7}$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-  else
-    printf '%s\n' "$deploy_name"
+    module_name="${BASH_REMATCH[1]}"
   fi
+
+  printf '%s\n' "${module_name%%-*}"
 }
 
 cleanup_path() {
