@@ -27,6 +27,7 @@ import {
   createCentralAuthorizeSession,
   createCentralAuthorizeRequest,
   exchangeCentralAuthorizeCode,
+  getCentralAuthorizeSession,
   getCentralAppId,
   getCentralIdentityOwner,
   resolveCentralAuthBaseUrl,
@@ -117,14 +118,21 @@ export function AuthPage() {
     message: "",
   });
   const exchangedCodeRef = useRef("");
+  const exchangingCodeRef = useRef("");
 
   const handleCentralCallback = useCallback(
     async (code: string, state: string | null | undefined) => {
-      if (!code || exchangedCodeRef.current === code) return;
-      exchangedCodeRef.current = code;
+      if (
+        !code ||
+        exchangedCodeRef.current === code ||
+        exchangingCodeRef.current === code
+      ) {
+        return;
+      }
+      exchangingCodeRef.current = code;
       setUcanAuthMode(UCAN_AUTH_MODE_CENTRAL, { emit: false });
 
-      const session = consumeCentralAuthorizeSession(state);
+      const session = getCentralAuthorizeSession(state);
       const redirectPath = session
         ? normalizeRedirectPath(session.redirectPath)
         : normalizeRedirectPath(state);
@@ -141,6 +149,8 @@ export function AuthPage() {
           redirectUri,
           codeVerifier: session.codeVerifier,
         });
+        exchangedCodeRef.current = code;
+        consumeCentralAuthorizeSession(state);
         applyCentralAuthorizeExchange(result, { emit: false });
         notifySuccess(Locale.Auth.CentralLoginSuccess);
         navigate(redirectPath, { replace: true });
@@ -151,6 +161,9 @@ export function AuthPage() {
         );
         notifyError(message);
       } finally {
+        if (exchangingCodeRef.current === code) {
+          exchangingCodeRef.current = "";
+        }
         setCentralLoading(false);
       }
     },
@@ -212,13 +225,38 @@ export function AuthPage() {
 
     let disposed = false;
     let unlisten: (() => void) | undefined;
+    let checkingCurrentUrl = false;
 
     const handleUrls = (urls: string[]) => {
       for (const raw of urls) {
-        const callback = parseDesktopCentralCallback(raw);
+        const callback = parseDesktopCentralCallback(
+          raw.trim().replace(/^["']|["']$/g, ""),
+        );
         if (!callback) continue;
         void handleCentralCallback(callback.code, callback.state);
-        break;
+        return true;
+      }
+      return false;
+    };
+
+    const checkCurrentUrls = async () => {
+      if (disposed || checkingCurrentUrl) return;
+      checkingCurrentUrl = true;
+      try {
+        // On Windows the second process can hand the URL to the first
+        // process before React has finished registering onOpenUrl. Retry
+        // briefly so the callback is also recovered from getCurrent().
+        for (let attempt = 0; attempt < 20 && !disposed; attempt += 1) {
+          const currentUrls = await getCurrent();
+          if (currentUrls?.length && handleUrls(currentUrls)) {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        console.error("Failed to read desktop deep links", error);
+      } finally {
+        checkingCurrentUrl = false;
       }
     };
 
@@ -230,10 +268,7 @@ export function AuthPage() {
           return;
         }
         unlisten = removeListener;
-        const currentUrls = await getCurrent();
-        if (!disposed && currentUrls?.length) {
-          handleUrls(currentUrls);
-        }
+        await checkCurrentUrls();
       } catch (error) {
         console.error("Failed to subscribe to desktop deep links", error);
       }

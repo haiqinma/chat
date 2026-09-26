@@ -259,7 +259,7 @@ export async function createCentralAuthorizeSession(
   return session;
 }
 
-export function consumeCentralAuthorizeSession(
+export function getCentralAuthorizeSession(
   state?: string | null,
 ): CentralAuthorizeSession | null {
   const normalizedState = String(state || "").trim();
@@ -267,7 +267,6 @@ export function consumeCentralAuthorizeSession(
   const key = getAuthorizeSessionKey(normalizedState);
   const raw = localStorage.getItem(key);
   if (!raw) return null;
-  localStorage.removeItem(key);
   try {
     const parsed = JSON.parse(raw) as CentralAuthorizeSession;
     if (
@@ -281,6 +280,17 @@ export function consumeCentralAuthorizeSession(
   } catch {
     return null;
   }
+}
+
+export function consumeCentralAuthorizeSession(
+  state?: string | null,
+): CentralAuthorizeSession | null {
+  const normalizedState = String(state || "").trim();
+  const session = getCentralAuthorizeSession(normalizedState);
+  if (session && typeof localStorage !== "undefined") {
+    localStorage.removeItem(getAuthorizeSessionKey(normalizedState));
+  }
+  return session;
 }
 
 function parseStoredExpireAt(key: string): number | null {
