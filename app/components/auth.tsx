@@ -13,7 +13,6 @@ import { useMobileScreen } from "@/app/utils";
 import { getClientConfig } from "../config/client";
 import { safeLocalStorage } from "@/app/utils";
 import clsx from "clsx";
-import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import {
   UCAN_AUTH_EVENT,
   isValidUcanAuthorization,
@@ -38,6 +37,31 @@ import { notifyError, notifySuccess } from "../plugins/show_window";
 import { isDesktopAppRuntime } from "../tauri";
 
 const storage = safeLocalStorage();
+let pendingDesktopDeepLinks: string[][] = [];
+const desktopDeepLinkListeners = new Set<(urls: string[]) => void>();
+
+export function publishDesktopDeepLinks(urls: string[]) {
+  if (!urls.length) return;
+  if (desktopDeepLinkListeners.size === 0) {
+    pendingDesktopDeepLinks.push(urls);
+    if (pendingDesktopDeepLinks.length > 8) {
+      pendingDesktopDeepLinks = pendingDesktopDeepLinks.slice(-8);
+    }
+    return;
+  }
+  for (const listener of desktopDeepLinkListeners) {
+    listener(urls);
+  }
+}
+
+function subscribeDesktopDeepLinks(listener: (urls: string[]) => void) {
+  desktopDeepLinkListeners.add(listener);
+  const pending = pendingDesktopDeepLinks;
+  pendingDesktopDeepLinks = [];
+  for (const urls of pending) listener(urls);
+  return () => desktopDeepLinkListeners.delete(listener);
+}
+
 const IDENTITY_LOGIN_SCOPES = [
   "identity.basic",
   "identity.wallet",
@@ -224,8 +248,6 @@ export function AuthPage() {
     if (!isDesktopAppRuntime()) return;
 
     let disposed = false;
-    let unlisten: (() => void) | undefined;
-    let checkingCurrentUrl = false;
 
     const handleUrls = (urls: string[]) => {
       for (const raw of urls) {
@@ -239,36 +261,10 @@ export function AuthPage() {
       return false;
     };
 
-    const checkCurrentUrls = async () => {
-      if (disposed || checkingCurrentUrl) return;
-      checkingCurrentUrl = true;
-      try {
-        // On Windows the second process can hand the URL to the first
-        // process before React has finished registering onOpenUrl. Retry
-        // briefly so the callback is also recovered from getCurrent().
-        for (let attempt = 0; attempt < 20 && !disposed; attempt += 1) {
-          const currentUrls = await getCurrent();
-          if (currentUrls?.length && handleUrls(currentUrls)) {
-            return;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      } catch (error) {
-        console.error("Failed to read desktop deep links", error);
-      } finally {
-        checkingCurrentUrl = false;
-      }
-    };
-
     const subscribe = async () => {
       try {
-        const removeListener = await onOpenUrl(handleUrls);
-        if (disposed) {
-          removeListener();
-          return;
-        }
-        unlisten = removeListener;
-        await checkCurrentUrls();
+        const removeListener = subscribeDesktopDeepLinks(handleUrls);
+        if (disposed) removeListener();
       } catch (error) {
         console.error("Failed to subscribe to desktop deep links", error);
       }
@@ -277,7 +273,6 @@ export function AuthPage() {
     void subscribe();
     return () => {
       disposed = true;
-      unlisten?.();
     };
   }, [handleCentralCallback]);
 
