@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import {
   approveCentralAuthorizePresentation,
   applyCentralAuthorizeExchange,
+  clearCentralUcanAuth,
   createCentralAuthorizeRequest,
   exchangeCentralAuthorizeCode,
   getCentralIdentityDid,
@@ -182,7 +183,8 @@ describe("central wallet identity authorization", () => {
     window.__CHAT_RUNTIME_CONFIG__ = {
       centralUcanAuthBaseUrl: "https://node.example",
       chatApplicationUid: "chat",
-      centralUcanRedirectUri: "chat://localhost/central-ucan-callback.html",
+      centralUcanRedirectUri:
+        "https://chat.yeying.pub/central-ucan-callback.html",
     } as any;
     localStorage.setItem("ucanAuthMode", "central");
     localStorage.setItem("centralIdentityDid", "did:yeying:wid_refresh_test");
@@ -213,7 +215,7 @@ describe("central wallet identity authorization", () => {
           expect(body).toEqual({
             refreshToken: "refresh-old",
             appId: "chat",
-            redirectUri: "chat://localhost/central-ucan-callback.html",
+            redirectUri: "https://chat.yeying.pub/central-ucan-callback.html",
           });
           return new TestResponse({
             code: 0,
@@ -330,6 +332,61 @@ describe("central wallet identity authorization", () => {
       "https://node.example/api/v1/public/auth/central/issue",
       expect.any(Object),
     );
+  });
+
+  test("does not persist an issue response after the central session is cleared", async () => {
+    window.__CHAT_RUNTIME_CONFIG__ = {
+      centralUcanAuthBaseUrl: "https://node.example",
+      chatApplicationUid: "chat",
+    } as any;
+    localStorage.setItem("ucanAuthMode", "central");
+    localStorage.setItem("centralIdentityDid", "did:yeying:wid_race");
+    localStorage.setItem("currentIdentityDid", "did:yeying:wid_race");
+    localStorage.setItem("centralIssueSessionToken", "old-session");
+    localStorage.setItem(
+      "centralIssueSessionExpiresAt",
+      String(Date.now() + 60_000),
+    );
+
+    const now = Math.floor(Date.now() / 1000);
+    const toBase64Url = (value: unknown) =>
+      btoa(JSON.stringify(value))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    const token = `${toBase64Url({ alg: "EdDSA", typ: "UCAN" })}.${toBase64Url({ aud: "did:web:warehouse.example", exp: now + 600 })}.signature`;
+    let resolveResponse!: (response: Response) => void;
+    const responsePromise = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
+    });
+    const fetchMock = jest.fn(async () => responsePromise);
+    jest.spyOn(globalThis, "fetch").mockImplementation(
+      fetchMock as unknown as typeof fetch,
+    );
+
+    const issuePromise = getCentralUcanAuthorizationHeaderForAudience({
+      audience: "did:web:warehouse.example",
+    });
+    await Promise.resolve();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    clearCentralUcanAuth({ preserveMode: true, emit: false });
+    resolveResponse(
+      new TestResponse({
+        code: 0,
+        message: "ok",
+        data: {
+          ucan: token,
+          audience: "did:web:warehouse.example",
+          expiresAt: (now + 600) * 1000,
+        },
+        timestamp: Date.now(),
+      }) as unknown as Response,
+    );
+
+    await expect(issuePromise).rejects.toThrow("中心化登录状态已改变");
+    expect(localStorage.getItem("centralUcanToken")).toBeNull();
+    expect(localStorage.getItem("centralUcanTokensV1")).toBeNull();
   });
 
   test("approves an authorization request with a wallet identity presentation", async () => {

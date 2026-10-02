@@ -65,7 +65,7 @@ jobs:
           WEBDAV_BACKEND_PREFIX: ${{ vars.WEBDAV_BACKEND_PREFIX || '/dav' }}
           CHAT_APPLICATION_UID: ${{ vars.CHAT_APPLICATION_UID }}
           CENTRAL_UCAN_AUTH_BASE_URL: ${{ vars.CENTRAL_UCAN_AUTH_BASE_URL }}
-          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'chat://localhost/central-ucan-callback.html' }}
+          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'https://chat.yeying.pub/central-ucan-callback.html' }}
         run: npm run app:build:release
 
       - name: Verify macOS installer
@@ -161,7 +161,7 @@ jobs:
           WEBDAV_BACKEND_PREFIX: ${{ vars.WEBDAV_BACKEND_PREFIX || '/dav' }}
           CHAT_APPLICATION_UID: ${{ vars.CHAT_APPLICATION_UID }}
           CENTRAL_UCAN_AUTH_BASE_URL: ${{ vars.CENTRAL_UCAN_AUTH_BASE_URL }}
-          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'chat://localhost/central-ucan-callback.html' }}
+          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'https://chat.yeying.pub/central-ucan-callback.html' }}
         run: npm run app:build:release
 
       - name: Prepare Windows release assets
@@ -253,7 +253,7 @@ jobs:
           WEBDAV_BACKEND_PREFIX: ${{ vars.WEBDAV_BACKEND_PREFIX || '/dav' }}
           CHAT_APPLICATION_UID: ${{ vars.CHAT_APPLICATION_UID }}
           CENTRAL_UCAN_AUTH_BASE_URL: ${{ vars.CENTRAL_UCAN_AUTH_BASE_URL }}
-          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'chat://localhost/central-ucan-callback.html' }}
+          CENTRAL_UCAN_REDIRECT_URI: ${{ vars.CENTRAL_UCAN_REDIRECT_URI || 'https://chat.yeying.pub/central-ucan-callback.html' }}
         run: npm run app:build:release
 
       - name: Prepare Ubuntu 24.04 release assets

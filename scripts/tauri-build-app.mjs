@@ -287,7 +287,8 @@ function validateDesktopAuthConfig() {
     );
   }
 
-  const expectedRedirectUri = "chat://localhost/central-ucan-callback.html";
+  const expectedRedirectUri =
+    "https://chat.yeying.pub/central-ucan-callback.html";
   if (readEnv("CENTRAL_UCAN_REDIRECT_URI") !== expectedRedirectUri) {
     throw new Error(
       `CENTRAL_UCAN_REDIRECT_URI must be ${expectedRedirectUri} for a Tauri desktop build.`,

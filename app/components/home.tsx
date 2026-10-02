@@ -300,34 +300,60 @@ function Screen() {
     if (!isDesktopAppRuntime()) return;
     let disposed = false;
     let unlisten: (() => void) | undefined;
-    void onOpenUrl((urls) => {
-      if (!disposed) publishDesktopDeepLinks(urls);
-    })
-      .then((remove) => {
-        if (disposed) remove();
-        else unlisten = remove;
-      })
-      .catch((error) => {
-        console.error("Failed to subscribe to desktop deep links", error);
-      });
-    void (async () => {
-      for (let attempt = 0; attempt < 20 && !disposed; attempt += 1) {
-        try {
+    let readingCurrentUrl = false;
+
+    const readCurrentUrls = async () => {
+      if (disposed || readingCurrentUrl) return;
+      readingCurrentUrl = true;
+      try {
+        // Windows may deliver the callback while the existing process is
+        // still restoring its window. Keep a longer recovery window and
+        // retry when the user returns to the app.
+        for (let attempt = 0; attempt < 60 && !disposed; attempt += 1) {
           const urls = await getCurrent();
           if (urls?.length) {
             publishDesktopDeepLinks(urls);
             return;
           }
-        } catch (error) {
-          console.error("Failed to read desktop deep links", error);
-          return;
+          await new Promise((resolve) => setTimeout(resolve, 250));
         }
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error("Failed to read desktop deep links", error);
+      } finally {
+        readingCurrentUrl = false;
       }
-    })();
+    };
+
+    const onWindowFocus = () => {
+      void readCurrentUrls();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void readCurrentUrls();
+      }
+    };
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    void onOpenUrl((urls) => {
+      if (!disposed) publishDesktopDeepLinks(urls);
+    })
+      .then((remove) => {
+        if (disposed) remove();
+        else {
+          unlisten = remove;
+          void readCurrentUrls();
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to subscribe to desktop deep links", error);
+      });
     return () => {
       disposed = true;
       unlisten?.();
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
