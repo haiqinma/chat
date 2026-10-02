@@ -170,7 +170,7 @@ WEBDAV_BACKEND_BASE_URL=http://localhost:6065
 WEBDAV_BACKEND_PREFIX=/dav
 CHAT_APPLICATION_UID=<Node 中 Chat 应用的 applications.uid>
 CENTRAL_UCAN_AUTH_BASE_URL=http://localhost:8100
-CENTRAL_UCAN_REDIRECT_URI=https://chat.yeying.pub/central-ucan-callback.html
+CENTRAL_UCAN_REDIRECT_URI=chat://localhost/central-ucan-callback.html
 ```
 
 注意：
@@ -178,8 +178,8 @@ CENTRAL_UCAN_REDIRECT_URI=https://chat.yeying.pub/central-ucan-callback.html
 - 桌面包的前端公开配置会在 `npm run app:build` 时写入 `out/`，再进入 `.app`
 - 当前版本没有应用内服务地址覆盖设置。修改 `.env.build` 后，已经打出的 `Chat.app` 不会自动读取新值，需要重新执行 `npm run app:build`
 - 桌面构建时配置优先级为：命令行/CI 环境变量 > `.env.build` > 代码默认值；`.env` 即使被 Next 构建日志列出也不会参与桌面配置
-- `CENTRAL_UCAN_REDIRECT_URI` 必须和 Node 中 Chat 应用配置的某一项 `redirectUris` 完全一致；桌面包固定使用 `https://chat.yeying.pub/central-ucan-callback.html`
-- 桌面本地包先进入 HTTPS 回调页，再由用户点击按钮通过 `chat://localhost/central-ucan-callback.html` 唤回应用，不是 `http://localhost:8100`
+- `CENTRAL_UCAN_REDIRECT_URI` 必须和 Node 中 Chat 应用配置的某一项 `redirectUris` 完全一致；桌面包固定使用 `chat://localhost/central-ucan-callback.html`
+- 桌面本地包的回调地址是 `chat://localhost/central-ucan-callback.html`，不是 `http://localhost:8100`
 - `CHAT_APPLICATION_UID` 是 Node 应用中心 Chat 应用的 `applications.uid`；它同时决定登录 appId、`app:all:<uid>` capability 和 Warehouse `/apps/<uid>` 目录
 
 桌面端运行配置的目标是由 Chat 设置页覆盖 Router、Warehouse/WebDAV 和 Node 身份服务地址，并将覆盖值保存在当前操作系统用户的 Chat 配置中。用户不应被要求编辑 `.env`、`.env.build` 或安装目录文件。`CHAT_APPLICATION_UID` 和 `CENTRAL_UCAN_REDIRECT_URI` 是固定应用身份/协议，不属于可编辑服务地址。设置页功能尚未实现前，继续按上面的 `.env.build` 配置和重新打包流程操作。设计依据见[运行时配置与桌面服务设置方案](../30-architecture/运行时配置与桌面服务设置方案.md)。
@@ -585,7 +585,7 @@ macOS 主链已经具备 release 构建、updater manifest、DMG 签名、公证
 
 如果中心化登录后提示回调失败，或“返回应用 / 重新发起”没有反应，优先检查：
 
-- `.env.build` 中 `CENTRAL_UCAN_REDIRECT_URI` 是否为 `https://chat.yeying.pub/central-ucan-callback.html`
+- `.env.build` 中 `CENTRAL_UCAN_REDIRECT_URI` 是否为 `chat://localhost/central-ucan-callback.html`
 - Node 中 Chat 应用配置的 `redirectUris` 是否包含这一项且完全一致
 - 修改 `.env.build` 后是否重新执行了 `npm run app:build`
 - 当前打开的是否是重新打包后的 `Chat.app`

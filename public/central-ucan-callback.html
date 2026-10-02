@@ -3,195 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat 登录回调</title>
-    <style>
-      :root {
-        color-scheme: light;
-        font-family:
-          "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-        background: #f4f6f8;
-        color: #1f2933;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        min-height: 100vh;
-        margin: 0;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-      }
-
-      main {
-        width: min(100%, 460px);
-        padding: 32px;
-        border: 1px solid #d9e0e7;
-        border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 14px 40px rgb(31 41 51 / 12%);
-        text-align: center;
-      }
-
-      .status-mark {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto 18px;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        background: #e7f6ec;
-        color: #18794e;
-        font-size: 28px;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 24px;
-        line-height: 1.3;
-      }
-
-      p {
-        margin: 12px 0 0;
-        color: #52606d;
-        line-height: 1.6;
-      }
-
-      .handoff {
-        margin-top: 24px;
-      }
-
-      .countdown {
-        margin: 0 0 16px;
-        color: #52606d;
-        font-size: 14px;
-      }
-
-      .countdown strong {
-        color: #1f2933;
-        font-variant-numeric: tabular-nums;
-      }
-
-      button,
-      a {
-        font: inherit;
-      }
-
-      button {
-        width: 100%;
-        min-height: 44px;
-        border: 0;
-        border-radius: 8px;
-        background: #1769aa;
-        color: #ffffff;
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      button:disabled {
-        background: #a9b6c2;
-        cursor: not-allowed;
-      }
-
-      .retry-tip {
-        margin-top: 14px;
-        color: #6b7785;
-        font-size: 13px;
-      }
-
-      .error {
-        color: #b42318;
-      }
-
-      [hidden] {
-        display: none !important;
-      }
-    </style>
+    <title>UCAN 登录回调</title>
   </head>
   <body>
-    <main aria-live="polite">
-      <div class="status-mark" id="status-mark" aria-hidden="true">✓</div>
-      <h1 id="title">授权已完成</h1>
-      <p id="message">
-        请准备好后点击下方按钮返回 Chat。浏览器确认框不会自动替你选择。
-      </p>
-      <section class="handoff" id="handoff" hidden>
-        <p class="countdown" id="countdown-text">
-          返回按钮将在 <strong id="countdown">5</strong> 秒后启用
-        </p>
-        <button id="open-app" type="button" disabled>打开 Chat</button>
-        <p class="retry-tip" id="retry-tip" hidden>
-          如果浏览器确认框消失，请再次点击“打开 Chat”。
-        </p>
-      </section>
-    </main>
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
         var code = (params.get("code") || "").trim();
         var state = (params.get("state") || "").trim();
-        var error = (params.get("error_description") || params.get("error") || "")
-          .trim();
-        var handoff = document.getElementById("handoff");
-        var message = document.getElementById("message");
-        var statusMark = document.getElementById("status-mark");
-        var title = document.getElementById("title");
-        var countdownText = document.getElementById("countdown-text");
-        var countdown = document.getElementById("countdown");
-        var openApp = document.getElementById("open-app");
-        var retryTip = document.getElementById("retry-tip");
-
-        function setError(text) {
-          title.textContent = "登录未完成";
-          message.textContent = text;
-          message.className = "error";
-          statusMark.textContent = "!";
-          statusMark.style.background = "#fdecec";
-          statusMark.style.color = "#b42318";
-        }
-
-        if (error || !code || !state) {
-          setError(
-            error ||
-              "回调参数不完整，请返回 Chat 重新发起一次通行证登录。",
-          );
-          return;
-        }
-
-        var callbackParams = new URLSearchParams();
-        callbackParams.set("code", code);
-        callbackParams.set("state", state);
-        var callbackQuery = callbackParams.toString();
-        var appUrl =
-          "chat://localhost/central-ucan-callback.html?" + callbackQuery;
-
-        handoff.hidden = false;
-        var remaining = 5;
-        var timer = window.setInterval(function () {
-          remaining -= 1;
-          countdown.textContent = String(Math.max(remaining, 0));
-          if (remaining <= 0) {
-            window.clearInterval(timer);
-            countdownText.textContent =
-              "请点击按钮返回 Chat；如果确认框消失，可以再次点击。";
-            openApp.disabled = false;
-            openApp.focus();
-          }
-        }, 1000);
-
-        openApp.addEventListener("click", function () {
-          openApp.disabled = true;
-          openApp.textContent = "正在打开 Chat...";
-          retryTip.hidden = false;
-          window.location.href = appUrl;
-          window.setTimeout(function () {
-            openApp.disabled = false;
-            openApp.textContent = "再次打开 Chat";
-          }, 1800);
-        });
+        var routeParams = new URLSearchParams();
+        if (code) routeParams.set("code", code);
+        if (state) routeParams.set("state", state);
+        var query = routeParams.toString();
+        var hashPath = "/auth" + (query ? "?" + query : "");
+        window.location.replace(window.location.origin + "/#" + hashPath);
       })();
     </script>
   </body>

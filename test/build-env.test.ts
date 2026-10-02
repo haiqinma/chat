@@ -2,7 +2,6 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { pathToFileURL } from "node:url";
 
 describe("build environment", () => {
   let rootDir: string;
@@ -24,9 +23,7 @@ describe("build environment", () => {
       path.join(rootDir, ".env"),
       "ROUTER_BACKEND_URL=https://web.example.com\nENABLE_TOOLS=0\nWEB_ONLY=value\n",
     );
-    const loaderPath = pathToFileURL(
-      path.resolve("scripts/build-env.mjs"),
-    ).href;
+    const loaderPath = path.resolve("scripts/build-env.mjs");
     const childEnv = { ...process.env };
     delete childEnv.ENABLE_TOOLS;
     delete childEnv.WEB_ONLY;
@@ -66,9 +63,7 @@ describe("build environment", () => {
       path.join(rootDir, ".env.template"),
       "ROUTER_BACKEND_URL=\nENABLE_TOOLS=0\n",
     );
-    const loaderPath = pathToFileURL(
-      path.resolve("scripts/build-env.mjs"),
-    ).href;
+    const loaderPath = path.resolve("scripts/build-env.mjs");
     const childEnv = { ...process.env };
     delete childEnv.DISABLE_CHUNK;
     childEnv.ROUTER_BACKEND_URL = "https://ci.example.com";

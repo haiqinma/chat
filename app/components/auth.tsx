@@ -68,7 +68,7 @@ const IDENTITY_LOGIN_SCOPES = [
   "identity.username",
 ];
 const DESKTOP_CENTRAL_REDIRECT_URI =
-  "https://chat.yeying.pub/central-ucan-callback.html";
+  "chat://localhost/central-ucan-callback.html";
 type LoginMode = "passkey" | "wallet";
 type PasskeyLoginState = {
   loading: boolean;
@@ -112,10 +112,10 @@ function normalizeRedirectPath(raw: string | null | undefined) {
 }
 
 function getCentralRedirectUri() {
+  // Packaged Tauri uses the registered custom protocol. Never let a stale
+  // build variable send its callback back to the WebView origin.
+  if (isDesktopAppRuntime()) return DESKTOP_CENTRAL_REDIRECT_URI;
   const configured = getClientConfig()?.centralUcanRedirectUri?.trim();
-  // Desktop builds use the public HTTPS handoff page. The page keeps the
-  // authorization result available until the user is ready to reopen Chat.
-  if (isDesktopAppRuntime()) return configured || DESKTOP_CENTRAL_REDIRECT_URI;
   if (configured) return configured;
   if (typeof window === "undefined") return "";
   return `${window.location.origin}/central-ucan-callback.html`;
