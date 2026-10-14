@@ -28,6 +28,8 @@ export type ImageParamSchema = {
   min?: number;
   max?: number;
   sub?: string;
+  span?: "full" | "half";
+  control?: "slider";
 };
 
 export type ImageEndpointSchema = {
@@ -58,6 +60,7 @@ const promptParam: ImageParamSchema = {
   type: "textarea",
   placeholder: Locale.SdPanel.PleaseInput(Locale.SdPanel.Prompt),
   required: true,
+  span: "full",
 };
 
 function getModelParams(

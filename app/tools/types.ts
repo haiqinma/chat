@@ -65,18 +65,16 @@ export const McpNotificationsSchema: z.ZodType<McpNotifications> = z.object({
 // Next Chat
 ////////////
 export interface ListToolsResponse {
-  tools: {
+  tools: Array<{
     name?: string;
     description?: string;
     inputSchema?: object;
     [key: string]: any;
-  };
+  }>;
 }
 
 export type ToolClientData =
-  | ToolActiveClient
-  | ToolErrorClient
-  | ToolInitializingClient;
+  ToolActiveClient | ToolErrorClient | ToolInitializingClient;
 
 interface ToolInitializingClient {
   client: null;
@@ -98,11 +96,7 @@ interface ToolErrorClient {
 
 // 服务器状态类型
 export type ServerStatus =
-  | "undefined"
-  | "active"
-  | "paused"
-  | "error"
-  | "initializing";
+  "undefined" | "active" | "paused" | "error" | "initializing";
 
 export interface ServerStatusResponse {
   status: ServerStatus;

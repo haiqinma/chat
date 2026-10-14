@@ -17,7 +17,9 @@ export async function getClientsStatus(): Promise<
   return {};
 }
 
-export async function getClientTools(_clientId: string) {
+export async function getClientTools(
+  _clientId: string,
+): Promise<ListToolsResponse | null> {
   return null;
 }
 

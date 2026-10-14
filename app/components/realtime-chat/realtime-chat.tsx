@@ -40,7 +40,7 @@ function resolveRouterEndpoint(endpointOverride?: string) {
     endpointOverride?.trim() ||
     accessStore.openaiUrl?.trim() ||
     getClientConfig()?.routerBackendUrl?.trim() ||
-    "https://llm.yeying.pub"
+    ""
   );
 }
 

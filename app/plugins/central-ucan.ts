@@ -1,5 +1,6 @@
 import { getClientConfig } from "@/app/config/client";
 import { fetch as desktopAwareFetch } from "@/app/utils/stream";
+import { isDesktopAppRuntime } from "@/app/tauri";
 import {
   getCapabilityAction,
   getCapabilityResource,
@@ -98,6 +99,7 @@ export type CentralAuthorizeRequestResult = {
   scopes: string[];
   expiresAt: string | number;
   verifyUrl: string;
+  clientType?: "web" | "desktop";
   codeChallengeMethod?: string;
 };
 
@@ -133,6 +135,16 @@ export type CentralAuthorizeExchangeResult = {
     expiresAt?: number;
   };
 };
+
+function resolveCentralRedirectUri(): string {
+  if (isDesktopAppRuntime()) return "";
+  const configured = getClientConfig()?.centralUcanRedirectUri?.trim();
+  if (configured) return configured;
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/central-ucan-callback.html`;
+  }
+  return "";
+}
 
 type CentralRefreshSessionResult = {
   did: string;
@@ -660,15 +672,7 @@ export async function refreshCentralIdentitySession(options?: {
         body: JSON.stringify({
           refreshToken,
           appId: getCentralAppId(),
-          redirectUri: (() => {
-            const configured =
-              getClientConfig()?.centralUcanRedirectUri?.trim();
-            if (configured) return configured;
-            if (typeof window !== "undefined") {
-              return `${window.location.origin}/central-ucan-callback.html`;
-            }
-            return "";
-          })(),
+          redirectUri: resolveCentralRedirectUri() || undefined,
         }),
       },
     );
@@ -723,15 +727,7 @@ export async function revokeCentralIdentitySession(options?: {
         body: JSON.stringify({
           refreshToken,
           appId: getCentralAppId(),
-          redirectUri: (() => {
-            const configured =
-              getClientConfig()?.centralUcanRedirectUri?.trim();
-            if (configured) return configured;
-            if (typeof window !== "undefined") {
-              return `${window.location.origin}/central-ucan-callback.html`;
-            }
-            return "";
-          })(),
+          redirectUri: resolveCentralRedirectUri() || undefined,
         }),
       },
     );
@@ -1127,7 +1123,8 @@ export function getCentralUcanExpiresAt(): number | null {
 
 export async function createCentralAuthorizeRequest(input: {
   appId?: string;
-  redirectUri: string;
+  redirectUri?: string;
+  clientType?: "web" | "desktop";
   state?: string;
   codeChallenge: string;
   codeChallengeMethod?: "S256";
@@ -1144,7 +1141,8 @@ export async function createCentralAuthorizeRequest(input: {
       credentials: "include",
       body: JSON.stringify({
         appId: resolvedAppId,
-        redirectUri: input.redirectUri,
+        ...(input.redirectUri ? { redirectUri: input.redirectUri } : {}),
+        ...(input.clientType ? { clientType: input.clientType } : {}),
         state: input.state || undefined,
         codeChallenge: input.codeChallenge,
         codeChallengeMethod: input.codeChallengeMethod || "S256",
@@ -1171,6 +1169,29 @@ export async function createCentralAuthorizeRequest(input: {
   return parseEnvelope<CentralAuthorizeRequestResult>(
     text,
     "创建钱包身份授权请求失败",
+  );
+}
+
+export async function getCentralAuthorizeRequest(
+  requestId: string,
+  baseUrl?: string,
+): Promise<CentralAuthorizeRequestResult> {
+  const response = await desktopAwareFetch(
+    buildApiUrl(
+      `/api/v1/public/identity/authorize/request/${encodeURIComponent(requestId)}`,
+      baseUrl,
+    ),
+    { credentials: "include" },
+  );
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      parseApiErrorText(text, `读取中心化授权请求失败: ${response.status}`),
+    );
+  }
+  return parseEnvelope<CentralAuthorizeRequestResult>(
+    text,
+    "读取中心化授权请求失败",
   );
 }
 
@@ -1206,7 +1227,7 @@ export async function approveCentralAuthorizePresentation(input: {
 export async function exchangeCentralAuthorizeCode(input: {
   code: string;
   appId?: string;
-  redirectUri: string;
+  redirectUri?: string;
   codeVerifier: string;
   baseUrl?: string;
 }): Promise<CentralAuthorizeExchangeResult> {
@@ -1220,7 +1241,7 @@ export async function exchangeCentralAuthorizeCode(input: {
       body: JSON.stringify({
         code: input.code,
         appId: resolvedAppId,
-        redirectUri: input.redirectUri,
+        ...(input.redirectUri ? { redirectUri: input.redirectUri } : {}),
         codeVerifier: input.codeVerifier,
         issueUcanSession: true,
       }),
@@ -1240,6 +1261,41 @@ export async function exchangeCentralAuthorizeCode(input: {
   return parseEnvelope<CentralAuthorizeExchangeResult>(
     text,
     "中心化授权码兑换失败",
+  );
+}
+
+export async function exchangeCentralAuthorizeRequest(input: {
+  requestId: string;
+  appId?: string;
+  redirectUri?: string;
+  codeVerifier: string;
+  baseUrl?: string;
+}): Promise<CentralAuthorizeExchangeResult> {
+  const resolvedAppId = resolveCentralAppId(input.appId);
+  const response = await desktopAwareFetch(
+    buildApiUrl("/api/v1/public/identity/authorize/exchange", input.baseUrl),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        requestId: input.requestId,
+        appId: resolvedAppId,
+        ...(input.redirectUri ? { redirectUri: input.redirectUri } : {}),
+        codeVerifier: input.codeVerifier,
+        issueUcanSession: true,
+      }),
+    },
+  );
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      parseApiErrorText(text, `中心化授权请求兑换失败: ${response.status}`),
+    );
+  }
+  return parseEnvelope<CentralAuthorizeExchangeResult>(
+    text,
+    "中心化授权请求兑换失败",
   );
 }
 

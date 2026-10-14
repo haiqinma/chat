@@ -122,8 +122,6 @@ const ClaudeMapper = {
 } as const;
 
 const keys = ["claude-2, claude-instant-1"];
-const ROUTER_HOST = "llm.yeying.pub";
-
 const ROUTER_BACKEND_HOST = (() => {
   try {
     const url = getClientConfig()?.routerBackendUrl;
@@ -141,10 +139,7 @@ function isRouterUrl(url: string): boolean {
         ? "http://localhost"
         : window.location.origin;
     const parsed = new URL(url, base);
-    return (
-      parsed.host.includes(ROUTER_HOST) ||
-      (ROUTER_BACKEND_HOST !== "" && parsed.host === ROUTER_BACKEND_HOST)
-    );
+    return ROUTER_BACKEND_HOST !== "" && parsed.host === ROUTER_BACKEND_HOST;
   } catch {
     return false;
   }

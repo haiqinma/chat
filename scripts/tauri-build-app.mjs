@@ -278,19 +278,11 @@ function validateDesktopAuthConfig() {
   const required = [
     ["CENTRAL_UCAN_AUTH_BASE_URL", readEnv("CENTRAL_UCAN_AUTH_BASE_URL")],
     ["CHAT_APPLICATION_UID", applicationUid],
-    ["CENTRAL_UCAN_REDIRECT_URI", readEnv("CENTRAL_UCAN_REDIRECT_URI")],
   ];
   const missing = required.filter(([, value]) => !value).map(([name]) => name);
   if (missing.length > 0) {
     throw new Error(
       `Desktop build requires Node identity login config for the automatic wallet/Passkey login flow: ${missing.join(", ")}.`,
-    );
-  }
-
-  const expectedRedirectUri = "chat://localhost/central-ucan-callback.html";
-  if (readEnv("CENTRAL_UCAN_REDIRECT_URI") !== expectedRedirectUri) {
-    throw new Error(
-      `CENTRAL_UCAN_REDIRECT_URI must be ${expectedRedirectUri} for a Tauri desktop build.`,
     );
   }
 
@@ -327,7 +319,6 @@ function validateDesktopAuthConfig() {
   return {
     baseUrl: readEnv("CENTRAL_UCAN_AUTH_BASE_URL").replace(/\/+$/, ""),
     appId: applicationUid,
-    redirectUri: readEnv("CENTRAL_UCAN_REDIRECT_URI"),
   };
 }
 
@@ -342,7 +333,7 @@ async function validateDesktopAuthDeployment(config) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         appId: config.appId,
-        redirectUri: config.redirectUri,
+        clientType: "desktop",
       }),
       signal: AbortSignal.timeout(15_000),
     });
@@ -356,7 +347,7 @@ async function validateDesktopAuthDeployment(config) {
   if (!response.ok || payload?.code !== 0) {
     throw new Error(
       `Desktop authentication preflight failed: ${payload?.message || `${response.status} ${response.statusText}`}. ` +
-        "Deploy the current Node identity API and register the exact AppId/redirectUris entry before building a release.",
+        "Deploy the current Node identity API and verify the Chat application UID before building a release.",
     );
   }
 

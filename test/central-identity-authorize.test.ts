@@ -83,6 +83,49 @@ describe("central wallet identity authorization", () => {
     );
   });
 
+  test("creates desktop authorize requests without a web redirect URI", async () => {
+    window.__CHAT_RUNTIME_CONFIG__ = {
+      centralUcanAuthBaseUrl: "https://node.example",
+      chatApplicationUid: "chat",
+    } as any;
+
+    const fetchMock = jest.fn(
+      async (_url: RequestInfo | URL, init?: RequestInit) => {
+        expect(JSON.parse(String(init?.body || "{}"))).toEqual({
+          appId: "chat",
+          clientType: "desktop",
+          codeChallenge: "challenge-1",
+          codeChallengeMethod: "S256",
+          scopes: ["identity.basic"],
+        });
+        return new TestResponse({
+          code: 0,
+          message: "ok",
+          data: {
+            requestId: "iar_desktop",
+            status: "pending",
+            appId: "chat",
+            redirectUri: "",
+            audience: "urn:yeying:app:chat",
+            scopes: ["identity.basic"],
+            expiresAt: "2026-08-24T00:00:00.000Z",
+            verifyUrl:
+              "https://node.example/identity/authorize?requestId=iar_desktop",
+          },
+          timestamp: Date.now(),
+        }) as unknown as Response;
+      },
+    ) as unknown as typeof fetch;
+    jest.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+    await createCentralAuthorizeRequest({
+      appId: "chat",
+      clientType: "desktop",
+      codeChallenge: "challenge-1",
+      scopes: ["identity.basic"],
+    });
+  });
+
   test("exchanges identity code with PKCE and stores DID result", async () => {
     window.__CHAT_RUNTIME_CONFIG__ = {
       centralUcanAuthBaseUrl: "https://node.example",
@@ -182,7 +225,7 @@ describe("central wallet identity authorization", () => {
     window.__CHAT_RUNTIME_CONFIG__ = {
       centralUcanAuthBaseUrl: "https://node.example",
       chatApplicationUid: "chat",
-      centralUcanRedirectUri: "chat://localhost/central-ucan-callback.html",
+      centralUcanRedirectUri: "https://chat.yeying.pub/central-ucan-callback.html",
     } as any;
     localStorage.setItem("ucanAuthMode", "central");
     localStorage.setItem("centralIdentityDid", "did:yeying:wid_refresh_test");
@@ -213,7 +256,7 @@ describe("central wallet identity authorization", () => {
           expect(body).toEqual({
             refreshToken: "refresh-old",
             appId: "chat",
-            redirectUri: "chat://localhost/central-ucan-callback.html",
+            redirectUri: "https://chat.yeying.pub/central-ucan-callback.html",
           });
           return new TestResponse({
             code: 0,

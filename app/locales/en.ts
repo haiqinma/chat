@@ -728,7 +728,7 @@ const en: LocaleType = {
         Endpoint: {
           Title: "Router Endpoint",
           SubTitle: "Leave empty to use the Router page or runtime endpoint",
-          Placeholder: "https://llm.yeying.pub",
+          Placeholder: "",
         },
         Token: {
           Title: "Router Token",
@@ -1255,6 +1255,8 @@ const en: LocaleType = {
     ModelVersion: "Model Version",
     Submit: "Submit",
     ParamIsRequired: (name: string) => `${name} is required`,
+    StylePresets: "Style Presets",
+    SeedRandom: "Randomize",
     Styles: {
       D3Model: "3d-model",
       AnalogFilm: "analog-film",

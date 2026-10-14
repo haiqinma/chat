@@ -46,11 +46,6 @@
   "version": "0.0.31",
   "identifier": "com.yida.chatgpt.next.web",
   "plugins": {
-    "deep-link": {
-      "desktop": {
-        "schemes": ["chat"]
-      }
-    },
     "updater": {
       "windows": {
         "installMode": "passive"

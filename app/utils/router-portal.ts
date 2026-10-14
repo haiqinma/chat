@@ -5,7 +5,7 @@ function normalizeUrl(value: string) {
 }
 
 export function getRouterPortalUrl() {
-  return getClientConfig()?.routerPortalUrl || "https://router.yeying.pub";
+  return getClientConfig()?.routerPortalUrl || "";
 }
 
 export function getRouterPortalPricingUrl() {

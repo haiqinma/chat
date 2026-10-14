@@ -170,7 +170,6 @@ WEBDAV_BACKEND_BASE_URL=http://localhost:6065
 WEBDAV_BACKEND_PREFIX=/dav
 CHAT_APPLICATION_UID=<Node 中 Chat 应用的 applications.uid>
 CENTRAL_UCAN_AUTH_BASE_URL=http://localhost:8100
-CENTRAL_UCAN_REDIRECT_URI=chat://localhost/central-ucan-callback.html
 ```
 
 注意：
@@ -178,11 +177,23 @@ CENTRAL_UCAN_REDIRECT_URI=chat://localhost/central-ucan-callback.html
 - 桌面包的前端公开配置会在 `npm run app:build` 时写入 `out/`，再进入 `.app`
 - 当前版本没有应用内服务地址覆盖设置。修改 `.env.build` 后，已经打出的 `Chat.app` 不会自动读取新值，需要重新执行 `npm run app:build`
 - 桌面构建时配置优先级为：命令行/CI 环境变量 > `.env.build` > 代码默认值；`.env` 即使被 Next 构建日志列出也不会参与桌面配置
-- `CENTRAL_UCAN_REDIRECT_URI` 必须和 Node 中 Chat 应用配置的某一项 `redirectUris` 完全一致；桌面包固定使用 `chat://localhost/central-ucan-callback.html`
-- 桌面本地包的回调地址是 `chat://localhost/central-ucan-callback.html`，不是 `http://localhost:8100`
+- 桌面授权不需要 `CENTRAL_UCAN_REDIRECT_URI`，也不需要在 Chat 应用的 `redirectUris` 中登记桌面回调地址
+- `CENTRAL_UCAN_AUTH_BASE_URL` 只指向 Node 身份服务；它不是回调地址
 - `CHAT_APPLICATION_UID` 是 Node 应用中心 Chat 应用的 `applications.uid`；它同时决定登录 appId、`app:all:<uid>` capability 和 Warehouse `/apps/<uid>` 目录
 
-桌面端运行配置的目标是由 Chat 设置页覆盖 Router、Warehouse/WebDAV 和 Node 身份服务地址，并将覆盖值保存在当前操作系统用户的 Chat 配置中。用户不应被要求编辑 `.env`、`.env.build` 或安装目录文件。`CHAT_APPLICATION_UID` 和 `CENTRAL_UCAN_REDIRECT_URI` 是固定应用身份/协议，不属于可编辑服务地址。设置页功能尚未实现前，继续按上面的 `.env.build` 配置和重新打包流程操作。设计依据见[运行时配置与桌面服务设置方案](../30-architecture/运行时配置与桌面服务设置方案.md)。
+桌面端运行配置的目标是由 Chat 设置页覆盖 Router、Warehouse/WebDAV 和 Node 身份服务地址，并将覆盖值保存在当前操作系统用户的 Chat 配置中。用户不应被要求编辑 `.env`、`.env.build` 或安装目录文件。`CHAT_APPLICATION_UID` 是固定应用身份，不属于可编辑服务地址；桌面登录不再需要 `CENTRAL_UCAN_REDIRECT_URI`。设置页功能尚未实现前，继续按上面的 `.env.build` 配置和重新打包流程操作。设计依据见[运行时配置与桌面服务设置方案](../30-architecture/运行时配置与桌面服务设置方案.md)。
+
+## 桌面端日志位置
+
+桌面版会将前端 `console.warn`、`console.error`、未捕获异常和未处理的 Promise rejection 写入本机日志文件。日志目录按操作系统固定为：
+
+| 操作系统 | 默认日志文件 |
+| --- | --- |
+| macOS | `~/Library/Logs/chat.yeying.pub/chat.log` |
+| Windows | `%LOCALAPPDATA%\chat.yeying.pub\logs\chat.log` |
+| Linux | `$XDG_STATE_HOME/chat.yeying.pub/logs/chat.log`；未设置 `XDG_STATE_HOME` 时为 `~/.local/state/chat.yeying.pub/logs/chat.log` |
+
+日志由桌面应用运行时写入，首次启动时自动创建目录。排查登录、深链回调、Router 请求或 WebDAV 同步问题时，应先关闭并重新打开 Chat，再查看对应平台的日志文件；日志内容可能包含请求地址和错误信息，不要公开上传未经脱敏的完整日志。
 
 Warehouse 本地 CORS 至少应允许桌面 origin 和本地 Web origin：
 
@@ -581,16 +592,16 @@ macOS 主链已经具备 release 构建、updater manifest、DMG 签名、公证
 
 本地构建若不做自动更新发布，继续使用 `npm run app:build` 即可。
 
-### 登录回调地址错误
+### 桌面授权请求失败
 
-如果中心化登录后提示回调失败，或“返回应用 / 重新发起”没有反应，优先检查：
+如果桌面中心化登录请求失败，优先检查：
 
-- `.env.build` 中 `CENTRAL_UCAN_REDIRECT_URI` 是否为 `chat://localhost/central-ucan-callback.html`
-- Node 中 Chat 应用配置的 `redirectUris` 是否包含这一项且完全一致
+- `.env.build` 中 `CHAT_APPLICATION_UID` 是否为 Node 应用中心 Chat 应用的 UID
+- `CENTRAL_UCAN_AUTH_BASE_URL` 是否指向已升级的 Node 身份服务
 - 修改 `.env.build` 后是否重新执行了 `npm run app:build`
 - 当前打开的是否是重新打包后的 `Chat.app`
 
-`CENTRAL_UCAN_AUTH_BASE_URL=http://localhost:8100` 是认证服务地址，不能当成桌面回调地址使用。
+桌面端通过授权请求状态轮询完成 PKCE 交换，不使用回调地址；`CENTRAL_UCAN_AUTH_BASE_URL` 是认证服务地址。
 
 ### 动态验证码失败
 
@@ -613,7 +624,7 @@ macOS 主链已经具备 release 构建、updater manifest、DMG 签名、公证
 4. 当前版本是否在修改 Chat `.env.build` 后重新执行 `npm run app:build`（`.env` 不会被桌面构建读取）
 5. 修改 Warehouse 配置后是否重启 Warehouse
 
-如果 `curl` 直连 Warehouse 成功，但桌面应用里失败，重点看 CORS。桌面端 WebView 的页面 origin 是 `https://tauri.localhost`；这与用于登录回调的 `chat://localhost` 是两个不同的地址。
+如果 `curl` 直连 Warehouse 成功，但桌面应用里失败，重点看 CORS。桌面端 WebView 的页面 origin 是 `https://tauri.localhost`；它与授权请求使用的 HTTPS redirect URI 是不同的概念。
 
 ### 云端存储正常但会话列表为空
 

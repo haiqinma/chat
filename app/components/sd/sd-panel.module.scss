@@ -77,12 +77,24 @@
 }
 
 .control-param-span-half {
-  grid-column: span 6;
+  grid-column: span 3;
   min-width: 0;
 }
 
-.control-param-span-split {
-  grid-column: span 3;
+.control-param-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input[type="range"] {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.control-param-slider-value {
+  flex: none;
+  width: 64px;
   min-width: 0;
 }
 
@@ -395,8 +407,7 @@
   }
 
   .control-param-span-half,
-  .control-param-span-full,
-  .control-param-span-split {
+  .control-param-span-full {
     grid-column: 1 / -1;
   }
 }
@@ -510,6 +521,68 @@
   background: var(--primary);
   border-color: var(--primary);
   color: var(--white);
+}
+
+.style-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.style-chip {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: var(--border-in-light);
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.style-chip-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+
+  &:hover {
+    color: var(--white);
+  }
+}
+
+.seed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.seed-random-button {
+  flex: none;
+  min-height: 32px;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: var(--border-in-light);
+  background: var(--white);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--primary);
+  }
 }
 
 .mask-slider-control {

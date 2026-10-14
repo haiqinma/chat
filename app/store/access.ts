@@ -36,11 +36,7 @@ const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
 
 const isApp = () => getClientConfig()?.buildMode === "export";
 const getDefaultOpenAIUrl = () =>
-  normalizeUrl(
-    getClientConfig()?.routerBackendUrl?.trim() || "https://llm.yeying.pub",
-  );
-const LEGACY_OPENAI_URL = "https://shengnw.win";
-const ROUTER_HOST = "llm.yeying.pub";
+  normalizeUrl(getClientConfig()?.routerBackendUrl?.trim() || "");
 const getRouterBackendHost = () => {
   try {
     const url = getClientConfig()?.routerBackendUrl;
@@ -52,9 +48,7 @@ const getRouterBackendHost = () => {
 };
 
 const getRouterBackendUrl = () =>
-  normalizeUrl(
-    getClientConfig()?.routerBackendUrl?.trim() || "https://llm.yeying.pub",
-  );
+  normalizeUrl(getClientConfig()?.routerBackendUrl?.trim() || "");
 
 const isValidUcanMeta = (): boolean => {
   try {
@@ -82,8 +76,7 @@ const isRouterEndpoint = (url: string | undefined): boolean => {
         : window.location.origin;
     const parsed = new URL(url, base);
     return (
-      parsed.host.includes(ROUTER_HOST) ||
-      (getRouterBackendHost() !== "" && parsed.host === getRouterBackendHost())
+      getRouterBackendHost() !== "" && parsed.host === getRouterBackendHost()
     );
   } catch {
     return false;
@@ -196,9 +189,7 @@ const syncRouterBackendUrlSnapshot = (state: typeof DEFAULT_ACCESS_STATE) => {
   const isDefaultLike =
     normalizedOpenAIUrl === "" ||
     normalizedOpenAIUrl === ApiPath.OpenAI ||
-    normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL) ||
-    normalizedOpenAIUrl === normalizeUrl(LEGACY_OPENAI_URL) ||
-    normalizedOpenAIUrl.includes("llm.yeying.pub");
+    normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL);
 
   if (
     normalizedOpenAIUrl === normalizedSnapshot ||
@@ -394,8 +385,7 @@ export const useAccessStore = createPersistStore(
         const shouldReplaceOpenAIUrl =
           normalizedOpenAIUrl.length === 0 ||
           normalizedOpenAIUrl === ApiPath.OpenAI ||
-          normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL) ||
-          normalizedOpenAIUrl === normalizeUrl(LEGACY_OPENAI_URL);
+          normalizedOpenAIUrl === normalizeUrl(OPENAI_BASE_URL);
 
         if (shouldReplaceOpenAIUrl) {
           state.openaiUrl = getDefaultOpenAIUrl();

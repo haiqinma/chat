@@ -74,6 +74,12 @@ export function useAutoSync() {
         ? getAccountWorkspaceInitialSyncOwner()
         : null;
       if (!enabled) return;
+      // Account workspace isolation must finish switching before sync reads
+      // provider state. Otherwise the auth event can start a sync against the
+      // previous account's workspace during the first login.
+      if (workspaceStatus === "booting" || workspaceStatus === "switching") {
+        return;
+      }
       if (autoSyncInFlight) {
         if (initialWorkspaceSyncPending) {
           if (debounceRef.current) {
@@ -143,7 +149,7 @@ export function useAutoSync() {
         autoSyncInFlight = false;
       }
     },
-    [autoSync, debounceMs, enabled],
+    [autoSync, debounceMs, enabled, workspaceStatus],
   );
 
   const scheduleSync = useCallback(

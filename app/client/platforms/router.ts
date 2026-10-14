@@ -109,8 +109,6 @@ type RouterTokenStatusResponse = {
   data?: RouterTokenStatus;
 };
 
-const ROUTER_HOST = "llm.yeying.pub";
-
 export function isRouterPublicTokenSelectable(token: RouterPublicToken) {
   const status = token.status;
   const statusValue =
@@ -151,8 +149,7 @@ function isRouterUrl(url: string): boolean {
         : window.location.origin;
     const parsed = new URL(url, base);
     return (
-      parsed.host.includes(ROUTER_HOST) ||
-      (getRouterBackendHost() !== "" && parsed.host === getRouterBackendHost())
+      getRouterBackendHost() !== "" && parsed.host === getRouterBackendHost()
     );
   } catch {
     return false;
@@ -235,8 +232,7 @@ function getHeadersForRouterModelAccess(url: string) {
 }
 
 function getRouterBackendBaseUrl() {
-  const routerBackendUrl =
-    getClientConfig()?.routerBackendUrl?.trim() || "http://localhost:3011";
+  const routerBackendUrl = getClientConfig()?.routerBackendUrl?.trim() || "";
   return routerBackendUrl.replace(/\/+$/, "");
 }
 

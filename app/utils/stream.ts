@@ -114,7 +114,15 @@ async function fetchFromTauri(
           : [],
     });
     resolveRequestId?.(result.request_id);
-    return new Response(stream.readable, {
+    // Fetch forbids a body for 204/205/304 responses. Rust still emits the
+    // completion event, but expose these responses with a null body so a
+    // successful WebDAV DELETE is not reported as a 599 transport failure.
+    const responseBody =
+      result.status === 204 || result.status === 205 || result.status === 304
+        ? null
+        : stream.readable;
+    if (!responseBody) close();
+    return new Response(responseBody, {
       status: result.status,
       statusText: result.status_text,
       headers: result.headers,

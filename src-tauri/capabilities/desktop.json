@@ -10,7 +10,6 @@
   ],
   "permissions": [
     "updater:default",
-    "deep-link:default",
     "opener:default"
   ]
 }

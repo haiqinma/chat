@@ -36,6 +36,7 @@ yarn-error.log*
 # Desktop build configuration is machine- and environment-specific.
 # Keep the committed template instead of local app endpoints/AppIds.
 .env.build
+.env.build.prod
 
 # vercel
 .vercel

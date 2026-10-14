@@ -180,8 +180,12 @@ async function initializeSingleClient(
       );
       client = await createClient(clientId, serverConfig);
       const tools = await listTools(client);
+      const toolList = Array.isArray(tools.tools) ? tools.tools : [];
+      const toolNames = toolList
+        .map((tool) => tool.name?.trim())
+        .filter((name): name is string => Boolean(name));
       logger.info(
-        `Supported tools for [${clientId}]: ${JSON.stringify(tools, null, 2)}`,
+        `Supported tools for [${clientId}]: count=${toolList.length}, names=${toolNames.join(", ") || "none"}`,
       );
       clientsMap.set(clientId, { client, tools, errorMsg: null });
       await syncServerStatus(clientId, "active");

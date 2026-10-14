@@ -23,6 +23,7 @@ Chat（UCAN 定制版）
 - AI Native 能力分层架构：[AI Native 能力分层架构](docs/20-product/AI-Native能力分层架构.md)
 - 运行时配置与发包：[运行时配置与发包](docs/50-operations/运行时配置与发包.md)
 - Tauri 桌面端打包发布说明：[Tauri 桌面端迁移清单](docs/50-operations/Tauri桌面端迁移清单.md)
+- 桌面端日志位置见：[Tauri 桌面端迁移清单](docs/50-operations/Tauri桌面端迁移清单.md#桌面端日志位置)
 - Skill / Tool 运行机制：[Chat Skill 与 Tool 运行机制](docs/60-skills-marketplace/Chat%20Skill与Tool运行机制.md)
 
 # 环境要求
@@ -78,7 +79,7 @@ cp .env.build.template .env.build
    - `ROUTER_PORTAL_TOKEN_URL`：Router 令牌页地址（可选，默认继承 `ROUTER_PORTAL_URL`）
    - `ROUTER_PORTAL_RECHARGE_URL`：Router 充值页地址（可选，默认继承 `ROUTER_PORTAL_TOKEN_URL`）
    - `CHAT_APPLICATION_UID`：Node 应用中心中 Chat 应用的 `applications.uid`。它同时是登录 `appId`、UCAN 的 `app:all:<uid>` 资源和 Warehouse `/apps/<uid>` 目录标识。
-   - `CENTRAL_UCAN_REDIRECT_URI`：中心化 UCAN 授权回调地址；Tauri 本地包固定使用 `chat://localhost/central-ucan-callback.html`
+   - `CENTRAL_UCAN_REDIRECT_URI`：Web 版中心化 UCAN 回调地址；桌面版使用独立的轮询授权流程，不需要该配置
    - `WEBDAV_BACKEND_BASE_URL`：WebDAV 后端基础地址（按需配置，不含路径）
    - `WEBDAV_BACKEND_PREFIX`：WebDAV 路径前缀（默认 `/dav`，可选修改）
    - 以及你实际使用的 provider 配置（如 OpenAI / Gemini / Anthropic / Volcengine 等）
@@ -191,7 +192,6 @@ WEBDAV_BACKEND_BASE_URL=http://localhost:6065
 WEBDAV_BACKEND_PREFIX=/dav
 CHAT_APPLICATION_UID=<Node 中 Chat 应用的 applications.uid>
 CENTRAL_UCAN_AUTH_BASE_URL=http://localhost:8100
-CENTRAL_UCAN_REDIRECT_URI=chat://localhost/central-ucan-callback.html
 ```
 
 Web 版登录入口优先使用钱包插件，未检测到钱包时回退到 Node 通行证授权；桌面版不尝试钱包插件，只在系统浏览器中使用 Node 通行证授权。桌面构建仍需配置上述 Node 认证参数，不能通过关闭某个登录模式来绕过。
@@ -211,7 +211,6 @@ WEBDAV_BACKEND_BASE_URL=http://localhost:6065
 WEBDAV_BACKEND_PREFIX=/dav
 CHAT_APPLICATION_UID=<Node 中 Chat 应用的 applications.uid>
 CENTRAL_UCAN_AUTH_BASE_URL=http://localhost:8100
-CENTRAL_UCAN_REDIRECT_URI=chat://localhost/central-ucan-callback.html
 ```
 
 本地验证顺序：

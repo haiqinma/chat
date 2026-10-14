@@ -33,6 +33,7 @@ const DEFAULT_GPT_IMAGE_QUALITY_OPTIONS = [
 ];
 
 const SPEC_PARAM_ORDER = [
+  "negative_prompt",
   "size",
   "image_size",
   "aspect_ratio",
@@ -41,6 +42,7 @@ const SPEC_PARAM_ORDER = [
   "quality",
   "style",
   "n",
+  "seed",
 ];
 
 function isGptImageModel(model?: string) {
@@ -74,6 +76,7 @@ function enumParam(
     type: "select",
     default: options[0].value,
     options,
+    span: "half",
   };
 }
 
@@ -90,6 +93,22 @@ function numberParam(
     default: parameter.min ?? 1,
     min: parameter.min,
     max: parameter.max,
+    span: "half",
+  };
+}
+
+function textareaParam(
+  name: string,
+  value: string,
+  parameter?: ModelParameterSpecification,
+): ImageParamSchema | undefined {
+  if (!parameter) return undefined;
+  return {
+    name,
+    value,
+    type: "textarea",
+    default: "",
+    span: "full",
   };
 }
 
@@ -100,6 +119,7 @@ function defaultSizeParam(): ImageParamSchema {
     type: "select",
     default: DEFAULT_SIZE_OPTIONS[0].value,
     options: DEFAULT_SIZE_OPTIONS,
+    span: "half",
   };
 }
 
@@ -113,6 +133,7 @@ function defaultQualityParam(model?: string): ImageParamSchema {
     type: "select",
     default: options[0].value,
     options,
+    span: "half",
   };
 }
 
@@ -122,6 +143,7 @@ function defaultStyleParam(): ImageParamSchema {
     value: "style",
     type: "select",
     default: "vivid",
+    span: "half",
     options: [
       { name: "vivid", value: "vivid" },
       { name: "natural", value: "natural" },
@@ -132,6 +154,22 @@ function defaultStyleParam(): ImageParamSchema {
 function supportsLegacyStyleParam(model?: string) {
   const normalizedModel = model?.toLowerCase() ?? "";
   return normalizedModel === "dall-e-3";
+}
+
+function withControl(
+  schema: ImageParamSchema | undefined,
+  control: "slider",
+): ImageParamSchema | undefined {
+  if (!schema) return undefined;
+  return { ...schema, control };
+}
+
+function withSpan(
+  schema: ImageParamSchema | undefined,
+  span: "full" | "half",
+): ImageParamSchema | undefined {
+  if (!schema) return undefined;
+  return { ...schema, span };
 }
 
 function buildSpecParam(
@@ -154,11 +192,15 @@ function buildSpecParam(
         (supportsLegacyStyleParam(model) ? defaultStyleParam() : undefined)
       );
     case "width":
-      return numberParam("Width", key, parameter);
+      return withControl(numberParam("Width", key, parameter), "slider");
     case "height":
-      return numberParam("Height", key, parameter);
+      return withControl(numberParam("Height", key, parameter), "slider");
     case "n":
-      return numberParam("N", key, parameter);
+      return withControl(numberParam("N", key, parameter), "slider");
+    case "seed":
+      return withSpan(numberParam("Seed", key, parameter), "full");
+    case "negative_prompt":
+      return textareaParam(Locale.SdPanel.NegativePrompt, key, parameter);
     default:
       return undefined;
   }

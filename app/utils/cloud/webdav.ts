@@ -30,6 +30,8 @@ import {
   releaseUcanSignLock,
 } from "@/app/plugins/ucan-sign-lock";
 import { resolveEffectiveWebdavAddress } from "@/app/utils/cloud/webdav-config";
+import { fetch as desktopAwareFetch } from "@/app/utils/stream";
+import { isDesktopAppRuntime } from "@/app/tauri";
 
 export type WebDAVConfig = SyncStore["webdav"];
 export type WebDavClient = ReturnType<typeof createWebDavClient>;
@@ -585,7 +587,15 @@ async function getUcanWebDavClient(store: SyncStore) {
   const endpoint = joinBasePrefix(backendUrl, webdavPrefix);
   const baseUrl = useProxy ? "" : backendUrl;
   const prefix = useProxy ? WEBDAV_PROXY_PREFIX : webdavPrefix;
-  const fetcher = useProxy ? createWebdavProxyFetcher(endpoint) : undefined;
+  // Tauri WebViews cannot reliably issue cross-origin WebDAV requests with
+  // window.fetch. Route direct desktop requests through the Rust reqwest
+  // bridge, just like the central identity API calls.
+  const fetcher = useProxy
+    ? createWebdavProxyFetcher(endpoint)
+    : isDesktopAppRuntime()
+      ? (input: RequestInfo | URL, init?: RequestInit) =>
+          desktopAwareFetch(input.toString(), init)
+      : undefined;
   const appId = getWebdavAppId();
   const appAction = getWebdavAppAction();
   const invocationCaps = getWebdavCapabilities();

@@ -34,7 +34,6 @@ import {
 import { SideBar } from "./sidebar";
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
-import { publishDesktopDeepLinks } from "./auth";
 import { getClientConfig } from "../config/client";
 import {
   getRouterClientApi,
@@ -71,8 +70,11 @@ import { isGeneralTextChatModel } from "../utils/model";
 import { useChatStore } from "../store/chat";
 import { IconButton } from "./button";
 import ReloadIcon from "../icons/reload.svg";
-import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { isDesktopAppRuntime } from "../tauri";
+import { installDesktopLogging } from "../utils/desktop-log";
+
+if (typeof window !== "undefined") {
+  installDesktopLogging();
+}
 
 const loadFunc = async () => {
   try {
@@ -295,41 +297,6 @@ function Screen() {
     () => sessions.some((session) => session.messages.length > 0),
     [sessions],
   );
-
-  useEffect(() => {
-    if (!isDesktopAppRuntime()) return;
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    void onOpenUrl((urls) => {
-      if (!disposed) publishDesktopDeepLinks(urls);
-    })
-      .then((remove) => {
-        if (disposed) remove();
-        else unlisten = remove;
-      })
-      .catch((error) => {
-        console.error("Failed to subscribe to desktop deep links", error);
-      });
-    void (async () => {
-      for (let attempt = 0; attempt < 20 && !disposed; attempt += 1) {
-        try {
-          const urls = await getCurrent();
-          if (urls?.length) {
-            publishDesktopDeepLinks(urls);
-            return;
-          }
-        } catch (error) {
-          console.error("Failed to read desktop deep links", error);
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    })();
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

@@ -267,7 +267,7 @@ export function ToolMarketPage() {
     try {
       const result = await getClientTools(id);
       if (result) {
-        setTools(result);
+        setTools(result.tools);
       } else {
         throw new Error("Failed to load tools");
       }
@@ -807,9 +807,12 @@ export function ToolMarketPage() {
               <div className={styles["tools-list"]}>
                 {isLoading ? (
                   <div>Loading...</div>
-                ) : tools?.tools ? (
-                  tools.tools.map(
-                    (tool: ListToolsResponse["tools"], index: number) => (
+                ) : tools?.length ? (
+                  tools.map(
+                    (
+                      tool: ListToolsResponse["tools"][number],
+                      index: number,
+                    ) => (
                       <div key={index} className={styles["tool-item"]}>
                         <div className={styles["tool-name"]}>{tool.name}</div>
                         <div className={styles["tool-description"]}>

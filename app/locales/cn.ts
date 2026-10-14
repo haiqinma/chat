@@ -42,7 +42,7 @@ const cn = {
     WalletTitle: "钱包身份登录",
     PasskeyTitle: "通行证登录",
     WalletDescription: "通过钱包扩展完成身份授权",
-    PasskeyDescription: "使用本地通行证完成身份授权",
+    PasskeyDescription: "使用通行证完成身份验证后进入 Chat。",
     WalletHint: "将唤起钱包扩展以确认身份授权。",
     PasskeyHint: "将在 Router 中继续完成通行证验证。",
     PasskeyPreparing: "正在生成通行证二维码...",
@@ -710,7 +710,7 @@ const cn = {
         Endpoint: {
           Title: "Router 地址",
           SubTitle: "留空则使用 Router 页面或运行时配置里的地址",
-          Placeholder: "https://llm.yeying.pub",
+          Placeholder: "",
         },
         Token: {
           Title: "Router 令牌",
@@ -1218,6 +1218,8 @@ const cn = {
     ModelVersion: "模型版本",
     Submit: "提交生成",
     ParamIsRequired: (name: string) => `${name}不能为空`,
+    StylePresets: "风格预设",
+    SeedRandom: "随机种子",
     Styles: {
       D3Model: "3D模型",
       AnalogFilm: "模拟电影",

@@ -10,18 +10,6 @@ function normalizeBaseUrl(raw: string): string {
   return raw.trim().replace(/\/+$/, "");
 }
 
-function deriveDefaultRouterPortalUrl(routerBackendUrl: string): string {
-  try {
-    const parsed = new URL(routerBackendUrl);
-    if (parsed.hostname === "llm.yeying.pub") {
-      return "https://router.yeying.pub";
-    }
-  } catch {
-    // ignore invalid backend url and use hosted portal fallback
-  }
-  return "https://router.yeying.pub";
-}
-
 function normalizePrefix(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed || trimmed === "/") return "";
@@ -83,7 +71,6 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
 
   const buildConfig = getBuildConfig();
   const serverConfig = getServerSideConfig();
-  const defaultRouterBackendUrl = "http://localhost:3011";
 
   const webdavBackendBaseUrlEnv =
     process.env.WEBDAV_BACKEND_BASE_URL?.trim() || "";
@@ -114,11 +101,10 @@ export function getRuntimePublicConfig(): RuntimePublicConfig {
     : "";
 
   const routerBackendUrl = normalizeBaseUrl(
-    process.env.ROUTER_BACKEND_URL?.trim() || defaultRouterBackendUrl,
+    process.env.ROUTER_BACKEND_URL?.trim() || "",
   );
   const routerPortalUrl = normalizeBaseUrl(
-    process.env.ROUTER_PORTAL_URL?.trim() ||
-      deriveDefaultRouterPortalUrl(routerBackendUrl),
+    process.env.ROUTER_PORTAL_URL?.trim() || "",
   );
   const routerPortalTokenUrl = normalizeBaseUrl(
     process.env.ROUTER_PORTAL_TOKEN_URL?.trim() || routerPortalUrl,

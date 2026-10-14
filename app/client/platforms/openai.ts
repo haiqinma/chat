@@ -118,8 +118,6 @@ function resolveImageQuality(model: string, quality?: ImageQuality) {
   return quality;
 }
 
-const ROUTER_HOST = "llm.yeying.pub";
-
 async function uploadGeneratedImageAndGetStableUrlFromBase64(b64Json: string) {
   return await uploadGeneratedImageAndGetStableUrl(
     base64Image2Blob(b64Json, "image/png"),
@@ -143,10 +141,7 @@ function isRouterUrl(url: string): boolean {
         ? "http://localhost"
         : window.location.origin;
     const parsed = new URL(url, base);
-    return (
-      parsed.host.includes(ROUTER_HOST) ||
-      (ROUTER_BACKEND_HOST !== "" && parsed.host === ROUTER_BACKEND_HOST)
-    );
+    return ROUTER_BACKEND_HOST !== "" && parsed.host === ROUTER_BACKEND_HOST;
   } catch {
     return false;
   }

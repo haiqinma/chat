@@ -43,11 +43,9 @@ import {
 import { isVisionCapableModel } from "../utils";
 
 const normalizeUrl = (value: string) => value.replace(/\/+$/, "");
-const ROUTER_BASE_URL =
-  getClientConfig()?.routerBackendUrl || "https://llm.yeying.pub/";
+const ROUTER_BASE_URL = getClientConfig()?.routerBackendUrl || "";
 const ROUTER_BASE_URL_NORMALIZED = normalizeUrl(ROUTER_BASE_URL);
-const ROUTER_PORTAL_URL =
-  getClientConfig()?.routerPortalUrl || "https://router.yeying.pub";
+const ROUTER_PORTAL_URL = getClientConfig()?.routerPortalUrl || "";
 const ROUTER_PORTAL_TOKEN_URL =
   getClientConfig()?.routerPortalTokenUrl || ROUTER_PORTAL_URL;
 const ROUTER_PORTAL_RECHARGE_URL =

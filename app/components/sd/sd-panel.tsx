@@ -626,6 +626,53 @@ function PanelSection(props: {
   );
 }
 
+function splitPromptSegments(prompt: string) {
+  return (prompt || "")
+    .split(",")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function StyleChips(props: {
+  prompt: string;
+  onToggle: (nextPrompt: string) => void;
+}) {
+  const styleList = React.useMemo(
+    () => Object.values(Locale.SdPanel.Styles),
+    [],
+  );
+  const segments = splitPromptSegments(props.prompt);
+
+  const toggleStyle = (style: string) => {
+    const isActive = segments.includes(style);
+    if (isActive) {
+      props.onToggle(segments.filter((item) => item !== style).join(", "));
+      return;
+    }
+    props.onToggle(segments.concat(style).join(", "));
+  };
+
+  return (
+    <div className={styles["style-chips"]}>
+      {styleList.map((style) => {
+        const active = segments.includes(style);
+        return (
+          <button
+            key={style}
+            type="button"
+            className={clsx(styles["style-chip"], {
+              [styles["style-chip-active"]]: active,
+            })}
+            onClick={() => toggleStyle(style)}
+          >
+            {style}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ControlParam(props: {
   columns: any[];
   data: any;
@@ -640,29 +687,11 @@ export function ControlParam(props: {
     >
       {props.columns?.map((item) => {
         let element: null | React.ReactNode;
-        const compactSelectRowFields = [
-          "size",
-          "image_size",
-          "aspect_ratio",
-          "width",
-          "height",
-          "quality",
-          "n",
-          "style",
-        ];
-        const compactSelectIndex = compactSelectRowFields.indexOf(item.value);
-        const hideCompactTitle =
-          props.compact &&
-          (item.type === "select" || item.type === "number") &&
-          compactSelectRowFields.includes(item.value);
+        const span = item.span || (item.type === "textarea" ? "full" : "half");
         const compactItemClass = props.compact
-          ? item.type === "textarea"
+          ? span === "full"
             ? styles["control-param-span-full"]
-            : hideCompactTitle
-              ? compactSelectIndex === 0
-                ? styles["control-param-span-full"]
-                : styles["control-param-span-split"]
-              : styles["control-param-span-half"]
+            : styles["control-param-span-half"]
           : undefined;
         switch (item.type) {
           case "textarea":
@@ -672,7 +701,6 @@ export function ControlParam(props: {
                 subTitle={item.sub}
                 required={item.required}
                 compact={props.compact}
-                hideTitle={hideCompactTitle}
               >
                 <textarea
                   rows={item.rows || 3}
@@ -693,7 +721,6 @@ export function ControlParam(props: {
                 subTitle={item.sub}
                 required={item.required}
                 compact={props.compact}
-                hideTitle={hideCompactTitle}
               >
                 <Select
                   className={styles["control-param-select"]}
@@ -723,18 +750,85 @@ export function ControlParam(props: {
                 subTitle={item.sub}
                 required={item.required}
                 compact={props.compact}
-                hideTitle={hideCompactTitle}
               >
-                <input
-                  aria-label={item.name}
-                  type="number"
-                  min={item.min}
-                  max={item.max}
-                  value={props.data[item.value] || 0}
-                  onChange={(e) => {
-                    props.onChange(item.value, parseInt(e.currentTarget.value));
-                  }}
-                />
+                {item.value === "seed" ? (
+                  <div className={styles["seed-control"]}>
+                    <input
+                      aria-label={item.name}
+                      type="number"
+                      min={item.min}
+                      max={item.max}
+                      value={props.data[item.value] || 0}
+                      onChange={(e) => {
+                        props.onChange(
+                          item.value,
+                          parseInt(e.currentTarget.value),
+                        );
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className={styles["seed-random-button"]}
+                      title={Locale.SdPanel.SeedRandom}
+                      onClick={() => {
+                        const max =
+                          typeof item.max === "number" ? item.max : 2147483647;
+                        const min = typeof item.min === "number" ? item.min : 0;
+                        const next =
+                          min + Math.floor(Math.random() * (max - min + 1));
+                        props.onChange(item.value, next);
+                      }}
+                    >
+                      🎲
+                    </button>
+                  </div>
+                ) : item.control === "slider" &&
+                  typeof item.min === "number" &&
+                  typeof item.max === "number" ? (
+                  <div className={styles["control-param-slider"]}>
+                    <input
+                      type="range"
+                      aria-label={item.name}
+                      min={item.min}
+                      max={item.max}
+                      value={props.data[item.value] || item.min}
+                      onChange={(e) => {
+                        props.onChange(
+                          item.value,
+                          parseInt(e.currentTarget.value),
+                        );
+                      }}
+                    />
+                    <input
+                      type="number"
+                      className={styles["control-param-slider-value"]}
+                      min={item.min}
+                      max={item.max}
+                      value={props.data[item.value] || item.min}
+                      onChange={(e) => {
+                        const raw = parseInt(e.currentTarget.value);
+                        const clamped = Number.isFinite(raw)
+                          ? Math.min(item.max, Math.max(item.min, raw))
+                          : item.min;
+                        props.onChange(item.value, clamped);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <input
+                    aria-label={item.name}
+                    type="number"
+                    min={item.min}
+                    max={item.max}
+                    value={props.data[item.value] || 0}
+                    onChange={(e) => {
+                      props.onChange(
+                        item.value,
+                        parseInt(e.currentTarget.value),
+                      );
+                    }}
+                  />
+                )}
               </ControlParamItem>
             );
             break;
@@ -745,7 +839,6 @@ export function ControlParam(props: {
                 subTitle={item.sub}
                 required={item.required}
                 compact={props.compact}
-                hideTitle={hideCompactTitle}
               >
                 <input
                   aria-label={item.name}
@@ -838,30 +931,6 @@ export function SdPanel() {
     () => (getParams?.(currentModel, params) as any[]) || [],
     [currentModel, params],
   );
-  const orderedModelParams = React.useMemo(() => {
-    const selectorFields = [
-      "size",
-      "image_size",
-      "aspect_ratio",
-      "width",
-      "height",
-      "quality",
-      "n",
-      "style",
-    ];
-    const selectors = selectorFields
-      .map((field) => modelParams.find((item) => item.value === field))
-      .filter(Boolean);
-    const promptField = modelParams.find((item) => item.value === "prompt");
-    const rest = modelParams.filter(
-      (item) => item.value !== "prompt" && !selectorFields.includes(item.value),
-    );
-    return [
-      ...selectors,
-      ...(promptField ? [promptField] : []),
-      ...rest,
-    ] as any[];
-  }, [modelParams]);
   React.useEffect(() => {
     if (imageModels.length === 0) return;
     const matched = imageModels.find(
@@ -1112,10 +1181,19 @@ export function SdPanel() {
           </div>
         </PanelSection>
       )}
+      {hasImageModels &&
+        modelParams.some((item) => item.value === "prompt") && (
+          <PanelSection title={Locale.SdPanel.StylePresets}>
+            <StyleChips
+              prompt={params.prompt || ""}
+              onToggle={(nextPrompt) => handleValueChange("prompt", nextPrompt)}
+            />
+          </PanelSection>
+        )}
       {hasImageModels && (
         <PanelSection title={Locale.Sd.GenerateParams} hideTitle>
           <ControlParam
-            columns={orderedModelParams}
+            columns={modelParams}
             data={params}
             onChange={handleValueChange}
             compact
